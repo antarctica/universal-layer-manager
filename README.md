@@ -3,7 +3,7 @@
 <h1>Universal Layer Manager</h3>
 
 
-Universal, XState-powered layer management for map applications.
+Universal, state-machine-powered layer management for map applications.
 
 
 [![npm version](https://img.shields.io/npm/v/universal-layer-manager.svg)](https://www.npmjs.com/package/universal-layer-manager)
@@ -14,7 +14,7 @@ Universal, XState-powered layer management for map applications.
 
 ### Overview
 
-`universal-layer-manager` provides a small set of XState v5 state machines for managing map layers and layer groups in a framework‑agnostic way.
+`universal-layer-manager` provides a small set of state machines for managing map layers and layer groups in a framework‑agnostic way.
 
 You model your map contents as layers and layer groups, start a single **layer manager** actor, and then:
 
@@ -22,17 +22,16 @@ You model your map contents as layers and layer groups, start a single **layer m
 - control visibility, opacity, and temporal information,
 - and react to emitted events (such as order or visibility changes)
 
-from any UI framework (React, Vue, vanilla JS, etc.).
+from any mapping library (Leaflet, OpenLayers, Mapbox, etc.) and any UI framework (React, Vue, vanilla JS, etc.).
 
 ### Features
 
-- **XState v5 actor model**: Uses XState actors for the manager, layers, and layer groups.
+- **XState actor model**: Uses XState actors for the manager, layers, and layer groups.
 - **Layers and layer groups**: Model single layers or tree‑like groups with optional nesting.
-- **Framework‑agnostic**: Pure TypeScript/XState core that works with any UI rendering layer.
+- **Framework‑agnostic**: Pure TypeScript/XState core that works with any mapping library and any UI rendering layer.
 - **Visibility and opacity**: Per‑layer enable/disable, visibility, and computed opacity that cascades through parents.
 - **Time metadata**: Optional `LayerTimeInfo` using `@internationalized/date` for date and date‑time ranges.
 - **Typed events**: Strongly typed input and output events for building reactive UIs.
-- **Utilities included**: Helpers for querying and ordering layers (`findManagedLayerById`, `getFlatLayerOrder`, `calculateComputedOpacity`, and more).
 
 ### Installation
 
@@ -41,24 +40,23 @@ npm install universal-layer-manager
 ```
 
 ### Quick Start
-
-This example shows how to create a layer manager, register listeners up‑front, add a couple of layers, and then change visibility.  
-It follows the **Introduce Parameter Object** refactoring from Martin Fowler by grouping layer configuration into `LayerConfig`.
+This example shows how to create a layer manager, register listeners, add a couple of layers, and then change visibility.  
 
 ```ts
-import { createActor } from 'xstate';
+import type { LayerConfig, LayerGroupConfig } from 'universal-layer-manager';
 import {
   createLayerManagerMachine,
-  type LayerConfig,
-  type LayerGroupConfig,
+  findManagedLayerById,
 } from 'universal-layer-manager';
+import { createActor } from 'xstate';
 
+// Define internal data types for the layers and layer groups.
 interface LayerData {
-  id: string;
+  notes: string;
 }
 
 interface GroupData {
-  name: string;
+  reference: string;
 }
 
 // 1. Create the manager machine and actor
@@ -70,78 +68,84 @@ const manager = createActor(managerMachine, {
   },
 });
 
-// 2. Register listeners before changing any state
-manager.on('LAYER.ORDER_CHANGED', (event) => {
-  console.log('Flat layer order:', event.layerOrder);
+// 2. Register listeners
+
+// will fire when a layer is added to the manager
+manager.on('LAYER.ADDED', (event) => {
+  console.log('Layer added:', event.layerId);
 });
 
+// will fire when the visibility of a layer is changed
 manager.on('LAYER.VISIBILITY_CHANGED', (event) => {
   console.log(`Layer ${event.layerId} visible:`, event.visible);
 });
 
+// 3. Start the manager
 manager.start();
 
-// 3. Define layer configs
-const baseLayerConfig: LayerConfig<LayerData> = {
-  layerId: 'base',
-  layerName: 'Base map',
-  parentId: null,
+// 4. Add an example layer
+const exampleLayerConfig: LayerConfig<LayerData> = {
+  layerId: 'example',
+  layerName: 'Example layer',
+  parentId: null, // no parent as it sits at the top level
   layerType: 'layer',
-  layerData: { id: 'osm' },
+  layerData: { notes: 'This is an example layer' },
 };
 
-const roadsLayerConfig: LayerConfig<LayerData> = {
-  layerId: 'roads',
-  layerName: 'Road network',
-  parentId: null,
-  layerType: 'layer',
-  layerData: { id: 'roads-source' },
-};
+manager.send({
+  type: 'LAYER.ADD',
+  params: {
+    layerConfig: exampleLayerConfig,
+    visible: true,
+  },
+});
 
-const overlaysGroupConfig: LayerGroupConfig<LayerData, GroupData> = {
+// 5. Add an example group with a child layer
+const exampleGroupConfig: LayerGroupConfig<LayerData, GroupData> = {
   layerId: 'overlays',
   layerName: 'Overlays',
-  parentId: null,
+  parentId: null, // no parent as it sits at the top level
   layerType: 'layerGroup',
-  layerData: { name: 'Overlays group' },
-  listMode: 'show',
+  layerData: { reference: 'This is an example group' },
 };
 
-// 4. Add layers via manager events
 manager.send({
   type: 'LAYER.ADD',
   params: {
-    layerConfig: baseLayerConfig,
+    layerConfig: exampleGroupConfig,
     visible: true,
-    position: 'bottom',
   },
 });
+
+const exampleChildLayerConfig: LayerConfig<LayerData> = {
+  layerId: 'example-child',
+  layerName: 'Example child layer',
+  parentId: 'overlays', // the parent is the group we added above
+  layerType: 'layer',
+  layerData: { notes: 'This is an example child layer' },
+};
 
 manager.send({
   type: 'LAYER.ADD',
   params: {
-    layerConfig: roadsLayerConfig,
+    layerConfig: exampleChildLayerConfig,
     visible: true,
-    position: 'top',
   },
 });
 
-manager.send({
-  type: 'LAYER.ADD',
-  params: {
-    layerConfig: overlaysGroupConfig,
-    visible: true,
-    position: 'top',
-  },
-});
+// 6. access the current layers
+const currentLayers = manager.getSnapshot().context.layers;
+console.log('Current layers:', currentLayers.map((layer) => layer.layerActor.id));
 
-// 5. Change visibility through the manager
-// This will trigger the LAYER.VISIBILITY_CHANGED listener above.
-manager.send({
-  type: 'LAYER.UPDATE_VISIBILITY',
-  layerId: 'roads',
-  visible: false,
-});
+// 7. change the visibility of the example layer
+const exampleLayerActor = findManagedLayerById(currentLayers, 'example')?.layerActor;
+
+if (exampleLayerActor) {
+  exampleLayerActor.send({
+    type: 'LAYER.ENABLED' });
+}
+// this will trigger the LAYER.VISIBILITY_CHANGED listener above.
+
 ```
 
 To integrate with React, you can use `@xstate/react` and wrap the manager actor in a context provider, as shown in the `examples/simple` app.
