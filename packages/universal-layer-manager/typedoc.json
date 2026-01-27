@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "name": "NMEA Web Serial",
+  "name": "Universal Layer Manager",
   "readme": "../../README.md",
   "entryPoints": ["src"],
   "sort": ["source-order"],

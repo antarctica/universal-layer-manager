@@ -1,9 +1,9 @@
 
 <img src="./packages/universal-layer-manager/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
-<h1>Universal Layer Manager</h3>
 
 
-Universal, state-machine-powered layer management for map applications.
+
+# A universal, state-machine-powered layer management library for map applications.
 
 
 [![npm version](https://img.shields.io/npm/v/universal-layer-manager.svg)](https://www.npmjs.com/package/universal-layer-manager)
