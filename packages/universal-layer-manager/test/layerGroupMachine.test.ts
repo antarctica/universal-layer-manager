@@ -30,7 +30,7 @@ describe('layerGroupMachine', () => {
       expect(snapshot.matches({ enabled: 'visible' })).toBe(true);
     });
 
-    it('initializes with custom opacity', () => {
+    it('initialises with custom opacity', () => {
       // Setup: Create a layer group with custom opacity
       const layerManager = createTestLayerManager();
       const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ opacity: 0.5 }));
@@ -39,7 +39,7 @@ describe('layerGroupMachine', () => {
       expect(groupActor.getSnapshot().context.opacity).toBe(0.5);
     });
 
-    it('initializes with custom layer data', () => {
+    it('initialises with custom layer data', () => {
       // Setup: Create a layer group with custom layer data
       const customData = { test: 'custom-group' };
       const layerManager = createTestLayerManager();
@@ -49,7 +49,7 @@ describe('layerGroupMachine', () => {
       expect(groupActor.getSnapshot().context.layerData).toEqual(customData);
     });
 
-    it('initializes with time info', () => {
+    it('initialises with time info', () => {
       // Setup: Create a layer group with time information
       const timeInfo: SingleTimeInfo = {
         type: 'single',

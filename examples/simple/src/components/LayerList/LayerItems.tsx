@@ -31,8 +31,7 @@ export function LayerItem({ layerActor, indent }: SingleLayerItemProps) {
       style={{
         'marginLeft': `${indent * 20}px`,
         'marginBottom': '5px',
-        '--opacity': opacity.toString(),
-        '--parent-opacity': computedOpacity.toString(),
+        '--opacity': computedOpacity.toString(),
       } as React.CSSProperties}
     >
       <div
@@ -92,8 +91,7 @@ export function LayerGroupItem({ layerActor, indent }: LayerGroupItemProps) {
       style={{
         'marginLeft': `${indent * 20}px`,
         'marginBottom': '5px',
-        '--opacity': opacity.toString(),
-        '--parent-opacity': computedOpacity.toString(),
+        '--opacity': computedOpacity.toString(),
       } as React.CSSProperties}
     >
       <div

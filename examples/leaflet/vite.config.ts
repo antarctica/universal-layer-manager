@@ -1,9 +1,9 @@
-import process from 'node:process'
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import process from 'node:process';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
-  const isProduction = mode === 'production'
+  const isProduction = mode === 'production';
 
   return {
     // For GitHub Pages, use the repository name as base path
@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
     base: isProduction ? (process.env.VITE_BASE_PATH || '/nmea-web-serial/') : '/',
     plugins: [react()],
     server: {
-      port: 5175,
+      port: 5176,
     },
-  }
-})
+  };
+});

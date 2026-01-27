@@ -28,7 +28,7 @@ describe('layerMachine', () => {
       expect(snapshot.context.layerType).toBe('layer');
     });
 
-    it('initializes with custom opacity', () => {
+    it('initialises with custom opacity', () => {
       // Setup: Create a layer with custom opacity
       const { layerActor } = createLayerWithManager({ opacity: 0.3 });
 
@@ -36,7 +36,7 @@ describe('layerMachine', () => {
       expect(layerActor.getSnapshot().context.opacity).toBe(0.3);
     });
 
-    it('initializes with custom layer data', () => {
+    it('initialises with custom layer data', () => {
       // Setup: Create a layer with custom layer data
       const customData = { test: 'custom-1' };
       const { layerActor } = createLayerWithManager({ layerData: customData });
@@ -45,7 +45,7 @@ describe('layerMachine', () => {
       expect(layerActor.getSnapshot().context.layerData).toEqual(customData);
     });
 
-    it('initializes with time info', () => {
+    it('initialises with time info', () => {
       // Setup: Create a layer with time information
       const timeInfo: SingleTimeInfo = {
         type: 'single',

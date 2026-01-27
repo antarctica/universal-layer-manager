@@ -24,7 +24,7 @@ describe('layerManagerMachine', () => {
       expect(snapshot.context.allowNestedGroupLayers).toBe(true);
     });
 
-    it('initializes with allowNestedGroupLayers option', () => {
+    it('initialises with allowNestedGroupLayers option', () => {
       // Setup: Create a manager with nested groups disabled
       const layerManager = createTestLayerManager({ allowNestedGroupLayers: false });
 

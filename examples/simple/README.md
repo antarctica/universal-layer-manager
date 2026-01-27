@@ -1,6 +1,8 @@
-# NMEA Web Serial - XState React Example
+# Universal Layer Manager - Simple Example
 
-This is a React example using XState to demonstrate how to use the NMEA Web Serial library.
+This is a simple example using React to demonstrate how to use the Universal Layer Manager library. It demonstrates how to use the library to manage layers and layer groups in a simple UI without any map integration.
+
+Layers and Layer Groups can be added and opacity can be adjusted.
 
 ## Setup
 
@@ -10,16 +12,7 @@ From the root directory:
 npm install
 ```
 
-This will install dependencies for the workspace, including the example. The example uses the local `nmea-web-serial` package via workspace linking.
-
-Or from the example directory:
-
-```bash
-cd examples/xstate-react
-npm install
-```
-
-This will install the example's dependencies, linking to the local `nmea-web-serial` package.
+This will install dependencies for the workspace, including the example. The example uses the local `universal-layer-manager` package via workspace linking.
 
 ## Development
 
@@ -28,18 +21,15 @@ npm run dev
 ```
 
 ## What the example demonstrates
-
-- Connecting to a serial port via the Web Serial API
-- Parsing NMEA sentences in real-time
-- Displaying navigation data (time, position, speed, heading, depth)
-- Managing connection state with XState and React hooks
+- Using the Universal Layer Manager library to manage layers and layer groups
+- Creating a simple UI for managing layers and layer groups
+- Using React hooks to subscribe to layer state changes and update the UI accordingly
 
 ## How it works
 
 The example uses:
-- `createNavigationNmeaMachine()` to create an XState machine configured for navigation data
-- `useMachine()` hook from `@xstate/react` to automatically start and manage the machine lifecycle
-- React components to render the UI reactively based on state
-- TypeScript for type safety
-
-This demonstrates the same functionality as the vanilla example but uses React for the UI layer, making it easier to build more complex interfaces. The `useMachine()` hook automatically handles starting and stopping the machine, making it simpler than manually managing actors.
+- `LayerManagerProvider` to create a layer manager actor and provide the context to React components
+- `LayerList` component that renders a list of layers and layer groups
+- `LayerGroupItem` component that renders a layer group
+- `LayerItem` component that renders a single layer
+- `LayerControls` component that renders the controls for adding new layers and layer groups
