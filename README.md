@@ -1,10 +1,10 @@
-<p align="center" style="margin-bottom: 0;">
-  <img src="./packages/universal-layer-manager/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
-</p>
 
-<h3 align="center" style="margin-top: 0.5em;">Universal Layer Manager</h3>
+<img src="./packages/universal-layer-manager/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
+<h1>Universal Layer Manager</h3>
+
 
 Universal, XState-powered layer management for map applications.
+
 
 [![npm version](https://img.shields.io/npm/v/universal-layer-manager.svg)](https://www.npmjs.com/package/universal-layer-manager)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
