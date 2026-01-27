@@ -1,74 +1,29 @@
 {
-  "name": "universal-layer-manager",
-  "type": "module",
-  "version": "1.0.0",
+  "name": "my-monorepo",
+  "private": true,
   "packageManager": "npm@10.8.2",
-  "description": "A universal layer manager for map applications",
-  "author": {
-    "name": "Jonathan Dawe",
-    "email": "jonwe@bas.ac.uk"
-  },
-  "homepage": "https://github.com/antarctica/universal-layer-manager#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/antarctica/universal-layer-manager.git"
-  },
-  "bugs": {
-    "url": "https://github.com/antarctica/universal-layer-manager/issues"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/universal-layer-manager.js",
-      "require": "./dist/universal-layer-manager.cjs"
-    }
-  },
-  "main": "./dist/universal-layer-manager.cjs",
-  "module": "./dist/universal-layer-manager.js",
-  "types": "./dist/universal-layer-manager.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "build:all": "turbo run build",
-    "lint": "eslint . --fix",
-    "lint:all": "turbo run lint",
-    "test": "vitest --run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest --coverage",
-    "test:all": "turbo run test",
-    "docs": "typedoc",
-    "release": "npm run build && changelogen --release --push && npm publish",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
     "prepare": "husky install"
   },
-  "dependencies": {
-    "@internationalized/date": "^3.10.1",
-    "xstate": "^5.24.0"
-  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
   "devDependencies": {
+    "husky": "^9.1.7",
+    "turbo": "^2.0.0",
+    "typescript": "^5.9.3",
+    "eslint": "^9.39.1",
     "@antfu/eslint-config": "^4.19.0",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@types/node": "^22.19.0",
-    "@types/w3c-web-serial": "^1.0.8",
-    "@vitest/coverage-v8": "^4.0.7",
-    "camelcase": "^8.0.0",
-    "changelogen": "^0.6.2",
-    "eslint": "^9.39.1",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.6",
-    "turbo": "^2.0.0",
-    "typedoc": "^0.28.14",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.1",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.7"
+    "lint-staged": "^16.2.6"
   },
   "lint-staged": {
-    "*.ts": "npm run lint"
-  },
-  "workspaces": [
-    "examples/*"
-  ]
+    "*.{ts,tsx,js,jsx}": "eslint --fix"
+  }
 }

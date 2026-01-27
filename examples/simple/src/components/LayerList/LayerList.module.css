@@ -1,0 +1,47 @@
+.controls {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.layerItem {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.layerItem.visible {
+  background-color: hsla(120, 100%, 70%, var(--opacity, 1));
+}
+
+.layerItem.hidden {
+  background-color: hsla(0, 100%, 70%, var(--opacity, 1));
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.labelText {
+  margin-left: 0.3125rem;
+}
+
+.opacityControls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.opacitySlider {
+  width: 100px;
+}
+
+.opacityValue {
+  min-width: 40px;
+}
