@@ -35,9 +35,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "docs": "typedoc",
-    "changelog:preview": "changelogen",
-    "changelog:release": "changelogen --release",
-    "release": "npm run build && npm run changelog:release && npm publish"
+    "changelog:release": "changelogen --release --no-commit --no-tag",
+    "release": "npm run build && npm publish"
   },
   "dependencies": {
     "@internationalized/date": "^3.10.1",
