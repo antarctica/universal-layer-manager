@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     // For GitHub Pages, use the repository name as base path
     // Set VITE_BASE_PATH env var to override (e.g., '/' for root)
     // Only use base path in production builds
-    base: isProduction ? (process.env.VITE_BASE_PATH || '/nmea-web-serial/') : '/',
+    base: isProduction ? (process.env.VITE_BASE_PATH || '/universal-layer-manager/') : '/',
     plugins: [react()],
     server: {
       port: 5176,

@@ -1,0 +1,101 @@
+name: Deploy Documentation and Examples to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Build TypeDoc documentation
+        working-directory: ./packages/universal-layer-manager
+        run: npm run docs
+
+      - name: Build simple example
+        working-directory: ./examples/simple
+        env:
+          VITE_BASE_PATH: /universal-layer-manager/examples/simple/
+        run: npm run build
+
+      - name: Build leaflet example
+        working-directory: ./examples/leaflet
+        env:
+          VITE_BASE_PATH: /universal-layer-manager/examples/leaflet/
+        run: npm run build
+
+      - name: Prepare GitHub Pages structure
+        run: |
+          mkdir -p gh-pages
+          # Copy TypeDoc documentation to root
+          cp -r packages/universal-layer-manager/docs/* gh-pages/
+          # Copy examples to subdirectories
+          mkdir -p gh-pages/examples/simple
+          cp -r examples/simple/dist/* gh-pages/examples/simple/
+          mkdir -p gh-pages/examples/leaflet
+          cp -r examples/leaflet/dist/* gh-pages/examples/leaflet/
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "gh-pages" ]; then
+            echo "Error: gh-pages directory not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/index.html" ]; then
+            echo "Error: gh-pages/index.html (TypeDoc) not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/examples/simple/index.html" ]; then
+            echo "Error: simple example not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/examples/leaflet/index.html" ]; then
+            echo "Error: leaflet example not found"
+            exit 1
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./gh-pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

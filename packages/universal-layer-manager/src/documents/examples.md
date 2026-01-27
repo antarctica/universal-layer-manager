@@ -5,38 +5,31 @@ group: Documentation
 
 # Example Implementations
 
-This library includes several example implementations demonstrating different ways to use the NMEA Web Serial library. Each example is available in the [GitHub repository](https://github.com/antarctica/nmea-web-serial).
+This library includes several example implementations demonstrating different ways to use the Universal Layer Manager library. Each example is available in the [GitHub repository](https://github.com/antarctica/universal-layer-manager).
 
-## Client API - Vanilla JavaScript
+## Simple - React
 
-**Live Demo:** [View Example](https://antarctica.github.io/nmea-web-serial/examples/client-vanilla/)
-**Source Code:** [`examples/client-vanilla`](https://github.com/antarctica/nmea-web-serial/tree/main/examples/client-vanilla)
+**Source Code:** [`examples/simple`](https://github.com/antarctica/universal-layer-manager/tree/main/examples/simple)
 
-A vanilla HTML/TypeScript example using the Client API. This demonstrates the simplest way to use the library without directly working with XState machines.
-
-**Key features:**
-- Uses `NavigationNmeaClient` class to create a client instance with callbacks
-- Simple callback-based API (`onData`, `onStateChange`, `onError`)
-- No framework required - pure TypeScript/JavaScript
-
-## XState - React
-
-**Live Demo:** [View Example](https://antarctica.github.io/nmea-web-serial/examples/xstate-react/)
-**Source Code:** [`examples/xstate-react`](https://github.com/antarctica/nmea-web-serial/tree/main/examples/xstate-react)
-
-A React example using XState to demonstrate how to use the NMEA Web Serial library with React hooks.
+A minimal React example demonstrating basic layer manager usage without any map integration. This is the simplest way to get started with the library.
 
 **Key features:**
-- Uses `createNavigationNmeaMachine()` to create an XState machine
-- Uses `useMachine` hook from `@xstate/react` for reactive state management when using XState with React.
+- Uses `createLayerManagerMachine()` from `universal-layer-manager` to create a layer manager machine
+- Uses `LayerManagerProvider` to provide the layer manager context to React components via XState's actor context
+- Demonstrates managing layers and layer groups in a simple UI
+- Uses React hooks to subscribe to layer state changes and update the UI accordingly
+- Shows how to add layers, layer groups, and adjust opacity without any map library dependencies
 
-## XState - Vanilla JavaScript
+## Leaflet - React
 
-**Live Demo:** [View Example](https://antarctica.github.io/nmea-web-serial/examples/xstate-vanilla/)
-**Source Code:** [`examples/xstate-vanilla`](https://github.com/antarctica/nmea-web-serial/tree/main/examples/xstate-vanilla)
+**Source Code:** [`examples/leaflet`](https://github.com/antarctica/universal-layer-manager/tree/main/examples/leaflet)
 
-A vanilla HTML/TypeScript example using XState to demonstrate how to use the NMEA Web Serial library without React.
+A React + Leaflet example demonstrating how to integrate the universal-layer-manager with Leaflet maps. This shows how to sync layer manager state with actual map layers.
 
 **Key features:**
-- Uses `createNavigationNmeaMachine()` to create an XState machine
-- Uses `createActor` from XState to create an actor instance from the machine.
+- Uses `createLayerManagerMachine()` from `universal-layer-manager` wrapped in `createActorContext()` to create a layer manager machine
+- Uses `LayerManagerProvider` to provide the layer manager context to React components via XState's actor context
+- Integrates with Leaflet maps by syncing layer manager state (visibility, opacity) with Leaflet layers
+- Demonstrates managing tile layers and markers through the layer manager
+- Uses event subscriptions to sync layer visibility and opacity changes between the layer manager and Leaflet map
+- Shows how to handle nested layer groups with map layers
