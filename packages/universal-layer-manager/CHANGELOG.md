@@ -1,4 +1,16 @@
 
+## v1.0.2
+
+[compare changes](https://github.com/antarctica/universal-layer-manager/compare/v1.0.1...v1.0.2)
+
+### 🏡 Chore
+
+- Update Vite config to not inline external dependencies ([8441986](https://github.com/antarctica/universal-layer-manager/commit/8441986))
+
+### ❤️ Contributors
+
+- Jonny Dawe <jonwe@bas.ac.uk>
+
 ## v1.0.1
 
 
