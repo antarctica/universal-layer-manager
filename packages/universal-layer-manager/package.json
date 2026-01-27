@@ -1,7 +1,7 @@
 {
   "name": "universal-layer-manager",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A universal layer manager for map applications",
   "author": {
     "name": "Jonathan Dawe",
@@ -35,7 +35,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "docs": "typedoc",
-    "release": "npm run build && changelogen --release --push && npm publish"
+    "changelog:preview": "changelogen",
+    "changelog:release": "changelogen --release",
+    "release": "npm run build && npm run changelog:release && npm publish"
   },
   "dependencies": {
     "@internationalized/date": "^3.10.1",

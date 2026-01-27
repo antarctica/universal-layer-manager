@@ -1,5 +1,5 @@
 {
-  "name": "my-monorepo",
+  "name": "universal-layer-manager-monorepo",
   "private": true,
   "packageManager": "npm@10.8.2",
   "scripts": {
