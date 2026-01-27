@@ -1,6 +1,18 @@
+import * as L from 'leaflet';
+import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
+import icon from 'leaflet/dist/images/marker-icon.png';
+
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { LayerList } from './components/LayerList/LayerList';
 import { LeafletMap } from './components/LeafletMap';
 import { LayerManagerProvider } from './layerManager/LayerManagerProvider';
+
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: icon,
+  iconRetinaUrl: iconRetina,
+  shadowUrl: iconShadow,
+});
 
 // Simple side‑by‑side layout:
 // - Left: controls for adding, grouping and toggling layers
