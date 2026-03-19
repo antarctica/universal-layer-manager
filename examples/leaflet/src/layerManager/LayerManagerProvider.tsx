@@ -7,7 +7,8 @@ import type * as L from 'leaflet';
 import type { SnapshotFrom } from 'xstate';
 import { LayerManager } from '@ulm/core';
 import { useSelector } from '@xstate/react';
-import React, { createContext, useContext, useRef } from 'react';
+import * as React from 'react';
+import { createContext, useContext, useRef } from 'react';
 
 // Extra data we store on each managed layer in this example.
 export interface LayerData {

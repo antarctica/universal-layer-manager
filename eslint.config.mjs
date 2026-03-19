@@ -3,6 +3,7 @@ import antfu from '@antfu/eslint-config';
 export default antfu(
   {
     typescript: true,
+    react: true,
     ignores: [
       '.github',
       'dist',
@@ -12,6 +13,7 @@ export default antfu(
   },
   {
     rules: {
+      'react-refresh/only-export-components': 'off',
       'style/brace-style': ['error', '1tbs'],
       'style/arrow-parens': ['error', 'always'],
       'curly': ['error', 'all'],

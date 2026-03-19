@@ -16,10 +16,13 @@
     "examples/*"
   ],
   "devDependencies": {
-    "@antfu/eslint-config": "^4.19.0",
+    "@antfu/eslint-config": "^7.7.3",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "eslint": "^9.39.1",
+    "@eslint-react/eslint-plugin": "^2.13.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "turbo": "^2.0.0",

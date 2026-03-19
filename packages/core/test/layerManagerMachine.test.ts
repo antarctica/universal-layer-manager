@@ -140,7 +140,7 @@ describe('layerManagerMachine', () => {
       // Verify: Layer is added at the top (end of array)
       const managerSnapshot = layerManager.getSnapshot();
       const order = managerSnapshot.context.childLayerOrder;
-      expect(order[order.length - 1]).toBe('layer-top');
+      expect(order.at(-1)).toBe('layer-top');
     });
 
     it('adds layer at bottom position', () => {

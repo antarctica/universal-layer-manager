@@ -142,7 +142,7 @@ describe('layerGroupMachine', () => {
       // Verify: Child is added at the top (end of array)
       const groupSnapshot = groupActor.getSnapshot();
       const order = groupSnapshot.context.childLayerOrder;
-      expect(order[order.length - 1]).toBe('child-top');
+      expect(order.at(-1)).toBe('child-top');
     });
 
     it('adds child layer at bottom position', () => {

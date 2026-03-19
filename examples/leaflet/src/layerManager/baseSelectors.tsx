@@ -2,7 +2,7 @@ import type { LayerGroupMachineActor } from '@ulm/core';
 import { getLayerGroupChildrenInOrder, getTopLevelLayersInOrder } from '@ulm/core';
 
 import { useSelector } from '@xstate/react';
-import React from 'react';
+import * as React from 'react';
 import { useLayerManager } from './LayerManagerProvider';
 
 export function useTopLevelLayers() {
