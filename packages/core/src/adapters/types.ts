@@ -1,13 +1,13 @@
 import type { LayerManager } from '../LayerManager';
-import type { LayerContext, LayerGroupContext, ManagedItem } from '../types';
+import type { LayerContext, LayerGroupContext, LayerTimeInfo, ManagedItem } from '../types';
 
 // ============================================================================
 // ADAPTER LAYER INFO
 // Stable, non-XState shape passed to adapter methods and consumer callbacks.
 // ============================================================================
-export type LayerInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef'> & { visible: boolean; parentId: string | null };
+export type LayerInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
-export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder'> & { visible: boolean; parentId: string | null };
+export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
 export type ManagedLayerInfo<TLayer = unknown, TGroup = TLayer> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
 
@@ -50,6 +50,9 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = unknown> {
 
   /** Called when a layer's computed opacity changes. */
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
+
+  /** Called when a layer's time info is updated. */
+  onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
 
   /** Called when a layer's data payload is updated. */
   onLayerDataChanged?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;

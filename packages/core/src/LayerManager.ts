@@ -1,7 +1,7 @@
 import type { LayerManagerAdapter, LayerManagerCallbacks, ManagedLayerInfo } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
-import type { AddGroupLayerParams, AddLayerParams, ManagedItem } from './types';
+import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem } from './types';
 import { createActor } from 'xstate';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
 import { isLayerMachine } from './types';
@@ -22,6 +22,8 @@ export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   onVisibilityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean) => void;
   /** Called whenever a layer's computed opacity changes. */
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
+  /** Called whenever a layer's time info changes. */
+  onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
   /** Called when an internal error occurs. */
   onError?: (error: Error) => void;
 }
@@ -179,6 +181,15 @@ export class LayerManager<TLayer, TGroup = undefined> {
     managed.layerActor.send({ type: 'LAYER.SET_OPACITY', opacity });
   }
 
+  /** Sets the time info for the layer with the given `layerId`. */
+  setTimeInfo(layerId: string, timeInfo: LayerTimeInfo): void {
+    const managed = this.getLayer(layerId);
+    if (!managed) {
+      return;
+    }
+    managed.layerActor.send({ type: 'LAYER.SET_TIME_INFO', timeInfo });
+  }
+
   /** Replaces the `layerData` payload for the layer or group with the given `layerId`. */
   updateLayerData(layerId: string, layerData: TLayer | TGroup): void {
     const managed = this.getLayer(layerId);
@@ -230,6 +241,16 @@ export class LayerManager<TLayer, TGroup = undefined> {
     });
     this._subscriptions.push(() => opacitySub.unsubscribe());
 
+    const timeInfoSub = this._actor.on('LAYER.TIME_INFO_CHANGED', (event) => {
+      const info = this._toManagedLayerInfo(event.layerId);
+      if (!info) {
+        return;
+      }
+      this._adapter?.onTimeInfoChanged?.(info, event.timeInfo);
+      this._options.onTimeInfoChanged?.(info, event.timeInfo);
+    });
+    this._subscriptions.push(() => timeInfoSub.unsubscribe());
+
     const layerDataSub = this._actor.on('LAYER.LAYER_DATA_CHANGED', (event) => {
       const info = this._toManagedLayerInfo(event.layerId);
       if (!info) {
@@ -269,6 +290,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
     }
 
     const snapshot = managed.layerActor.getSnapshot();
+    const isEnabled = snapshot.matches('enabled');
     const isVisible = visible ?? snapshot.matches({ enabled: 'visible' });
 
     if (isLayerMachine(managed.layerActor)) {
@@ -280,6 +302,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
         layerData: ctx.layerData,
         opacity: ctx.opacity,
         computedOpacity: ctx.computedOpacity,
+        enabled: isEnabled,
         visible: isVisible,
         timeInfo: ctx.timeInfo,
         listMode: ctx.listMode,
@@ -294,6 +317,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
         layerData: ctx.layerData,
         opacity: ctx.opacity,
         computedOpacity: ctx.computedOpacity,
+        enabled: isEnabled,
         visible: isVisible,
         timeInfo: ctx.timeInfo,
         listMode: ctx.listMode,

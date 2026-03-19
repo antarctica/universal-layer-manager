@@ -105,7 +105,15 @@ manager.destroy();
 | `onLayerRemoved` | `(layerId) => void` | Called when a layer or group is removed |
 | `onVisibilityChanged` | `(info, visible) => void` | Called on visibility toggle |
 | `onOpacityChanged` | `(info, computedOpacity) => void` | Called when opacity changes (cascades from parents) |
+| `onTimeInfoChanged` | `(info, timeInfo) => void` | Called when a layer's time info changes |
 | `onError` | `(error) => void` | Called on internal errors |
+
+The `info` object passed to callbacks is a `ManagedLayerInfo` with two distinct boolean fields:
+
+- `enabled` — the user has enabled (`true`) or disabled (`false`) this layer
+- `visible` — the layer is actually rendering, i.e. it is enabled *and* its parent group is not hidden
+
+A layer can be `enabled: true` but `visible: false` when a parent group is hidden.
 
 **Methods:**
 
@@ -116,6 +124,7 @@ manager.destroy();
 | `removeLayer(layerId)` | Remove a layer or group by ID |
 | `setVisibility(layerId, visible)` | Show or hide a layer |
 | `setOpacity(layerId, opacity)` | Set opacity (0–1) |
+| `setTimeInfo(layerId, timeInfo)` | Set the time info (`LayerTimeInfo`) for a layer |
 | `updateLayerData(layerId, data)` | Replace the `layerData` payload |
 | `setAdapter(adapter \| null)` | Attach or detach a map-library adapter |
 | `reset()` | Remove all layers and groups |
