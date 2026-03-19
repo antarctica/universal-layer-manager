@@ -5,20 +5,14 @@ All notable changes to `@ulm/core` are documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.2] - 2026-03-19
+## [1.0.0] - 2026-03-19
 
-### Changed
+Initial release as `@ulm/core`, extracted from `@ulm/universal-layer-manager`.
 
-- Updated the build configuration so external dependencies are not inlined in the Vite bundle.
+### Added
 
-## [1.0.1] - 2026-03-19
-
-### Changed
-
-- Restructured the repository layout and adjusted the examples.
-- Added additional tests around the layer manager validation logic.
-
-### Documentation
-
-- Added project metadata, contribution guidelines and issue templates.
-
+- `LayerManager<TLayer, TGroup>` class as the primary public API over the XState machine
+- `LayerManagerAdapter<TLayer, TGroup>` interface for push-model adapter integration
+- `ManagedLayerInfo` — stable, non-XState shape passed to adapter methods and option callbacks
+- `LayerManagerCallbacks` — read-only callbacks (`getSnapshot`, `getLayer`) passed to adapters on registration
+- `setTimeInfo`, `onTimeInfoChanged`, and `enabled` on `LayerManager`
