@@ -6,8 +6,11 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
+[![Docs](https://img.shields.io/badge/docs-antarctica.github.io-blue.svg)](https://antarctica.github.io/universal-layer-manager/)
 
 A state-machine-powered layer management library for map applications. Model your map contents as layers and layer groups, then control visibility, opacity, and ordering from any UI framework and any mapping library.
+
+**[API documentation →](https://antarctica.github.io/universal-layer-manager/)**
 
 ---
 
