@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "eslint . --fix",
+    "lint:turbo": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
     "prepare": "husky install"
@@ -15,14 +16,14 @@
     "examples/*"
   ],
   "devDependencies": {
-    "husky": "^9.1.7",
-    "turbo": "^2.0.0",
-    "typescript": "^5.9.3",
-    "eslint": "^9.39.1",
     "@antfu/eslint-config": "^4.19.0",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "lint-staged": "^16.2.6"
+    "eslint": "^9.39.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "turbo": "^2.0.0",
+    "typescript": "^5.9.3"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": "eslint --fix"

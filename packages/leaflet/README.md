@@ -13,9 +13,9 @@ npm install @ulm/core @ulm/leaflet leaflet
 Create a `LayerManager`, create a Leaflet map, then create the adapter and attach it with `setAdapter`. The adapter reacts to manager events and updates the map.
 
 ```ts
-import * as L from 'leaflet';
 import { LayerManager } from '@ulm/core';
 import { LeafletLayerManagerAdapter } from '@ulm/leaflet';
+import * as L from 'leaflet';
 
 // Store the Leaflet layer in layerData.leafletLayer for minimal config
 interface LayerData {
@@ -42,7 +42,7 @@ manager.addLayer({
 });
 
 // On teardown
-manager.destroy();  // calls adapter.unregister() internally
+manager.destroy(); // calls adapter.unregister() internally
 ```
 
 ## Customisation

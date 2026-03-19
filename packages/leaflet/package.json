@@ -25,9 +25,12 @@
     "test": "vitest --run",
     "check-types": "tsc --noemit -p tsconfig.json"
   },
-  "dependencies": {
-    "leaflet": "^1.9.4",
+  "peerDependencies": {
     "@ulm/core": "*"
+  },
+  "dependencies": {
+    "@ulm/core": "*",
+    "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.19.0",
@@ -41,8 +44,5 @@
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.0.7",
     "xstate": "^5.24.0"
-  },
-  "peerDependencies": {
-    "@ulm/core": "*"
   }
 }

@@ -1,6 +1,4 @@
-
 <img src="./assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
-
 
 # @ulm/core
 
@@ -21,8 +19,8 @@ npm install @ulm/core
 `LayerManager` is the primary public API. It wraps the XState machines and starts automatically on construction.
 
 ```ts
+import type { AddGroupLayerParams, AddLayerParams } from '@ulm/core';
 import { LayerManager } from '@ulm/core';
-import type { AddLayerParams, AddGroupLayerParams } from '@ulm/core';
 
 interface LayerData {
   url: string;

@@ -203,6 +203,7 @@ export function addLayerGroupToManager<TLayer = TestLayerData, TGroup = TLayer>(
  * @param options.visible - Whether the child should be visible/enabled on creation (default: false)
  * @param options.index - Optional index for positioning
  * @param options.position - Optional position ('top' | 'bottom')
+ * @param options.enabled - Whether the child should be enabled on creation
  * @returns The child layer actor
  * @throws Error if the parent group or child layer was not successfully found/created
  */
