@@ -7,6 +7,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "check-types": "turbo run check-types",
     "prepare": "husky install"
   },
   "workspaces": [

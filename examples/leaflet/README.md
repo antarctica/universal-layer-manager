@@ -1,6 +1,6 @@
 # Leaflet React Example
 
-This is a React + Leaflet example demonstrating a pattern for integrating the universal-layer-manager with Leaflet maps.
+This is a React + Leaflet example demonstrating a pattern for integrating the Universal Layer Manager (`@ulm/core`) with Leaflet maps.
 
 ## Setup
 
@@ -10,7 +10,7 @@ From the root directory:
 npm install
 ```
 
-This will install dependencies for the workspace, including the example. The example uses the local `universal-layer-manager` package via workspace linking.
+This will install dependencies for the workspace, including the example. The example uses the local `@ulm/core` and `@ulm/leaflet` packages via workspace linking.
 
 ## Development
 
@@ -22,7 +22,7 @@ The example will be available at `http://localhost:5176`
 
 ## What the example demonstrates
 
-- Integrating the universal-layer-manager with Leaflet maps
+- Integrating the @ulm/core with Leaflet maps
 - Syncing layer manager state (visibility, opacity) with Leaflet layers
 - Managing tile layers and markers through the layer manager
 - Using the layer list control to manage map layers
@@ -31,11 +31,11 @@ The example will be available at `http://localhost:5176`
 ## How it works
 
 The example uses:
-- `createLayerManagerMachine()` from `universal-layer-manager` wrapped in `createActorContext()` to create a layer manager machine
-- `LayerManagerProvider` to provide the layer manager context to React components via XState's actor context
-- `LeafletMap` component that renders a Leaflet map and syncs layer manager state with Leaflet layers
-- `LayerList` component that provides a UI for managing layers (the layer list control)
-- Event subscriptions to sync layer visibility and opacity changes between the layer manager and Leaflet map
+- `LayerManager` from `@ulm/core` to create the layer manager instance
+- `LayerManagerProvider` to expose the `LayerManager` via React context, and `@xstate/react` selectors to subscribe components to actor state
+- `LeafletMap` component that renders a Leaflet map and initialises the base layers and marker, keeping the Leaflet adapter in sync with manager state
+- `LayerList` component that provides a UI for managing layers (the layer list control), including toggling enable/disable and setting opacity
+- The `@ulm/leaflet` adapter to keep Leaflet layer visibility and opacity in sync with the layer manager
 
 ### Layer Data Structure
 
@@ -58,5 +58,3 @@ The example initialises with:
 - Click "+ Group" to add a layer group (which can contain other layers or groups)
 - Use checkboxes to toggle layer visibility
 - Use opacity sliders to adjust layer opacity
-
-The layer manager automatically syncs all state changes to the Leaflet map through event subscriptions (`LAYER.ADDED`, `LAYER.VISIBILITY_CHANGED`, `LAYER.OPACITY_CHANGED`).

@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { LayerManagerContext } from '../../layerManager/LayerManagerProvider';
+import { useLayerManager } from '../../layerManager/LayerManagerProvider';
 import { clampedNormalize } from '../../utils';
 import Button from '../Button/Button';
 import styles from './LayerList.module.css';
@@ -32,44 +32,36 @@ interface LayerControlsProps {
 
 // Adds layers or groups under the given parent, indented visually to show nesting.
 export function LayerControls({ parentId, indent }: LayerControlsProps) {
-  const manager = LayerManagerContext.useActorRef();
+  const manager = useLayerManager();
 
   const handleAddLayer = () => {
     const id = createRandomId();
     const marker = createRandomMarkerNearLondon(id);
 
-    manager.send({
-      type: 'LAYER.ADD',
-      params: {
-        layerConfig: {
-          layerId: id,
-          layerName: `Marker ${id}`,
-          layerType: 'layer',
-          parentId,
-          layerData: {
-            leafletLayer: marker,
-          },
-        },
-        visible: true,
+    manager.addLayer({
+      layerConfig: {
+        layerId: id,
+        layerName: `Marker ${id}`,
+        parentId,
+        layerData: { leafletLayer: marker },
+        layerType: 'layer',
       },
+      visible: true,
     });
   };
 
   const handleAddGroup = () => {
     const id = createRandomId();
 
-    manager.send({
-      type: 'LAYER.ADD',
-      params: {
-        layerConfig: {
-          layerId: id,
-          layerName: `Group ${id}`,
-          layerType: 'layerGroup',
-          parentId,
-          layerData: undefined,
-        },
-        visible: true,
+    manager.addGroup({
+      layerConfig: {
+        layerId: id,
+        layerName: `Group ${id}`,
+        parentId,
+        layerData: undefined,
+        layerType: 'layerGroup',
       },
+      visible: true,
     });
   };
 

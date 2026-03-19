@@ -1,8 +1,6 @@
 # Universal Layer Manager - Simple Example
 
-This is a simple example using React to demonstrate how to use the Universal Layer Manager library. It demonstrates how to use the library to manage layers and layer groups in a simple UI without any map integration.
-
-Layers and Layer Groups can be added and opacity can be adjusted.
+A minimal vanilla TypeScript example demonstrating how to use `@ulm/core` without any framework or map library.
 
 ## Setup
 
@@ -12,7 +10,7 @@ From the root directory:
 npm install
 ```
 
-This will install dependencies for the workspace, including the example. The example uses the local `universal-layer-manager` package via workspace linking.
+This will install dependencies for the workspace, including the example. The example uses the local `@ulm/core` package via workspace linking.
 
 ## Development
 
@@ -21,15 +19,15 @@ npm run dev
 ```
 
 ## What the example demonstrates
-- Using the Universal Layer Manager library to manage layers and layer groups
-- Creating a simple UI for managing layers and layer groups
-- Using React hooks to subscribe to layer state changes and update the UI accordingly
+
+- Constructing a `LayerManager` with inline option callbacks
+- Rendering a nested tree of layers and layer groups using plain DOM manipulation
+- Responding to `onLayerAdded`, `onVisibilityChanged`, and `onOpacityChanged` events to keep the UI in sync
 
 ## How it works
 
-The example uses:
-- `LayerManagerProvider` to create a layer manager actor and provide the context to React components
-- `LayerList` component that renders a list of layers and layer groups
-- `LayerGroupItem` component that renders a layer group
-- `LayerItem` component that renders a single layer
-- `LayerControls` component that renders the controls for adding new layers and layer groups
+Everything lives in a single file (`src/main.ts`):
+
+1. **`LayerManager` options** — `onLayerAdded`, `onVisibilityChanged`, and `onOpacityChanged` callbacks update the DOM directly when the manager emits changes
+2. **`addLayer` / `addGroup`** — call `manager.addLayer` / `manager.addGroup` to add items; the `onLayerAdded` callback handles rendering
+3. **`buildLayerEl`** — builds the DOM element for a layer or group, wiring checkbox and opacity slider events back to `manager.setVisibility` and `manager.setOpacity`

@@ -1,165 +1,138 @@
 
-<img src="./packages/universal-layer-manager/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
+<img src="./packages/core/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
 
 
+# Universal Layer Manager
 
-# A universal, state-machine-powered layer management library for map applications.
-
-
-[![npm version](https://img.shields.io/npm/v/universal-layer-manager.svg)](https://www.npmjs.com/package/universal-layer-manager)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
+
+A state-machine-powered layer management library for map applications. Model your map contents as layers and layer groups, then control visibility, opacity, and ordering from any UI framework and any mapping library.
 
 ---
 
-### Overview
+## Packages
 
-`universal-layer-manager` provides a small set of state machines for managing map layers and layer groups in a framework‑agnostic way.
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`@ulm/core`](./packages/core/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/core.svg)](https://www.npmjs.com/package/@ulm/core) | Core state machine library — framework and map-library agnostic |
+| [`@ulm/leaflet`](./packages/leaflet/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/leaflet.svg)](https://www.npmjs.com/package/@ulm/leaflet) | Leaflet adapter — syncs manager state to a Leaflet map |
 
-You model your map contents as layers and layer groups, start a single **layer manager** actor, and then:
+---
 
-- add or remove layers,
-- control visibility, opacity, and temporal information,
-- and react to emitted events (such as order or visibility changes)
+## Features
 
-from any mapping library (Leaflet, OpenLayers, Mapbox, etc.) and any UI framework (React, Vue, vanilla JS, etc.).
+- **XState actor model**: Manager, layers, and layer groups are each XState actors.
+- **Layers and layer groups**: Model flat lists or nested trees with optional depth control.
+- **Framework-agnostic**: Pure TypeScript/XState core — works with any UI rendering layer.
+- **Visibility and opacity**: Per-layer enable/disable and opacity that cascades through parents.
+- **Time metadata**: Optional `LayerTimeInfo` using `@internationalized/date` for date ranges.
+- **Typed events**: Strongly typed input and output events for reactive UIs.
+- **Adapter pattern**: Implement `LayerManagerAdapter` to connect any mapping library.
 
-### Features
+---
 
-- **XState actor model**: Uses XState actors for the manager, layers, and layer groups.
-- **Layers and layer groups**: Model single layers or tree‑like groups with optional nesting.
-- **Framework‑agnostic**: Pure TypeScript/XState core that works with any mapping library and any UI rendering layer.
-- **Visibility and opacity**: Per‑layer enable/disable, visibility, and computed opacity that cascades through parents.
-- **Time metadata**: Optional `LayerTimeInfo` using `@internationalized/date` for date and date‑time ranges.
-- **Typed events**: Strongly typed input and output events for building reactive UIs.
-
-### Installation
+## Quick start
 
 ```bash
-npm install universal-layer-manager
+npm install @ulm/core
 ```
-
-### Quick Start
-This example shows how to create a layer manager, register listeners, add a couple of layers, and then change visibility.  
 
 ```ts
-import type { LayerConfig, LayerGroupConfig } from 'universal-layer-manager';
-import {
-  createLayerManagerMachine,
-  findManagedLayerById,
-} from 'universal-layer-manager';
-import { createActor } from 'xstate';
+import { LayerManager } from '@ulm/core';
 
-// Define internal data types for the layers and layer groups.
 interface LayerData {
-  notes: string;
+  url: string;
 }
 
-interface GroupData {
-  reference: string;
-}
-
-// 1. Create the manager machine and actor
-const managerMachine = createLayerManagerMachine<LayerData, GroupData>();
-
-const manager = createActor(managerMachine, {
-  input: {
-    allowNestedGroupLayers: true,
+const manager = new LayerManager<LayerData>({
+  onLayerAdded(info) {
+    console.log('added:', info.layerId);
+  },
+  onVisibilityChanged(info, visible) {
+    console.log(info.layerId, 'visible:', visible);
   },
 });
 
-// 2. Register listeners
-
-// will fire when a layer is added to the manager
-manager.on('LAYER.ADDED', (event) => {
-  console.log('Layer added:', event.layerId);
-});
-
-// will fire when the visibility of a layer is changed
-manager.on('LAYER.VISIBILITY_CHANGED', (event) => {
-  console.log(`Layer ${event.layerId} visible:`, event.visible);
-});
-
-// 3. Start the manager
-manager.start();
-
-// 4. Add an example layer
-const exampleLayerConfig: LayerConfig<LayerData> = {
-  layerId: 'example',
-  layerName: 'Example layer',
-  parentId: null, // no parent as it sits at the top level
-  layerType: 'layer',
-  layerData: { notes: 'This is an example layer' },
-};
-
-manager.send({
-  type: 'LAYER.ADD',
-  params: {
-    layerConfig: exampleLayerConfig,
-    visible: true,
+manager.addLayer({
+  layerConfig: {
+    layerId: 'basemap',
+    layerName: 'Basemap',
+    layerType: 'layer',
+    parentId: null,
+    layerData: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   },
+  visible: true,
 });
 
-// 5. Add an example group with a child layer
-const exampleGroupConfig: LayerGroupConfig<LayerData, GroupData> = {
-  layerId: 'overlays',
-  layerName: 'Overlays',
-  parentId: null, // no parent as it sits at the top level
-  layerType: 'layerGroup',
-  layerData: { reference: 'This is an example group' },
-};
-
-manager.send({
-  type: 'LAYER.ADD',
-  params: {
-    layerConfig: exampleGroupConfig,
-    visible: true,
-  },
-});
-
-const exampleChildLayerConfig: LayerConfig<LayerData> = {
-  layerId: 'example-child',
-  layerName: 'Example child layer',
-  parentId: 'overlays', // the parent is the group we added above
-  layerType: 'layer',
-  layerData: { notes: 'This is an example child layer' },
-};
-
-manager.send({
-  type: 'LAYER.ADD',
-  params: {
-    layerConfig: exampleChildLayerConfig,
-    visible: true,
-  },
-});
-
-// 6. access the current layers
-const currentLayers = manager.getSnapshot().context.layers;
-console.log('Current layers:', currentLayers.map((layer) => layer.layerActor.id));
-
-// 7. change the visibility of the example layer
-const exampleLayerActor = findManagedLayerById(currentLayers, 'example')?.layerActor;
-
-if (exampleLayerActor) {
-  exampleLayerActor.send({
-    type: 'LAYER.ENABLED' });
-}
-// this will trigger the LAYER.VISIBILITY_CHANGED listener above.
-
+manager.setVisibility('basemap', false);
+manager.destroy();
 ```
 
-To integrate with React, you can use `@xstate/react` and wrap the manager actor in a context provider, as shown in the `examples/simple` app.
+See [`@ulm/core`](./packages/core/README.md) for the full API reference.
 
-### Examples
+### Lower-level access
 
-There are two example applications in this repository:
+`createLayerManagerMachine` is exported for direct XState usage (e.g. integrating with `@xstate/react`):
 
-- **`examples/simple`**: A minimal React UI that demonstrates basic layer manager usage and a simple layer list.
-- **`examples/leaflet`**: A Leaflet‑based map example that wires the layer manager to actual map layers.
+```ts
+import { createLayerManagerMachine } from '@ulm/core';
+import { createActor } from 'xstate';
 
-Both examples are good starting points for integrating `universal-layer-manager` into your own application.
+const actor = createActor(createLayerManagerMachine<LayerData>(), {
+  input: { allowNestedGroupLayers: true },
+});
+actor.start();
+```
 
-### License
+If you're using `LayerManager`, the raw actor is also available via `manager.actor`.
 
-This project is licensed under the [MIT License](../../LICENSE).
+---
 
+## Adapters
+
+`LayerManager` owns state; adapters subscribe to its emitted events and perform map-library side-effects (add/remove layers, sync visibility, opacity). Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`.
+
+```ts
+import { LeafletLayerManagerAdapter } from '@ulm/leaflet';
+
+manager.setAdapter(new LeafletLayerManagerAdapter(map));
+// manager.setAdapter(null) detaches and calls adapter.unregister()
+```
+
+See [`@ulm/leaflet`](./packages/leaflet/README.md) for a complete example, or implement `LayerManagerAdapter` yourself for other mapping libraries (OpenLayers, Mapbox, etc.).
+
+---
+
+## Examples
+
+| Example | Description |
+|---------|-------------|
+| [`examples/simple`](./examples/simple/README.md) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
+| [`examples/leaflet`](./examples/leaflet/README.md) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI |
+
+To run an example:
+
+```bash
+npm install        # install all workspace dependencies
+npm run dev        # starts all dev servers via Turbo
+```
+
+---
+
+## Repository structure
+
+```
+packages/
+  core/       @ulm/core — state machine library
+  leaflet/    @ulm/leaflet — Leaflet adapter
+examples/
+  simple/     vanilla TypeScript example
+  leaflet/    React + Leaflet example
+```
+
+---
+
+## License
+
+[MIT](./LICENSE)
