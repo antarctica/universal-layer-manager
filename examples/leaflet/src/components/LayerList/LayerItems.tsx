@@ -1,6 +1,6 @@
 import type { ClientLayerGroupMachineActor, ClientLayerMachineActor } from '../../layerManager/LayerManagerProvider';
 import { useSelector } from '@xstate/react';
-import React from 'react';
+import * as React from 'react';
 import styles from './LayerList.module.css';
 
 interface BaseLayerItemProps {

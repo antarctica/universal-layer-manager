@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "echo 'No linting configured for example'"
+    "lint": "echo 'No linting configured for example'",
+    "check-types": "tsc --noemit -p tsconfig.json"
   },
   "dependencies": {
+    "@ulm/core": "*",
+    "@ulm/leaflet": "*",
     "@xstate/react": "^4.1.0",
     "leaflet": "^1.9.4",
-    "universal-layer-manager": "*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",

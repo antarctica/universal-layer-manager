@@ -1,7 +1,7 @@
-import type { LayerActor, LayerMachineActor } from 'universal-layer-manager';
+import type { LayerActor, LayerMachineActor } from '@ulm/core';
 import type { ClientLayerGroupMachineActor } from '../../layerManager/LayerManagerProvider';
 
-import { isLayerGroupMachine } from 'universal-layer-manager';
+import { isLayerGroupMachine } from '@ulm/core';
 import { useLayerGroupChildLayers, useTopLevelLayers } from '../../layerManager/baseSelectors';
 import { LayerControls } from './LayerControls';
 import { LayerGroupItem, LayerItem } from './LayerItems';

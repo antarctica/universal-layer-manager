@@ -1,0 +1,45 @@
+{
+  "name": "@ulm/leaflet",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Leaflet adapter for @ulm/core",
+  "author": {
+    "name": "Jonathan Dawe",
+    "email": "jonwe@bas.ac.uk"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/leaflet.js",
+      "require": "./dist/leaflet.cjs"
+    }
+  },
+  "main": "./dist/leaflet.cjs",
+  "module": "./dist/leaflet.js",
+  "types": "./dist/leaflet.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest --run",
+    "check-types": "tsc --noemit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@ulm/core": "*"
+  },
+  "dependencies": {
+    "@ulm/core": "*",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.8",
+    "@types/node": "^22.19.0",
+    "@vitest/coverage-v8": "^4.0.7",
+    "camelcase": "^8.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.7",
+    "xstate": "^5.24.0"
+  }
+}

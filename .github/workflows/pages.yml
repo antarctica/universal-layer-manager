@@ -35,7 +35,7 @@ jobs:
         run: npm run build
 
       - name: Build TypeDoc documentation
-        working-directory: ./packages/universal-layer-manager
+        working-directory: ./packages/core
         run: npm run docs
 
       - name: Build simple example
@@ -54,7 +54,7 @@ jobs:
         run: |
           mkdir -p gh-pages
           # Copy TypeDoc documentation to root
-          cp -r packages/universal-layer-manager/docs/* gh-pages/
+          cp -r packages/core/docs/* gh-pages/
           # Copy examples to subdirectories
           mkdir -p gh-pages/examples/simple
           cp -r examples/simple/dist/* gh-pages/examples/simple/

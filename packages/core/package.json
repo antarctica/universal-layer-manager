@@ -1,0 +1,54 @@
+{
+  "name": "@ulm/core",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "A universal layer manager for map applications",
+  "author": {
+    "name": "Jonathan Dawe",
+    "email": "jonwe@bas.ac.uk"
+  },
+  "homepage": "https://github.com/antarctica/universal-layer-manager#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/antarctica/universal-layer-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/antarctica/universal-layer-manager/issues"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/core.js",
+      "require": "./dist/core.cjs"
+    }
+  },
+  "main": "./dist/core.cjs",
+  "module": "./dist/core.js",
+  "types": "./dist/core.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage",
+    "docs": "typedoc",
+    "release": "npm run build && npm publish",
+    "check-types": "tsc --noemit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@internationalized/date": "^3.10.1",
+    "xstate": "^5.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@vitest/coverage-v8": "^4.0.7",
+    "camelcase": "^8.0.0",
+    "typedoc": "^0.28.14",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.7"
+  }
+}
