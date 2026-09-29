@@ -136,6 +136,36 @@ examples/
 
 ---
 
+## Changelog
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+type(scope): description
+```
+
+A scope is required. It names the package that changed: `core`, `leaflet`, `examples`, `repo`, or `deps`.
+
+| Type | Use for | In the changelog |
+| --- | --- | --- |
+| `feat` | User-visible capability | Added |
+| `fix` | Defect repair | Fixed |
+| `perf` | Measurable speed or resource change | Changed |
+| `revert` | Undoes an earlier commit | Changed |
+| `refactor`, `test`, `docs`, `build`, `ci`, `chore` | Internal work | Not shown |
+
+`feat` and `fix` that remove or drop something land under Removed. Mark a breaking change with `!` before the colon.
+
+```bash
+npm run changelog:preview   # print the pending section
+npm run changelog:draft     # prepend it to CHANGELOG.md
+npm run version:next        # print the next version
+```
+
+Edit the drafted section before tagging. `@ulm/core` and `@ulm/leaflet` ship on the same tag, `vX.Y.Z`. The current release is [`v1.0.0`](https://github.com/antarctica/universal-layer-manager/releases/tag/v1.0.0). `v1.0.1` and `v1.0.2` already belong to the previous single package. If `npm run version:next` prints one of those, tag the next free version instead. See [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
 ## License
 
 [MIT](./LICENSE)

@@ -9,7 +9,11 @@
     "lint:turbo": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "changelog:preview": "git-cliff --unreleased --bump",
+    "changelog:draft": "git-cliff --unreleased --bump --prepend CHANGELOG.md",
+    "changelog:range": "git-cliff",
+    "version:next": "git-cliff --bumped-version"
   },
   "workspaces": [
     "packages/*",
@@ -23,6 +27,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "git-cliff": "^2.14.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "turbo": "^2.0.0",

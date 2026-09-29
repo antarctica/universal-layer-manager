@@ -1,0 +1,95 @@
+# git-cliff — drafts CHANGELOG.md sections from Conventional Commits.
+# https://git-cliff.org/docs/configuration
+#
+# Output is a draft. Edit the generated section before tagging:
+# `npm run changelog:draft`.
+# Deprecated and Security entries have no commit type and are added by hand.
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+`@ulm/core` and `@ulm/leaflet` ship on the same version. The scope on each
+entry names the package that changed.
+
+Sections are drafted from the commit history with `npm run changelog:draft` and
+edited before release. To see what is pending, run `npm run changelog:preview`.\n
+"""
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.breaking %}**Breaking:** {% endif %}\
+{% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
+{{ commit.message | split(pat="\n") | first | upper_first | trim }}\
+{% endfor %}
+{% endfor %}
+[{{ version | default(value="unreleased") | trim_start_matches(pat="v") }}]: \
+{% if previous and previous.version -%}
+https://github.com/antarctica/universal-layer-manager/compare/{{ previous.version }}...{{ version | default(value="HEAD") }}
+{%- else -%}
+https://github.com/antarctica/universal-layer-manager/releases/tag/{{ version }}
+{%- endif %}\n\n
+"""
+trim = true
+
+[git]
+conventional_commits = true
+# Unconventional subjects survive into the draft so nothing is lost silently
+# during curation. commitlint keeps new ones out of the history.
+filter_unconventional = false
+filter_commits = false
+protect_breaking_commits = true
+topo_order = false
+sort_commits = "oldest"
+
+# Release tags are `vX.Y.Z`. `v1.0.1` and `v1.0.2` belong to the previous
+# single package and are not release boundaries for this changelog.
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+skip_tags = "^v1\\.0\\.[12]$"
+
+# A bare #NNN becomes a link. The leading boundary keeps the pattern
+# clear of scopes such as `fix(#404):`.
+commit_preprocessors = [
+  { pattern = '(?m)(^|\\s)#(\\d+)\\b', replace = "${1}[#${2}](https://github.com/antarctica/universal-layer-manager/issues/${2})" },
+]
+
+# First match wins. The HTML comment fixes section order (Keep a Changelog);
+# the template strips it.
+commit_parsers = [
+  { message = "^Merge branch", skip = true },
+  { message = "^Merge pull request", skip = true },
+  { message = "^Merge remote-tracking", skip = true },
+
+  { message = "^chore", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^build", skip = true },
+  { message = "^test", skip = true },
+  { message = "^docs", skip = true },
+  { message = "^refactor", skip = true },
+  { message = "^style", skip = true },
+
+  { message = "^feat.*: *(remove|drop|delete)", group = "<!-- 3 -->Removed" },
+  { message = "^fix.*: *(remove|drop|delete)", group = "<!-- 3 -->Removed" },
+  { message = "^feat.*: *deprecate", group = "<!-- 2 -->Deprecated" },
+
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^fix", group = "<!-- 4 -->Fixed" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^revert", group = "<!-- 1 -->Changed" },
+  { message = "^.*", group = "<!-- 1 -->Changed" },
+]
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = true
