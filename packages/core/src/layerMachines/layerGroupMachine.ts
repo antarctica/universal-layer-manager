@@ -83,7 +83,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           type: 'LAYER.UPDATE_OPACITY',
           layerId: context.layerId,
           opacity: context.opacity,
-          computedOpacity: context.computedOpacity,
+          computedOpacity,
         });
       }),
       'Change Layer Opacity': enqueueActions(
