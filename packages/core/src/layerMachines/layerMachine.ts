@@ -2,6 +2,7 @@ import type {
   LayerContext,
   LayerEvent,
   LayerManagerRef,
+  LayerStartState,
   LayerStateTag,
   LayerTimeInfo,
   ParentLayerActor,
@@ -10,7 +11,7 @@ import type {
 import { enqueueActions, setup } from 'xstate';
 import { calculateComputedOpacity } from '../utils';
 
-export function layerMachine<TLayer, TGroup = TLayer>(initialEnabledState: 'enabled' | 'disabled', initialVisibleState: 'visible' | 'hidden') {
+export function layerMachine<TLayer, TGroup = TLayer>() {
   return setup({
     types: {
       context: {} as LayerContext<TLayer, TGroup>,
@@ -25,6 +26,7 @@ export function layerMachine<TLayer, TGroup = TLayer>(initialEnabledState: 'enab
         opacity?: number;
         timeInfo?: LayerTimeInfo;
         layerData: TLayer;
+        startState?: LayerStartState;
       },
     },
     actions: {
@@ -109,12 +111,21 @@ export function layerMachine<TLayer, TGroup = TLayer>(initialEnabledState: 'enab
         layerType: 'layer',
         timeInfo: input.timeInfo,
         layerData: input.layerData,
+        startState: input.startState ?? 'disabled',
       };
     },
-    initial: initialEnabledState,
+    initial: 'starting',
     states: {
+      starting: {
+        description: 'Resolves the state the layer starts in from its input',
+        always: [
+          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible' },
+          { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden' },
+          { target: 'disabled' },
+        ],
+      },
       enabled: {
-        initial: initialVisibleState,
+        initial: 'visible',
         description: 'The layer is enabled',
         tags: ['enabled'],
         states: {

@@ -13,6 +13,35 @@ describe('layerManager', () => {
 
       expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', enabled: true, visible: true }));
     });
+
+    it('shows an enabled layer added to a visible group', () => {
+      const onLayerAdded = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }), visible: true });
+
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }), enabled: true });
+
+      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'child-1', enabled: true, visible: true }));
+    });
+
+    it('reports a group added as visible as enabled and visible', () => {
+      const onLayerAdded = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
+
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }), visible: true });
+
+      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'group-1', enabled: true, visible: true }));
+    });
+
+    it('keeps an enabled group added to a disabled group enabled but hidden', () => {
+      const onLayerAdded = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ allowNestedGroupLayers: true, onLayerAdded });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'outer' }) });
+
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer' }), enabled: true });
+
+      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'inner', enabled: true, visible: false }));
+    });
   });
 
   describe('reset', () => {
