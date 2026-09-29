@@ -459,6 +459,23 @@ describe('layerManagerMachine', () => {
       });
     });
 
+    it('emits LAYER.ADDED with the visibility the layer has once added', () => {
+      const layerManager = createTestLayerManager();
+      const addedWatcher = vi.fn();
+      layerManager.on('LAYER.ADDED', addedWatcher);
+
+      layerManager.send({
+        type: 'LAYER.ADD',
+        params: { layerConfig: createTestLayerConfig({ layerId: 'layer-1' }), enabled: true },
+      });
+
+      expect(addedWatcher).toHaveBeenCalledWith({
+        type: 'LAYER.ADDED',
+        layerId: 'layer-1',
+        visible: true,
+      });
+    });
+
     it('emits LAYER.REMOVED and LAYER.ORDER_CHANGED events when a layer is removed', () => {
       // Setup: Create a manager with multiple layers
       const layerManager = createTestLayerManager();
