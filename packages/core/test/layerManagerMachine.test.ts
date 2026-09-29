@@ -1,7 +1,10 @@
 import type { SingleTimeInfo } from '../src/types';
+import type { TestLayerData } from './utils/layer-manager-helpers';
 
 import { ZonedDateTime } from '@internationalized/date';
 import { describe, expect, it, vi } from 'vitest';
+import { transition } from 'xstate';
+import { createLayerManagerMachine } from '../src/layerManagerMachines/layerManagerMachine';
 import {
   addChildLayerToGroup,
   addLayerGroupToManager,
@@ -251,6 +254,34 @@ describe('layerManagerMachine', () => {
       const managerSnapshot = layerManager.getSnapshot();
       expect(managerSnapshot.context.layers).toHaveLength(2); // group + child
       expect(groupActor.getSnapshot().status).toBe('active');
+    });
+  });
+
+  describe('pure transitions', () => {
+    it('updates the parent group of a removed layer only when the removal is executed', () => {
+      const layerManager = createTestLayerManager();
+      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+      const childIds = () => groupActor.getSnapshot().context.children.map((child) => child.id);
+
+      transition(createLayerManagerMachine<TestLayerData>(), layerManager.getSnapshot(), { type: 'LAYER.REMOVE', layerId: 'child-1' });
+      expect(childIds()).toEqual(['child-1']);
+
+      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'child-1' });
+      expect(childIds()).toEqual([]);
+    });
+
+    it('updates the parent group of an added layer only when the addition is executed', () => {
+      const layerManager = createTestLayerManager();
+      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      const addChild = { type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }) } } as const;
+      const childIds = () => groupActor.getSnapshot().context.children.map((child) => child.id);
+
+      transition(createLayerManagerMachine<TestLayerData>(), layerManager.getSnapshot(), addChild);
+      expect(childIds()).toEqual([]);
+
+      layerManager.send(addChild);
+      expect(childIds()).toEqual(['child-1']);
     });
   });
 
