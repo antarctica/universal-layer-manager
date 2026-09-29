@@ -1,5 +1,5 @@
 import type { DateValue } from '@internationalized/date';
-import type { ActorRef, ActorRefFrom, MachineSnapshot, Snapshot } from 'xstate';
+import type { ActorRef, ActorRefFrom, Snapshot } from 'xstate';
 
 import type { layerGroupMachine } from './layerMachines/layerGroupMachine';
 import type { layerMachine } from './layerMachines/layerMachine';
@@ -140,8 +140,16 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
 
 // Generic Actor References
 export type LayerManagerRef<TLayer, TGroup = TLayer> = ActorRef<Snapshot<unknown>, LayerManagerEvent<TLayer, TGroup>>;
-export type ParentLayerActor = ActorRef<MachineSnapshot<LayerGroupContext<any, any>, any, any, any, any, any, any, any>, ParentEvent>;
-export type ChildLayerActor = ActorRef<MachineSnapshot<LayerContext<any, any> | LayerGroupContext<any, any>, any, any, any, any, any, any, any>, ChildEvent>;
+export type ParentLayerSnapshot = Snapshot<unknown> & {
+  context: Pick<LayerContextBase<unknown>, 'layerId' | 'computedOpacity'>;
+  hasTag: (tag: LayerStateTag) => boolean;
+};
+export type ParentLayerActor = ActorRef<ParentLayerSnapshot, ParentEvent>;
+
+export type ChildLayerSnapshot = Snapshot<unknown> & {
+  context: Pick<LayerContextBase<unknown>, 'layerId'>;
+};
+export type ChildLayerActor = ActorRef<ChildLayerSnapshot, ChildEvent>;
 
 // Concrete Machine Actors
 export type LayerMachineActor<TLayer = any, TGroup = any> = ActorRefFrom<ReturnType<typeof layerMachine<TLayer, TGroup>>>;
