@@ -43,6 +43,8 @@ export type LayerTimeInfo = BaseTimeInfo & (SingleTimeInfo | RangeTimeInfo);
 
 export type LayerType = 'layer' | 'layerGroup';
 
+export type LayerStateTag = 'enabled' | 'visible';
+
 export interface BaseLayerConfig<T> {
   layerId: string;
   layerName: string;

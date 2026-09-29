@@ -89,6 +89,40 @@ describe('layerMachine', () => {
     });
   });
 
+  describe('state tags', () => {
+    it('tags a visible layer as enabled and visible', () => {
+      const { layerActor } = createLayerWithManager({ visible: true });
+
+      const snapshot = layerActor.getSnapshot();
+      expect(snapshot.hasTag('enabled')).toBe(true);
+      expect(snapshot.hasTag('visible')).toBe(true);
+    });
+
+    it('tags a layer hidden by its parent as enabled only', () => {
+      const layerManager = createTestLayerManager();
+      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }), {
+        visible: true,
+      });
+      const { childActor } = addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }), {
+        visible: true,
+      });
+
+      groupActor.send({ type: 'LAYER.DISABLED' });
+
+      const snapshot = childActor.getSnapshot();
+      expect(snapshot.hasTag('enabled')).toBe(true);
+      expect(snapshot.hasTag('visible')).toBe(false);
+    });
+
+    it('tags a disabled layer with neither enabled nor visible', () => {
+      const { layerActor } = createLayerWithManager({ visible: false });
+
+      const snapshot = layerActor.getSnapshot();
+      expect(snapshot.hasTag('enabled')).toBe(false);
+      expect(snapshot.hasTag('visible')).toBe(false);
+    });
+  });
+
   describe('context updates', () => {
     it('updates opacity when LAYER.SET_OPACITY is sent', () => {
       // Setup: Create a layer with initial opacity
