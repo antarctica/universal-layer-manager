@@ -7,7 +7,7 @@ import type {
   LayerManagerEvent,
   ManagedItem,
 } from '../types';
-import { assign, emit, enqueueActions, setup, stopChild } from 'xstate';
+import { emit, enqueueActions, setup } from 'xstate';
 import { layerGroupMachine } from '../layerMachines/layerGroupMachine';
 import { layerMachine } from '../layerMachines/layerMachine';
 import {
@@ -126,16 +126,15 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       })),
 
       // Reset actions
-      'Reset layer manager': assign(({ context }) => {
-        // stop all spawned actors:
+      'Reset layer manager': enqueueActions(({ enqueue, context }) => {
         context.layers.forEach((layer) => {
-          stopChild(layer.layerActor.id);
+          enqueue.stopChild(layer.layerActor);
+          enqueue.emit({ type: 'LAYER.REMOVED', layerId: layer.layerActor.id });
         });
-
-        return {
+        enqueue.assign({
           layers: [],
           childLayerOrder: [],
-        };
+        });
       }),
     },
     guards: {
