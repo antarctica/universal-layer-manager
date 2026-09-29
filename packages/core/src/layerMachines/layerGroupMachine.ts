@@ -205,13 +205,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         },
       },
       disabled: {
-        description: 'The layer group is disabled',
-        initial: 'hidden',
-        states: {
-          hidden: {
-            description: 'The layer group and its children always appear hidden on the map',
-          },
-        },
+        description: 'The layer group is disabled, so it and its children always appear hidden on the map',
         on: {
           'LAYER.ENABLED': {
             target: 'enabled',

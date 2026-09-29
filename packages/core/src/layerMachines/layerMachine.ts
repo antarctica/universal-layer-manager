@@ -175,13 +175,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         },
       },
       disabled: {
-        description: 'The layer is disabled',
-        initial: 'hidden',
-        states: {
-          hidden: {
-            description: 'The layer should always appear hidden on the map',
-          },
-        },
+        description: 'The layer is disabled and always appears hidden on the map',
         on: {
           'LAYER.ENABLED': {
             target: 'enabled.visible',
