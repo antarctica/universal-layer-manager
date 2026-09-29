@@ -5,6 +5,7 @@ import type {
   LayerManagerContext,
   LayerManagerEmittedEvent,
   LayerManagerEvent,
+  LayerStartState,
   ManagedItem,
 } from '../types';
 import { emit, enqueueActions, setup } from 'xstate';
@@ -36,9 +37,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
     },
     actors: {
-      layerMachineEnabledVisible: layerMachine<TLayer, TGroup>('enabled', 'visible'),
-      layerMachineEnabledHidden: layerMachine<TLayer, TGroup>('enabled', 'hidden'),
-      layerMachineDisabled: layerMachine<TLayer, TGroup>('disabled', 'hidden'),
+      layerMachine: layerMachine<TLayer, TGroup>(),
       layerGroupMachine: layerGroupMachine<TLayer, TGroup>(),
     },
     actions: {
@@ -50,15 +49,14 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           return;
         }
 
-        function getLayerMachine(enabled: boolean, visible: boolean) {
-          if (visible || (enabled && !parentRef)) {
-            return 'layerMachineEnabledVisible';
-          } else {
-            if (enabled && parentRef && !parentRef.getSnapshot().hasTag('enabled')) {
-              return 'layerMachineEnabledHidden';
-            }
-            return 'layerMachineDisabled';
+        function getStartState(enabled: boolean, visible: boolean): LayerStartState {
+          if (visible || (enabled && (!parentRef || parentRef.getSnapshot().hasTag('visible')))) {
+            return 'enabled.visible';
           }
+          if (enabled) {
+            return 'enabled.hidden';
+          }
+          return 'disabled';
         }
 
         enqueue.assign(({ spawn }) => {
@@ -70,22 +68,21 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
                 layerManagerRef: self,
                 parentRef,
                 ...layerConfig,
+                startState: getStartState(enabled ?? false, visible ?? false),
               },
             });
-            if (visible) {
-              newLayer.send({ type: 'LAYER.ENABLED' });
-            }
             newManagedLayer = {
               type: 'layerGroup',
               layerActor: newLayer,
             };
           } else {
-            const newLayer = spawn(getLayerMachine(enabled ?? false, visible ?? false), {
+            const newLayer = spawn('layerMachine', {
               id: layerConfig.layerId,
               input: {
                 layerManagerRef: self,
                 parentRef,
                 ...layerConfig,
+                startState: getStartState(enabled ?? false, visible ?? false),
               },
             });
             newManagedLayer = {
