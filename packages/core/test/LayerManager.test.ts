@@ -1,56 +1,403 @@
+import type { LayerManagerAdapter, LayerManagerCallbacks } from '../src/adapters/types';
+import type { LayerManagerOptions } from '../src/LayerManager';
+import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
+import { ZonedDateTime } from '@internationalized/date';
 import { describe, expect, it, vi } from 'vitest';
 import { LayerManager } from '../src/LayerManager';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
+import { createMapModel } from './utils/map-model';
+
+type TestManager = LayerManager<TestLayerData, TestLayerData>;
+
+function createManager(options: LayerManagerOptions<TestLayerData, TestLayerData> = {}) {
+  const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>(options);
+  const map = createMapModel<TestLayerData>();
+  manager.setAdapter(map);
+  return { manager, map };
+}
+
+function layer(layerId: string, overrides: Partial<LayerConfig<TestLayerData>> = {}) {
+  return { layerConfig: createTestLayerConfig({ layerId, ...overrides }) };
+}
+
+function group(layerId: string, parentId: string | null = null) {
+  return { layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId, parentId }) };
+}
+
+function topLevelIds(manager: TestManager): string[] {
+  return manager.layers.map((item) => item.layerActor.id);
+}
+
+function childIdsOf(manager: TestManager, groupId: string): string[] {
+  const item = manager.getLayer(groupId);
+  return item?.type === 'layerGroup' ? item.layerActor.getSnapshot().context.childLayerOrder : [];
+}
+
+const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
 
 describe('layerManager', () => {
+  describe('layer order', () => {
+    it('adds new top-level layers at the bottom by default', () => {
+      const { manager } = createManager();
+
+      manager.addLayer(layer('a'));
+      manager.addLayer(layer('b'));
+      manager.addLayer(layer('c'));
+
+      expect(topLevelIds(manager)).toEqual(['c', 'b', 'a']);
+    });
+
+    it('adds a top-level layer at the top or at an index when asked', () => {
+      const { manager } = createManager();
+      manager.addLayer(layer('a'));
+      manager.addLayer(layer('b'));
+
+      manager.addLayer({ ...layer('top'), position: 'top' });
+      manager.addLayer({ ...layer('middle'), index: 1 });
+
+      expect(topLevelIds(manager)).toEqual(['b', 'middle', 'a', 'top']);
+    });
+
+    it('lists a group\'s children in the order they were placed', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer(layer('c2', { parentId: 'group-1' }));
+      manager.addLayer({ ...layer('c3', { parentId: 'group-1' }), position: 'top' });
+      manager.addLayer({ ...layer('cm', { parentId: 'group-1' }), index: 1 });
+
+      expect(childIdsOf(manager, 'group-1')).toEqual(['c2', 'cm', 'c1', 'c3']);
+      expect(topLevelIds(manager)).toEqual(['group-1']);
+    });
+
+    it('gives a group its child actors in display order', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer({ ...layer('c2', { parentId: 'group-1' }), position: 'top' });
+
+      const item = manager.getLayer('group-1');
+      const children = item?.type === 'layerGroup' ? item.layerActor.getSnapshot().context.children : [];
+
+      expect(children.map((child) => child.id)).toEqual(['c1', 'c2']);
+    });
+  });
+
   describe('adding layers', () => {
-    it('reports an enabled top-level layer as visible when it is added', () => {
-      const onLayerAdded = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
+    it('reports each added layer with its configuration', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
 
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }), enabled: true });
+      manager.addLayer(layer('layer-1', {
+        parentId: 'group-1',
+        layerName: 'Sea ice',
+        layerData: { test: 'sea-ice' },
+        opacity: 0.8,
+        timeInfo: newYearsDay,
+      }));
 
-      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', enabled: true, visible: true }));
+      expect(map.layers.get('layer-1')).toEqual({
+        layerName: 'Sea ice',
+        layerType: 'layer',
+        listMode: 'show',
+        parentId: 'group-1',
+        enabled: false,
+        visible: false,
+        opacity: 0.8,
+        computedOpacity: 0.4,
+        timeInfo: newYearsDay,
+        layerData: { test: 'sea-ice' },
+      });
+    });
+
+    it('adds a layer switched off and hidden by default', () => {
+      const { manager, map } = createManager();
+
+      manager.addLayer(layer('layer-1'));
+
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: false, visible: false });
+    });
+
+    it('shows an enabled top-level layer', () => {
+      const { manager, map } = createManager();
+
+      manager.addLayer({ ...layer('layer-1'), enabled: true });
+
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: true, visible: true });
     });
 
     it('shows an enabled layer added to a visible group', () => {
-      const onLayerAdded = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }), visible: true });
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), visible: true });
 
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }), enabled: true });
+      manager.addLayer({ ...layer('child-1', { parentId: 'group-1' }), enabled: true });
 
-      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'child-1', enabled: true, visible: true }));
+      expect(map.layers.get('child-1')).toMatchObject({ enabled: true, visible: true });
     });
 
-    it('reports a group added as visible as enabled and visible', () => {
-      const onLayerAdded = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
+    it('keeps an enabled layer added to a switched-off group enabled but hidden', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
 
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }), visible: true });
+      manager.addLayer({ ...layer('child-1', { parentId: 'group-1' }), enabled: true });
 
-      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'group-1', enabled: true, visible: true }));
+      expect(map.layers.get('child-1')).toMatchObject({ enabled: true, visible: false });
+      expect(map.layers.get('group-1')).toMatchObject({ enabled: false, visible: false });
     });
 
-    it('keeps an enabled group added to a disabled group enabled but hidden', () => {
-      const onLayerAdded = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ allowNestedGroupLayers: true, onLayerAdded });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'outer' }) });
+    it('switches on a group when a visible layer is added to it', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
 
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer' }), enabled: true });
+      manager.addLayer({ ...layer('child-1', { parentId: 'group-1' }), visible: true });
 
-      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'inner', enabled: true, visible: false }));
+      expect(map.visibleLayerIds()).toEqual(['child-1', 'group-1']);
+    });
+
+    it('shows a group added as visible', () => {
+      const { manager, map } = createManager();
+
+      manager.addGroup({ ...group('group-1'), visible: true });
+
+      expect(map.layers.get('group-1')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('keeps an enabled group added to a switched-off group enabled but hidden', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('outer'));
+
+      manager.addGroup({ ...group('inner', 'outer'), enabled: true });
+
+      expect(map.layers.get('inner')).toMatchObject({ enabled: true, visible: false });
+    });
+  });
+
+  describe('visibility', () => {
+    it('hides a layer that is switched off', () => {
+      const { manager, map } = createManager();
+      manager.addLayer({ ...layer('layer-1'), visible: true });
+
+      manager.setVisibility('layer-1', false);
+
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: false, visible: false });
+    });
+
+    it('shows a layer that is switched on', () => {
+      const { manager, map } = createManager();
+      manager.addLayer(layer('layer-1'));
+
+      manager.setEnabled('layer-1', true);
+
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('reports visibility only when it changes', () => {
+      const onVisibilityChanged = vi.fn();
+      const { manager } = createManager({ onVisibilityChanged });
+      manager.addLayer({ ...layer('layer-1'), visible: true });
+      onVisibilityChanged.mockClear();
+
+      manager.setVisibility('layer-1', true);
+
+      expect(onVisibilityChanged).not.toHaveBeenCalled();
+    });
+
+    it('hides the layers of a group that is switched off but keeps them switched on', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), visible: true });
+      manager.addLayer({ ...layer('c1', { parentId: 'group-1' }), visible: true });
+      manager.addLayer({ ...layer('c2', { parentId: 'group-1' }), visible: true });
+
+      manager.setVisibility('group-1', false);
+
+      expect(map.visibleLayerIds()).toEqual([]);
+      expect(map.layers.get('c1')).toMatchObject({ enabled: true, visible: false });
+      expect(map.layers.get('c2')).toMatchObject({ enabled: true, visible: false });
+    });
+
+    it('shows only the switched-on layers when their group is switched back on', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), visible: true });
+      manager.addLayer({ ...layer('on', { parentId: 'group-1' }), visible: true });
+      manager.addLayer(layer('off', { parentId: 'group-1' }));
+      manager.setVisibility('group-1', false);
+
+      manager.setVisibility('group-1', true);
+
+      expect(map.visibleLayerIds()).toEqual(['group-1', 'on']);
+    });
+
+    it('hides the layers of nested groups when the outer group is switched off', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup({ ...group('outer'), visible: true });
+      manager.addGroup({ ...group('inner', 'outer'), visible: true });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'inner' }), visible: true });
+
+      manager.setVisibility('outer', false);
+
+      expect(map.visibleLayerIds()).toEqual([]);
+      expect(map.layers.get('inner')).toMatchObject({ enabled: true });
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: true });
+    });
+
+    it('switches on every group above a layer that is switched on', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('outer'));
+      manager.addGroup(group('inner', 'outer'));
+      manager.addLayer(layer('layer-1', { parentId: 'inner' }));
+
+      manager.setVisibility('layer-1', true);
+
+      expect(map.visibleLayerIds()).toEqual(['inner', 'layer-1', 'outer']);
+    });
+  });
+
+  describe('opacity', () => {
+    it('reports a top-level layer\'s opacity as its computed opacity', () => {
+      const { manager, map } = createManager();
+      manager.addLayer(layer('layer-1'));
+
+      manager.setOpacity('layer-1', 0.5);
+
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.5, computedOpacity: 0.5 });
+    });
+
+    it('updates the computed opacity of a group\'s layers when the group\'s opacity changes', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('layer-1', { parentId: 'group-1', opacity: 0.8 }));
+
+      manager.setOpacity('group-1', 0.25);
+
+      expect(map.layers.get('group-1')).toMatchObject({ opacity: 0.25, computedOpacity: 0.25 });
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.8, computedOpacity: 0.2 });
+    });
+
+    it('combines a layer\'s new opacity with its group\'s current opacity', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addLayer(layer('layer-1', { parentId: 'group-1' }));
+
+      manager.setOpacity('layer-1', 0.8);
+
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.8, computedOpacity: 0.4 });
+    });
+
+    it('updates the computed opacity through nested groups', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('outer'));
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'inner', parentId: 'outer', opacity: 0.8 }) });
+      manager.addLayer(layer('layer-1', { parentId: 'inner', opacity: 0.5 }));
+
+      manager.setOpacity('outer', 0.5);
+
+      expect(map.layers.get('inner')).toMatchObject({ computedOpacity: 0.4 });
+      expect(map.layers.get('layer-1')).toMatchObject({ computedOpacity: 0.2 });
+    });
+  });
+
+  describe('time info and layer data', () => {
+    it('reports a layer\'s new time info', () => {
+      const onTimeInfoChanged = vi.fn();
+      const { manager, map } = createManager({ onTimeInfoChanged });
+      manager.addLayer(layer('layer-1'));
+
+      manager.setTimeInfo('layer-1', newYearsDay);
+
+      expect(map.layers.get('layer-1')?.timeInfo).toEqual(newYearsDay);
+      expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay);
+    });
+
+    it('passes a layer\'s new data to the adapter', () => {
+      const { manager, map } = createManager();
+      manager.addLayer(layer('layer-1'));
+
+      manager.updateLayerData('layer-1', { test: 'updated' });
+
+      expect(map.layers.get('layer-1')?.layerData).toEqual({ test: 'updated' });
+    });
+
+    it('passes a group\'s new data to the adapter', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
+
+      manager.updateLayerData('group-1', { test: 'group-updated' });
+
+      expect(map.layers.get('group-1')?.layerData).toEqual({ test: 'group-updated' });
+    });
+  });
+
+  describe('removing layers', () => {
+    it('removes a layer from the manager and the map and stops it', () => {
+      const onLayerRemoved = vi.fn();
+      const { manager, map } = createManager({ onLayerRemoved });
+      manager.addLayer(layer('a'));
+      manager.addLayer(layer('b'));
+      const removed = manager.getLayer('a');
+
+      manager.removeLayer('a');
+
+      expect(onLayerRemoved).toHaveBeenCalledWith('a');
+      expect(removed?.layerActor.getSnapshot().status).toBe('stopped');
+      expect(topLevelIds(manager)).toEqual(['b']);
+      expect(manager.getLayer('a')).toBeUndefined();
+      expect([...map.layers.keys()]).toEqual(['b']);
+    });
+
+    it('removes a layer from its group', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer(layer('c2', { parentId: 'group-1' }));
+
+      manager.removeLayer('c1');
+
+      expect(childIdsOf(manager, 'group-1')).toEqual(['c2']);
+    });
+
+    it('removes a group once it is empty', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+
+      manager.removeLayer('c1');
+      manager.removeLayer('group-1');
+
+      expect(manager.layers).toEqual([]);
+    });
+  });
+
+  describe('nested groups', () => {
+    it('adds a group inside another group when nested groups are allowed', () => {
+      const { manager } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('outer'));
+
+      manager.addGroup(group('inner', 'outer'));
+
+      expect(childIdsOf(manager, 'outer')).toEqual(['inner']);
+    });
+
+    it('rejects a group inside another group by default', () => {
+      const onError = vi.fn();
+      const { manager } = createManager({ onError });
+      manager.addGroup(group('outer'));
+
+      manager.addGroup(group('inner', 'outer'));
+
+      expect(onError).toHaveBeenCalledWith(new Error('Nested group layers are not allowed.'));
+      expect(manager.getLayer('inner')).toBeUndefined();
     });
   });
 
   describe('rejected changes', () => {
     it('reports adding a layer with an id that is already in use through onError', () => {
       const onError = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
+      const { manager } = createManager({ onError });
+      manager.addLayer(layer('layer-1'));
 
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
+      manager.addLayer(layer('layer-1'));
 
       expect(onError).toHaveBeenCalledWith(new Error('Layer with ID layer-1 already exists. Layer not added.'));
       expect(manager.layers).toHaveLength(1);
@@ -58,9 +405,9 @@ describe('layerManager', () => {
 
     it('reports adding a layer to a parent that does not exist through onError', () => {
       const onError = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+      const { manager } = createManager({ onError });
 
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'missing-group' }) });
+      manager.addLayer(layer('child-1', { parentId: 'missing-group' }));
 
       expect(onError).toHaveBeenCalledWith(new Error('Unable to find parent group missing-group. Layer child-1 not added.'));
       expect(manager.getLayer('child-1')).toBeUndefined();
@@ -68,7 +415,7 @@ describe('layerManager', () => {
 
     it('reports removing a layer that does not exist through onError', () => {
       const onError = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+      const { manager } = createManager({ onError });
 
       manager.removeLayer('missing-layer');
 
@@ -77,9 +424,9 @@ describe('layerManager', () => {
 
     it('reports removing a group that still has children through onError', () => {
       const onError = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }) });
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }) });
+      const { manager } = createManager({ onError });
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('child-1', { parentId: 'group-1' }));
 
       manager.removeLayer('group-1');
 
@@ -89,44 +436,87 @@ describe('layerManager', () => {
   });
 
   describe('reset', () => {
-    it('reports every layer as removed', () => {
+    it('removes every layer and reports each removal', () => {
       const onLayerRemoved = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerRemoved });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }) });
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }) });
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
+      const { manager, map } = createManager({ onLayerRemoved });
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('child-1', { parentId: 'group-1' }));
+      manager.addLayer(layer('layer-1'));
 
       manager.reset();
 
       expect(onLayerRemoved.mock.calls.map(([layerId]) => layerId).sort()).toEqual(['child-1', 'group-1', 'layer-1']);
       expect(manager.layers).toEqual([]);
+      expect(map.layers.size).toBe(0);
     });
 
     it('stops every layer', () => {
-      const manager = new LayerManager<TestLayerData, TestLayerData>();
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }) });
-      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
-      const group = manager.getLayer('group-1');
-      const layer = manager.getLayer('layer-1');
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('layer-1'));
+      const groupItem = manager.getLayer('group-1');
+      const layerItem = manager.getLayer('layer-1');
 
       manager.reset();
 
-      expect(group?.layerActor.getSnapshot().status).toBe('stopped');
-      expect(layer?.layerActor.getSnapshot().status).toBe('stopped');
+      expect(groupItem?.layerActor.getSnapshot().status).toBe('stopped');
+      expect(layerItem?.layerActor.getSnapshot().status).toBe('stopped');
+    });
+
+    it('accepts new layers with previously used ids', () => {
+      const { manager } = createManager();
+      manager.addLayer(layer('layer-1'));
+      manager.reset();
+
+      manager.addLayer(layer('layer-1'));
+
+      expect(topLevelIds(manager)).toEqual(['layer-1']);
     });
   });
 
-  describe('opacity', () => {
-    it('reports a nested group\'s computed opacity as its own opacity times its parent\'s', () => {
-      const onOpacityChanged = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ allowNestedGroupLayers: true, onOpacityChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'outer' }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer', opacity: 0.8 }) });
+  describe('adapter', () => {
+    it('registers an adapter with callbacks that read the manager\'s layers', () => {
+      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
+      let callbacks: LayerManagerCallbacks<TestLayerData, TestLayerData> | undefined;
+      const register = vi.fn((_manager: TestManager, registered: LayerManagerCallbacks<TestLayerData, TestLayerData>) => {
+        callbacks = registered;
+      });
+      manager.setAdapter({ register });
+      manager.addLayer(layer('layer-1'));
 
-      manager.setOpacity('outer', 0.5);
+      expect(register).toHaveBeenCalledWith(manager, expect.anything());
+      expect(callbacks?.getSnapshot().map((item) => item.layerActor.id)).toEqual(['layer-1']);
+      expect(callbacks?.getLayer('layer-1')?.layerActor.id).toBe('layer-1');
+    });
 
-      const innerReports = onOpacityChanged.mock.calls.filter(([info]) => info.layerId === 'inner');
-      expect(innerReports.map(([, computedOpacity]) => computedOpacity)).toEqual([0.4]);
+    it('unregisters the previous adapter when a new one is attached', () => {
+      const { manager, map } = createManager();
+      const next: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
+
+      manager.setAdapter(next);
+
+      expect(map.registered).toBe(false);
+      expect(next.register).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops updating an adapter once it is detached', () => {
+      const { manager, map } = createManager();
+
+      manager.setAdapter(null);
+      manager.addLayer(layer('layer-1'));
+
+      expect(map.registered).toBe(false);
+      expect(map.layers.size).toBe(0);
+    });
+
+    it('unregisters the adapter when the manager is destroyed', () => {
+      const { manager, map } = createManager();
+
+      manager.destroy();
+
+      expect(map.registered).toBe(false);
+      expect(manager.destroyed).toBe(true);
+      expect(manager.isReady).toBe(false);
     });
   });
 });

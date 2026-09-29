@@ -14,246 +14,67 @@ import {
   createTestLayerManager,
 } from './utils/layer-manager-helpers';
 
+// The event contract for consumers that drive the manager machine directly.
+// Behaviour reachable through LayerManager is specified in LayerManager.test.ts.
 describe('layerManagerMachine', () => {
-  describe('initial state', () => {
-    it('starts with empty layers and default context', () => {
-      // Setup: Create a new layer manager
+  describe('emitted events', () => {
+    it('emits LAYER.ADDED with the visibility the layer has once added', () => {
       const layerManager = createTestLayerManager();
+      const addedWatcher = vi.fn();
+      layerManager.on('LAYER.ADDED', addedWatcher);
 
-      // Verify: Manager starts with empty layers and default values
-      const snapshot = layerManager.getSnapshot();
-      expect(snapshot.context.layers).toEqual([]);
-      expect(snapshot.context.childLayerOrder).toEqual([]);
-      expect(snapshot.context.allowNestedGroupLayers).toBe(true);
+      layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'hidden-layer' }) } });
+      layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'shown-layer' }), enabled: true } });
+
+      expect(addedWatcher.mock.calls.map(([event]) => event)).toEqual([
+        { type: 'LAYER.ADDED', layerId: 'hidden-layer', visible: false },
+        { type: 'LAYER.ADDED', layerId: 'shown-layer', visible: true },
+      ]);
     });
 
-    it('initialises with allowNestedGroupLayers option', () => {
-      // Setup: Create a manager with nested groups disabled
-      const layerManager = createTestLayerManager({ allowNestedGroupLayers: false });
-
-      // Verify: Manager context has the correct setting
-      expect(layerManager.getSnapshot().context.allowNestedGroupLayers).toBe(false);
-    });
-  });
-
-  describe('adding layers', () => {
-    it('adds a single layer to the manager', () => {
-      // Setup: Create a layer manager
-      const layerManager = createTestLayerManager();
-      const config = createTestLayerConfig({ layerId: 'layer-1' });
-
-      // Action: Add a layer
-      const { layerActor } = addLayerToManager(layerManager, config);
-
-      // Verify: Layer is added to manager's layers array
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(1);
-      expect(managerSnapshot.context.layers[0].type).toBe('layer');
-      expect(managerSnapshot.context.layers[0].layerActor.id).toBe('layer-1');
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-1']);
-
-      // Verify: Layer actor is properly spawned
-      expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
-    });
-
-    it('adds multiple layers in order', () => {
-      // Setup: Create a layer manager
-      const layerManager = createTestLayerManager();
-
-      // Action: Add multiple layers (default position is 'bottom' which adds to beginning)
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-3' }));
-
-      // Verify: All layers are added (order is reversed because 'bottom' uses unshift)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(3);
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-3', 'layer-2', 'layer-1']);
-    });
-
-    it('adds a layer group to the manager', () => {
-      // Setup: Create a layer manager
-      const layerManager = createTestLayerManager();
-      const config = createTestLayerGroupConfig({ layerId: 'group-1' });
-
-      // Action: Add a layer group
-      const { groupActor } = addLayerGroupToManager(layerManager, config);
-
-      // Verify: Group is added to manager's layers array
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(1);
-      expect(managerSnapshot.context.layers[0].type).toBe('layerGroup');
-      expect(managerSnapshot.context.layers[0].layerActor.id).toBe('group-1');
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['group-1']);
-
-      // Verify: Group actor is properly spawned
-      expect(groupActor.getSnapshot().context.layerId).toBe('group-1');
-    });
-
-    it('adds layers and groups together', () => {
-      // Setup: Create a layer manager
-      const layerManager = createTestLayerManager();
-
-      // Action: Add layers and groups (default position is 'bottom' which adds to beginning)
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-
-      // Verify: All items are added (order is reversed because 'bottom' uses unshift)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(3);
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-2', 'group-1', 'layer-1']);
-    });
-
-    it('adds layer at specific index', () => {
-      // Setup: Create a manager with existing layers (order is ['layer-2', 'layer-1'] due to bottom positioning)
+    it('emits LAYER.REMOVED when a layer is removed', () => {
       const layerManager = createTestLayerManager();
       addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
+      const removedWatcher = vi.fn();
+      layerManager.on('LAYER.REMOVED', removedWatcher);
 
-      // Action: Add a layer at index 1
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: {
-          layerConfig: createTestLayerConfig({ layerId: 'layer-middle' }),
-          index: 1,
-        },
-      });
-
-      // Verify: Layer is inserted at the correct position (order is ['layer-2', 'layer-middle', 'layer-1'])
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-2', 'layer-middle', 'layer-1']);
-    });
-
-    it('adds layer at top position', () => {
-      // Setup: Create a manager with existing layers
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-
-      // Action: Add a layer at top position
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: {
-          layerConfig: createTestLayerConfig({ layerId: 'layer-top' }),
-          position: 'top',
-        },
-      });
-
-      // Verify: Layer is added at the top (end of array)
-      const managerSnapshot = layerManager.getSnapshot();
-      const order = managerSnapshot.context.childLayerOrder;
-      expect(order.at(-1)).toBe('layer-top');
-    });
-
-    it('adds layer at bottom position', () => {
-      // Setup: Create a manager with existing layers
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-
-      // Action: Add a layer at bottom position
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: {
-          layerConfig: createTestLayerConfig({ layerId: 'layer-bottom' }),
-          position: 'bottom',
-        },
-      });
-
-      // Verify: Layer is added at the bottom (start of array)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.childLayerOrder[0]).toBe('layer-bottom');
-    });
-  });
-
-  describe('removing layers', () => {
-    it('removes a layer from the manager', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-
-      // Verify: Layer exists
-      expect(layerManager.getSnapshot().context.layers).toHaveLength(1);
-
-      // Action: Remove the layer
       layerManager.send({ type: 'LAYER.REMOVE', layerId: 'layer-1' });
 
-      // Verify: Layer is removed from manager
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(0);
-      expect(managerSnapshot.context.childLayerOrder).toEqual([]);
-
-      // Verify: Layer actor is stopped
-      expect(layerActor.getSnapshot().status).toBe('stopped');
+      expect(removedWatcher).toHaveBeenCalledWith({ type: 'LAYER.REMOVED', layerId: 'layer-1' });
     });
 
-    it('removes a layer group from the manager', () => {
-      // Setup: Create a manager with a group
+    it('emits a change event when a layer is shown, faded, dated or given new data', () => {
       const layerManager = createTestLayerManager();
-      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
+      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
+      const emittedWatcher = vi.fn();
+      layerManager.on('*', emittedWatcher);
 
-      // Verify: Group exists
-      expect(layerManager.getSnapshot().context.layers).toHaveLength(1);
+      layerActor.send({ type: 'LAYER.ENABLED' });
+      layerActor.send({ type: 'LAYER.SET_OPACITY', opacity: 0.5 });
+      layerActor.send({ type: 'LAYER.SET_TIME_INFO', timeInfo });
+      layerActor.send({ type: 'LAYER.SET_LAYER_DATA', layerData: { test: 'updated' } });
 
-      // Action: Remove the group
-      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'group-1' });
-
-      // Verify: Group is removed from manager
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(0);
-      expect(managerSnapshot.context.childLayerOrder).toEqual([]);
-
-      // Verify: Group actor is stopped
-      expect(groupActor.getSnapshot().status).toBe('stopped');
+      expect(emittedWatcher.mock.calls.map(([event]) => event)).toEqual([
+        { type: 'LAYER.VISIBILITY_CHANGED', layerId: 'layer-1', visible: true },
+        { type: 'LAYER.OPACITY_CHANGED', layerId: 'layer-1', opacity: 0.5, computedOpacity: 0.5 },
+        { type: 'LAYER.TIME_INFO_CHANGED', layerId: 'layer-1', timeInfo },
+        { type: 'LAYER.LAYER_DATA_CHANGED', layerId: 'layer-1', layerData: { test: 'updated' } },
+      ]);
     });
 
-    it('removes a layer from multiple layers', () => {
-      // Setup: Create a manager with multiple layers (order is ['layer-3', 'layer-2', 'layer-1'] due to bottom positioning)
+    it('emits change events only for layers it manages', () => {
       const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-3' }));
+      const emittedWatcher = vi.fn();
+      layerManager.on('*', emittedWatcher);
+      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
 
-      // Action: Remove middle layer
-      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'layer-2' });
+      layerManager.send({ type: 'CHILD.VISIBILITY_CHANGED', layerId: 'non-existent', visible: true });
+      layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
+      layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'non-existent', timeInfo });
+      layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'non-existent', layerData: { test: 'data' } });
 
-      // Verify: Only the specified layer is removed
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(2);
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-3', 'layer-1']);
-    });
-
-    it('handles removing non-existent layer gracefully', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-
-      // Action: Try to remove a non-existent layer
-      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'non-existent' });
-
-      // Verify: Existing layer is still present
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(1);
-      expect(managerSnapshot.context.childLayerOrder).toEqual(['layer-1']);
-    });
-
-    it('cannot remove a layer group that has children', () => {
-      // Setup: Create a manager with a group that has a child
-      const layerManager = createTestLayerManager();
-      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
-      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
-
-      // Verify: Group has a child
-      expect(groupActor.getSnapshot().context.children).toHaveLength(1);
-
-      // Action: Try to remove the group
-      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'group-1' });
-
-      // Verify: Group is not removed (cannot remove group with children)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(2); // group + child
-      expect(groupActor.getSnapshot().status).toBe('active');
+      expect(emittedWatcher).not.toHaveBeenCalled();
     });
   });
 
@@ -266,34 +87,37 @@ describe('layerManagerMachine', () => {
       addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
       addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
       addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }));
+      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
 
       expect(orders).toEqual([
         ['group-1'],
         ['group-1', 'child-1'],
         ['group-1', 'child-2', 'child-1'],
+        ['layer-1', 'group-1', 'child-2', 'child-1'],
       ]);
     });
 
-    it('emits LAYER.ORDER_CHANGED without a layer removed from a group', () => {
+    it('emits LAYER.ORDER_CHANGED without a removed layer', () => {
       const layerManager = createTestLayerManager();
       addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
       addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
       addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }));
-      const orderChangedWatcher = vi.fn();
-      layerManager.on('LAYER.ORDER_CHANGED', orderChangedWatcher);
+      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
+      const orders: string[][] = [];
+      layerManager.on('LAYER.ORDER_CHANGED', (event) => orders.push(event.layerOrder));
 
       layerManager.send({ type: 'LAYER.REMOVE', layerId: 'child-1' });
-      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'layer-1' });
 
-      expect(orderChangedWatcher.mock.calls.map(([event]) => event.layerOrder)).toEqual([
+      expect(orders).toEqual([
+        ['layer-1', 'group-1', 'child-2'],
         ['group-1', 'child-2'],
-        ['group-1', 'child-1', 'child-2'],
       ]);
     });
   });
 
   describe('rejected changes', () => {
-    it('emits LAYER.ORDER_CHANGED only for adds and removes that are accepted', () => {
+    it('emits LAYER.REJECTED and no LAYER.ORDER_CHANGED for a rejected add or remove', () => {
       const layerManager = createTestLayerManager();
       const orderChangedWatcher = vi.fn();
       const rejectedWatcher = vi.fn();
@@ -303,7 +127,10 @@ describe('layerManagerMachine', () => {
       layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'missing-group' }) } });
       layerManager.send({ type: 'LAYER.REMOVE', layerId: 'missing-layer' });
 
-      expect(rejectedWatcher).toHaveBeenCalledTimes(2);
+      expect(rejectedWatcher.mock.calls.map(([event]) => event)).toEqual([
+        { type: 'LAYER.REJECTED', layerId: 'child-1', reason: 'Unable to find parent group missing-group. Layer child-1 not added.' },
+        { type: 'LAYER.REJECTED', layerId: 'missing-layer', reason: 'Unable to find layer missing-layer. Layer not removed.' },
+      ]);
       expect(orderChangedWatcher).not.toHaveBeenCalled();
     });
   });
@@ -333,327 +160,6 @@ describe('layerManagerMachine', () => {
 
       layerManager.send(addChild);
       expect(childIds()).toEqual(['child-1']);
-    });
-  });
-
-  describe('event emissions', () => {
-    it('processes CHILD.VISIBILITY_CHANGED events', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }), { visible: false });
-
-      const visibilityChangeWatcher = vi.fn();
-      layerManager.on('LAYER.VISIBILITY_CHANGED', visibilityChangeWatcher);
-      layerActor.send({ type: 'LAYER.ENABLED' });
-
-      expect(visibilityChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.VISIBILITY_CHANGED',
-        layerId: 'layer-1',
-        visible: true,
-      });
-    });
-
-    it('emits LAYER.VISIBILITY_CHANGED events for layer groups when visibility changes', () => {
-      // Setup: Create a manager with a disabled group
-      const layerManager = createTestLayerManager();
-      const { groupActor } = addLayerGroupToManager(
-        layerManager,
-        createTestLayerGroupConfig({ layerId: 'group-1' }),
-        { visible: false },
-      );
-
-      const visibilityChangeWatcher = vi.fn();
-      layerManager.on('LAYER.VISIBILITY_CHANGED', visibilityChangeWatcher);
-
-      // Verify: Group starts disabled
-      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
-
-      // Action: Enable the group so it becomes visible
-      groupActor.send({ type: 'LAYER.ENABLED' });
-
-      // Verify: Manager emits visibility changed event for the group
-      expect(visibilityChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.VISIBILITY_CHANGED',
-        layerId: 'group-1',
-        visible: true,
-      });
-    });
-
-    it('processes CHILD.OPACITY_CHANGED events', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-
-      const opacityChangeWatcher = vi.fn();
-      layerManager.on('LAYER.OPACITY_CHANGED', opacityChangeWatcher);
-
-      // Action: Update opacity through manager
-      layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'layer-1', opacity: 0.5, computedOpacity: 0.5 });
-
-      // Verify: Manager emits opacity changed event with correct payload
-      expect(opacityChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.OPACITY_CHANGED',
-        layerId: 'layer-1',
-        opacity: 0.5,
-        computedOpacity: 0.5,
-      });
-      expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
-    });
-
-    it('processes CHILD.OPACITY_CHANGED events for all layer groups and child layers when a layer group changes its opacity', () => {
-      // Setup: Create a manager with a layer group and a child layer
-      const layerManager = createTestLayerManager();
-      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1', opacity: 1 }));
-      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'layer-1', opacity: 0.8 }));
-
-      const opacityChangeWatcher = vi.fn();
-      layerManager.on('LAYER.OPACITY_CHANGED', opacityChangeWatcher);
-
-      // Action: Update opacity through the group machine
-      groupActor.send({ type: 'LAYER.SET_OPACITY', opacity: 0.5 });
-
-      expect(opacityChangeWatcher).toHaveBeenCalledTimes(2);
-
-      expect(opacityChangeWatcher).toHaveBeenNthCalledWith(1, {
-        type: 'LAYER.OPACITY_CHANGED',
-        layerId: 'group-1',
-        opacity: 0.5,
-        computedOpacity: 0.5,
-      });
-
-      expect(opacityChangeWatcher).toHaveBeenNthCalledWith(2, {
-        type: 'LAYER.OPACITY_CHANGED',
-        layerId: 'layer-1',
-        opacity: 0.8,
-        computedOpacity: 0.8 * 0.5,
-      });
-
-      opacityChangeWatcher.mockReset();
-      groupActor.send({ type: 'LAYER.SET_OPACITY', opacity: 0.25 });
-
-      expect(opacityChangeWatcher).toHaveBeenCalledTimes(2);
-
-      expect(opacityChangeWatcher).toHaveBeenNthCalledWith(1, {
-        type: 'LAYER.OPACITY_CHANGED',
-        layerId: 'group-1',
-        opacity: 0.25,
-        computedOpacity: 0.25,
-      });
-
-      expect(opacityChangeWatcher).toHaveBeenNthCalledWith(2, {
-        type: 'LAYER.OPACITY_CHANGED',
-        layerId: 'layer-1',
-        opacity: 0.8,
-        computedOpacity: 0.25 * 0.8,
-      });
-    });
-
-    it('processes CHILD.TIME_INFO_CHANGED events', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      const timeInfo: SingleTimeInfo = {
-        type: 'single',
-        precision: 'date',
-        value: new ZonedDateTime(2024, 1, 1, 'UTC', 0),
-      };
-
-      const timeInfoChangeWatcher = vi.fn();
-      layerManager.on('LAYER.TIME_INFO_CHANGED', timeInfoChangeWatcher);
-
-      // Action: Update time info through manager
-      layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'layer-1', timeInfo });
-
-      // Verify: Manager emits time info changed event with correct payload
-      expect(timeInfoChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.TIME_INFO_CHANGED',
-        layerId: 'layer-1',
-        timeInfo,
-      });
-      expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
-    });
-
-    it('processes CHILD.LAYER_DATA_CHANGED events', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      const newLayerData = { test: 'updated' };
-
-      const layerDataChangeWatcher = vi.fn();
-      layerManager.on('LAYER.LAYER_DATA_CHANGED', layerDataChangeWatcher);
-
-      // Action: Update layer data through manager
-      layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'layer-1', layerData: newLayerData });
-
-      // Verify: Manager emits layer data changed event with correct payload
-      expect(layerDataChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.LAYER_DATA_CHANGED',
-        layerId: 'layer-1',
-        layerData: newLayerData,
-      });
-      expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
-    });
-
-    it('emits LAYER.LAYER_DATA_CHANGED events for layer groups when group data is updated', () => {
-      // Setup: Create a manager with a group
-      const layerManager = createTestLayerManager();
-      const { groupActor } = addLayerGroupToManager(
-        layerManager,
-        createTestLayerGroupConfig({ layerId: 'group-1' }),
-      );
-      const newGroupData = { test: 'group-updated' };
-
-      const layerDataChangeWatcher = vi.fn();
-      layerManager.on('LAYER.LAYER_DATA_CHANGED', layerDataChangeWatcher);
-
-      // Action: Update group data through the group machine
-      groupActor.send({ type: 'LAYER.SET_LAYER_DATA', layerData: newGroupData });
-
-      // Verify: Manager emits layer data changed event with correct payload for the group
-      expect(layerDataChangeWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.LAYER_DATA_CHANGED',
-        layerId: 'group-1',
-        layerData: newGroupData,
-      });
-    });
-
-    it('emits LAYER.ADDED and LAYER.ORDER_CHANGED events when a layer is added', () => {
-      // Setup: Create a layer manager
-      const layerManager = createTestLayerManager();
-      const addedWatcher = vi.fn();
-      const orderChangedWatcher = vi.fn();
-
-      layerManager.on('LAYER.ADDED', addedWatcher);
-      layerManager.on('LAYER.ORDER_CHANGED', orderChangedWatcher);
-
-      // Action: Add a single layer
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-
-      // Verify: Manager emits layer added and order changed events
-      expect(addedWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.ADDED',
-        layerId: 'layer-1',
-        visible: false,
-      });
-      expect(orderChangedWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.ORDER_CHANGED',
-        layerOrder: ['layer-1'],
-      });
-    });
-
-    it('emits LAYER.ADDED with the visibility the layer has once added', () => {
-      const layerManager = createTestLayerManager();
-      const addedWatcher = vi.fn();
-      layerManager.on('LAYER.ADDED', addedWatcher);
-
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: { layerConfig: createTestLayerConfig({ layerId: 'layer-1' }), enabled: true },
-      });
-
-      expect(addedWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.ADDED',
-        layerId: 'layer-1',
-        visible: true,
-      });
-    });
-
-    it('emits LAYER.REMOVED and LAYER.ORDER_CHANGED events when a layer is removed', () => {
-      // Setup: Create a manager with multiple layers
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-
-      const removedWatcher = vi.fn();
-      const orderChangedWatcher = vi.fn();
-
-      layerManager.on('LAYER.REMOVED', removedWatcher);
-      layerManager.on('LAYER.ORDER_CHANGED', orderChangedWatcher);
-
-      // Action: Remove one layer
-      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'layer-1' });
-
-      // Verify: Manager emits layer removed and order changed events
-      expect(removedWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.REMOVED',
-        layerId: 'layer-1',
-      });
-      expect(orderChangedWatcher).toHaveBeenCalledWith({
-        type: 'LAYER.ORDER_CHANGED',
-        layerOrder: ['layer-2'],
-      });
-    });
-  });
-
-  describe('reset functionality', () => {
-    it('resets the manager to initial state', () => {
-      // Setup: Create a manager with multiple layers
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-2' }));
-      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
-
-      // Verify: Manager has layers
-      expect(layerManager.getSnapshot().context.layers).toHaveLength(3);
-
-      // Action: Reset the manager
-      layerManager.send({ type: 'RESET' });
-
-      // Verify: Manager is reset to initial state
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toEqual([]);
-      expect(managerSnapshot.context.childLayerOrder).toEqual([]);
-    });
-  });
-
-  describe('validation and edge cases', () => {
-    it('does not add layer with duplicate layerId', () => {
-      // Setup: Create a manager with a layer
-      const layerManager = createTestLayerManager();
-      addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-
-      // Action: Try to add another layer with the same ID
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: {
-          layerConfig: createTestLayerConfig({ layerId: 'layer-1' }),
-        },
-      });
-
-      // Verify: Only one layer exists (duplicate is rejected)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(1);
-    });
-
-    it('handles adding layer with invalid parent gracefully', () => {
-      // Setup: Create a manager
-      const layerManager = createTestLayerManager();
-
-      // Action: Try to add a layer with a non-existent parent
-      layerManager.send({
-        type: 'LAYER.ADD',
-        params: {
-          layerConfig: createTestLayerConfig({ layerId: 'layer-1', parentId: 'non-existent-parent' }),
-        },
-      });
-
-      // Verify: Layer is not added (invalid parent reference)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toHaveLength(0);
-    });
-
-    it('emits layer change events only for layers it manages', () => {
-      const layerManager = createTestLayerManager();
-      const emittedWatcher = vi.fn();
-      layerManager.on('*', emittedWatcher);
-      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
-
-      layerManager.send({ type: 'CHILD.VISIBILITY_CHANGED', layerId: 'non-existent', visible: true });
-      layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
-      layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'non-existent', timeInfo });
-      layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'non-existent', layerData: { test: 'data' } });
-
-      expect(emittedWatcher).not.toHaveBeenCalled();
     });
   });
 });
