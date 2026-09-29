@@ -2,6 +2,7 @@ import type { ActorRefFrom } from 'xstate';
 
 import type {
   AddManagedLayerParams,
+  LayerManagerChildEvent,
   LayerManagerContext,
   LayerManagerEmittedEvent,
   LayerManagerEvent,
@@ -29,7 +30,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
   return setup({
     types: {
       context: {} as LayerManagerContext<TLayer, TGroup>,
-      events: {} as LayerManagerEvent<TLayer, TGroup>,
+      events: {} as LayerManagerEvent<TLayer, TGroup> | LayerManagerChildEvent<TLayer, TGroup>,
       emitted: {} as LayerManagerEmittedEvent<TLayer, TGroup>,
       input: {} as {
         allowNestedGroupLayers: boolean;
@@ -145,6 +146,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     guards: {
       canAddLayer: ({ context }, params: AddManagedLayerParams<TLayer, TGroup>) => getAddLayerRejection(params.layerConfig, context) === undefined,
       canRemoveLayer: ({ context }, params: { layerId: string }) => getRemoveLayerRejection(params.layerId, context) === undefined,
+      isManagedLayer: ({ context }, params: { layerId: string }) => findManagedLayerById(context.layers, params.layerId) !== undefined,
     },
   }).createMachine({
     id: 'layerManager',
@@ -155,14 +157,16 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       allowNestedGroupLayers: input.allowNestedGroupLayers,
     }),
     on: {
-      'LAYER.UPDATE_VISIBILITY': {
+      'CHILD.VISIBILITY_CHANGED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
         actions: emit(({ event }) => ({
           type: 'LAYER.VISIBILITY_CHANGED',
           layerId: event.layerId,
           visible: event.visible,
         })),
       },
-      'LAYER.UPDATE_OPACITY': {
+      'CHILD.OPACITY_CHANGED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
         actions: [
           emit(({ event }) => ({
             type: 'LAYER.OPACITY_CHANGED',
@@ -172,7 +176,8 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           })),
         ],
       },
-      'LAYER.UPDATE_TIME_INFO': {
+      'CHILD.TIME_INFO_CHANGED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
         actions: emit(({ event }) => {
           return {
             type: 'LAYER.TIME_INFO_CHANGED',
@@ -181,7 +186,8 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           };
         }),
       },
-      'LAYER.UPDATE_LAYER_DATA': {
+      'CHILD.LAYER_DATA_CHANGED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
         actions: emit(({ event }) => ({
           type: 'LAYER.LAYER_DATA_CHANGED',
           layerId: event.layerId,

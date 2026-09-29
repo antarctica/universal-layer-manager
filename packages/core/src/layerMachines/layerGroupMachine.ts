@@ -49,7 +49,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       'Notify Manager of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) => {
           enqueue.sendTo(context.layerManagerRef, {
-            type: 'LAYER.UPDATE_VISIBILITY',
+            type: 'CHILD.VISIBILITY_CHANGED',
             layerId: context.layerId,
             visible: params.visible,
           });
@@ -58,7 +58,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       'Change Layer Data': enqueueActions(({ context, enqueue }, params: { layerData: TGroup }) => {
         enqueue.assign({ layerData: params.layerData });
         enqueue.sendTo(context.layerManagerRef, {
-          type: 'LAYER.UPDATE_LAYER_DATA',
+          type: 'CHILD.LAYER_DATA_CHANGED',
           layerId: context.layerId,
           layerData: params.layerData,
         });
@@ -77,7 +77,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           });
         });
         enqueue.sendTo(context.layerManagerRef, {
-          type: 'LAYER.UPDATE_OPACITY',
+          type: 'CHILD.OPACITY_CHANGED',
           layerId: context.layerId,
           opacity: context.opacity,
           computedOpacity,
@@ -91,7 +91,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
             computedOpacity,
           });
           enqueue.sendTo(context.layerManagerRef, {
-            type: 'LAYER.UPDATE_OPACITY',
+            type: 'CHILD.OPACITY_CHANGED',
             layerId: context.layerId,
             opacity: params.opacity,
             computedOpacity,
@@ -108,7 +108,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         ({ context, enqueue }, params: { timeInfo: LayerTimeInfo }) => {
           enqueue.assign({ timeInfo: params.timeInfo });
           enqueue.sendTo(context.layerManagerRef, {
-            type: 'LAYER.UPDATE_TIME_INFO',
+            type: 'CHILD.TIME_INFO_CHANGED',
             layerId: context.layerId,
             timeInfo: params.timeInfo,
           });
