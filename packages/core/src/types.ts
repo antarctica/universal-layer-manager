@@ -45,6 +45,8 @@ export type LayerType = 'layer' | 'layerGroup';
 
 export type LayerStateTag = 'enabled' | 'visible';
 
+export type LayerStartState = 'enabled.visible' | 'enabled.hidden' | 'disabled';
+
 export interface BaseLayerConfig<T> {
   layerId: string;
   layerName: string;
@@ -160,6 +162,7 @@ export interface LayerContextBase<TLayer, TGroup = TLayer> {
   timeInfo?: LayerTimeInfo;
   opacity: number;
   computedOpacity: number;
+  startState: LayerStartState;
 }
 
 export interface LayerContext<TLayer, TGroup = TLayer> extends LayerContextBase<TLayer, TGroup> {
