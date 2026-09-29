@@ -154,9 +154,9 @@ export type ChildLayerSnapshot = Snapshot<unknown> & {
 export type ChildLayerActor = ActorRef<ChildLayerSnapshot, ChildEvent>;
 
 // Concrete Machine Actors
-export type LayerMachineActor<TLayer = any, TGroup = any> = ActorRefFrom<ReturnType<typeof layerMachine<TLayer, TGroup>>>;
-export type LayerGroupMachineActor<TLayer = any, TGroup = any> = ActorRefFrom<ReturnType<typeof layerGroupMachine<TLayer, TGroup>>>;
-export type LayerActor<TLayer = any, TGroup = any> = LayerMachineActor<TLayer, TGroup> | LayerGroupMachineActor<TLayer, TGroup>;
+export type LayerMachineActor<TLayer = unknown, TGroup = TLayer> = ActorRefFrom<ReturnType<typeof layerMachine<TLayer, TGroup>>>;
+export type LayerGroupMachineActor<TLayer = unknown, TGroup = TLayer> = ActorRefFrom<ReturnType<typeof layerGroupMachine<TLayer, TGroup>>>;
+export type LayerActor<TLayer = unknown, TGroup = TLayer> = LayerMachineActor<TLayer, TGroup> | LayerGroupMachineActor<TLayer, TGroup>;
 
 // ============================================================================
 // DOMAIN: CONTEXT (STATE)
