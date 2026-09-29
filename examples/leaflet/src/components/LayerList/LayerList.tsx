@@ -1,5 +1,4 @@
-import type { LayerActor, LayerMachineActor } from '@ulm/core';
-import type { ClientLayerGroupMachineActor } from '../../layerManager/LayerManagerProvider';
+import type { ClientLayerActor, ClientLayerGroupMachineActor, ClientLayerMachineActor } from '../../layerManager/LayerManagerProvider';
 
 import { isLayerGroupMachine } from '@ulm/core';
 import { useLayerGroupChildLayers, useTopLevelLayers } from '../../layerManager/baseSelectors';
@@ -18,13 +17,13 @@ function LayerGroup({ layerGroupActor, indent }: LayerGroupProps) {
     <section style={{ marginBottom: '20px', marginTop: '20px' }}>
       <LayerGroupItem layerActor={layerGroupActor} indent={indent} />
       <LayerControls parentId={layerGroupActor.id} indent={indent + 1} />
-      <LayerItemList layers={childLayers as LayerActor[]} indent={indent + 1} />
+      <LayerItemList layers={childLayers as ClientLayerActor[]} indent={indent + 1} />
     </section>
   );
 }
 
 interface LayerListProps {
-  layers: LayerActor[];
+  layers: ClientLayerActor[];
   indent: number;
 }
 
@@ -41,7 +40,7 @@ function LayerItemList({ layers, indent }: LayerListProps) {
               />
             )
           : (
-              <LayerItem key={layer.id} layerActor={layer as LayerMachineActor} indent={indent} />
+              <LayerItem key={layer.id} layerActor={layer as ClientLayerMachineActor} indent={indent} />
             ),
       )}
     </>
