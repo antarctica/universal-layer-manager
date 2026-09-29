@@ -2,6 +2,7 @@ import type { ActorRefFrom } from 'xstate';
 
 import type {
   AddManagedLayerParams,
+  ChildLayerActor,
   LayerManagerContext,
   LayerManagerEmittedEvent,
   LayerManagerEvent,
@@ -13,7 +14,6 @@ import { layerGroupMachine } from '../layerMachines/layerGroupMachine';
 import { layerMachine } from '../layerMachines/layerMachine';
 import {
   canRemoveLayer,
-  cleanupLayerReferences,
   findManagedLayerById,
   findParentActor,
   getFlatLayerOrder,
@@ -94,6 +94,15 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           return getUpdatedLayerStructure(context, newManagedLayer, parentRef, index, position);
         });
 
+        if (parentRef) {
+          enqueue.sendTo(parentRef, ({ context }) => ({
+            type: 'LAYERS.ADD_CHILD' as const,
+            child: findManagedLayerById(context.layers, layerConfig.layerId)!.layerActor as ChildLayerActor,
+            index,
+            position,
+          }));
+        }
+
         enqueue.emit(({ context }) => ({
           type: 'LAYER.ADDED' as const,
           layerId: layerConfig.layerId,
@@ -109,7 +118,10 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         if (!layerToRemove || !canRemoveLayer(layerToRemove)) {
           return;
         }
-        cleanupLayerReferences(layerToRemove);
+        const { parentRef } = layerToRemove.layerActor.getSnapshot().context;
+        if (parentRef) {
+          enqueue.sendTo(parentRef, { type: 'LAYERS.REMOVE_CHILD', id: layerId });
+        }
         enqueue.stopChild(layerId);
         enqueue.assign(() => {
           return getUpdatedLayerStructureAfterRemoval(context, layerId);

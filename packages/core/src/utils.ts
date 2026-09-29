@@ -271,9 +271,7 @@ export function getLayerGroupChildrenInOrder(
 
 /**
  * Calculates the new state for the Layer Manager after adding a layer.
- *
- * NOTE: If `parentRef` is provided, this function has a SIDE EFFECT
- * of sending an event to that parent actor.
+ * Only top-level layers change the manager's order; a child's order lives in its parent group.
  *
  * @param context - Current manager context.
  * @param newManagedLayer - The new layer wrapper to add.
@@ -290,7 +288,7 @@ export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
   position?: 'top' | 'bottom',
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
   return parentRef
-    ? addLayerToParent(context.layers, newManagedLayer, parentRef, index, position)
+    ? addLayerToParent(context.layers, newManagedLayer)
     : addLayerToTopLevel(context.layers, newManagedLayer, context.childLayerOrder, index, position);
 }
 
@@ -354,13 +352,7 @@ export function calculateComputedOpacity(
 function addLayerToParent<TLayer, TGroup = TLayer>(
   layers: ManagedItem<TLayer, TGroup>[],
   newLayer: ManagedItem<TLayer, TGroup>,
-  parentRef: ParentLayerActor,
-  index?: number,
-  position?: 'top' | 'bottom',
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
-  // SIDE EFFECT: Notify parent to add child
-  parentRef.send({ type: 'LAYERS.ADD_CHILD', child: newLayer.layerActor as ChildLayerActor, index, position });
-
   return {
     layers: [...layers, newLayer],
   };
