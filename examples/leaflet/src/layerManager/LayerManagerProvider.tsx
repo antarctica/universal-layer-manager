@@ -1,4 +1,5 @@
 import type {
+  LayerActor,
   LayerGroupMachineActor,
   LayerMachineActor,
 } from '@ulm/core';
@@ -17,6 +18,7 @@ export interface LayerData {
 
 export type ClientLayerGroupMachineActor = LayerGroupMachineActor<LayerData, undefined>;
 export type ClientLayerMachineActor = LayerMachineActor<LayerData, undefined>;
+export type ClientLayerActor = LayerActor<LayerData, undefined>;
 
 type Manager = LayerManager<LayerData, undefined>;
 

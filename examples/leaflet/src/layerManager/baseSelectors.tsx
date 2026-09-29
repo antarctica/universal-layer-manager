@@ -20,7 +20,7 @@ export function useTopLevelLayers() {
   return topLevelLayers;
 }
 
-export function useLayerGroupChildLayers<T>(actor: LayerGroupMachineActor<T>) {
+export function useLayerGroupChildLayers<TLayer, TGroup>(actor: LayerGroupMachineActor<TLayer, TGroup>) {
   const { childLayerOrder, children } = useSelector(actor, ({ context }) => ({
     childLayerOrder: context.childLayerOrder,
     children: context.children,
