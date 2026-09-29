@@ -130,7 +130,8 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
     | { type: 'LAYER.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
     | { type: 'LAYER.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
     | { type: 'LAYER.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }
-    | { type: 'LAYER.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup };
+    | { type: 'LAYER.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup }
+    | { type: 'LAYER.REJECTED'; layerId: string; reason: string };
 
 // ============================================================================
 // DOMAIN: ACTOR SYSTEM
