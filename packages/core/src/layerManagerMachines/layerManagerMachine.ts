@@ -97,11 +97,11 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           return getUpdatedLayerStructure(context, newManagedLayer, parentRef, index, position);
         });
 
-        enqueue.emit({
-          type: 'LAYER.ADDED',
+        enqueue.emit(({ context }) => ({
+          type: 'LAYER.ADDED' as const,
           layerId: layerConfig.layerId,
-          visible: visible ?? false,
-        });
+          visible: findManagedLayerById(context.layers, layerConfig.layerId)?.layerActor.getSnapshot().matches({ enabled: 'visible' }) ?? false,
+        }));
       }),
 
       'Remove layer': enqueueActions(({ enqueue, context }, params: { layerId: string }) => {
