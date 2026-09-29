@@ -505,33 +505,6 @@ describe('layerManagerMachine', () => {
       expect(managerSnapshot.context.layers).toEqual([]);
       expect(managerSnapshot.context.childLayerOrder).toEqual([]);
     });
-
-    it('stops all layer actors when reset', () => {
-      // Setup: Create a manager with layers
-      const layerManager = createTestLayerManager();
-      const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
-
-      // Verify: Actors are active
-      expect(layerActor.getSnapshot().status).toBe('active');
-      expect(groupActor.getSnapshot().status).toBe('active');
-
-      // Action: Reset the manager
-      layerManager.send({ type: 'RESET' });
-
-      // Verify: Manager context is cleared (actors are stopped internally)
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toEqual([]);
-      expect(managerSnapshot.context.childLayerOrder).toEqual([]);
-
-      // Verify: Actors are no longer in the manager's context
-      // Note: The actors may still be in 'active' status briefly before being stopped,
-      // but they are removed from the manager's context
-      const layerInManager = managerSnapshot.context.layers.find((l) => l.layerActor.id === 'layer-1');
-      const groupInManager = managerSnapshot.context.layers.find((l) => l.layerActor.id === 'group-1');
-      expect(layerInManager).toBeUndefined();
-      expect(groupInManager).toBeUndefined();
-    });
   });
 
   describe('validation and edge cases', () => {
