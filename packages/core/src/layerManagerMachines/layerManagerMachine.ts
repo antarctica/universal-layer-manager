@@ -54,7 +54,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           if (visible || (enabled && !parentRef)) {
             return 'layerMachineEnabledVisible';
           } else {
-            if (enabled && parentRef && parentRef.getSnapshot().value && parentRef.getSnapshot().matches({ disabled: 'hidden' })) {
+            if (enabled && parentRef && !parentRef.getSnapshot().hasTag('enabled')) {
               return 'layerMachineEnabledHidden';
             }
             return 'layerMachineDisabled';
@@ -100,7 +100,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         enqueue.emit(({ context }) => ({
           type: 'LAYER.ADDED' as const,
           layerId: layerConfig.layerId,
-          visible: findManagedLayerById(context.layers, layerConfig.layerId)?.layerActor.getSnapshot().matches({ enabled: 'visible' }) ?? false,
+          visible: findManagedLayerById(context.layers, layerConfig.layerId)?.layerActor.getSnapshot().hasTag('visible') ?? false,
         }));
       }),
 

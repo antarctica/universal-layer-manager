@@ -64,6 +64,19 @@ describe('layerGroupMachine', () => {
     });
   });
 
+  describe('state tags', () => {
+    it('tags a visible group as enabled and visible', () => {
+      const layerManager = createTestLayerManager();
+      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }), {
+        visible: true,
+      });
+
+      const snapshot = groupActor.getSnapshot();
+      expect(snapshot.hasTag('enabled')).toBe(true);
+      expect(snapshot.hasTag('visible')).toBe(true);
+    });
+  });
+
   describe('adding child layers', () => {
     it('adds a single child layer to a group', () => {
       // Setup: Create a layer group
