@@ -116,11 +116,14 @@ export type LayerGroupEvent<TGroup> = ChildEvent | ParentEvent | LayerEventBase<
 export type LayerManagerEvent<TLayer, TGroup = TLayer>
   = | { type: 'LAYER.ADD'; params: AddManagedLayerParams<TLayer, TGroup> }
     | { type: 'LAYER.REMOVE'; layerId: string }
-    | { type: 'LAYER.UPDATE_VISIBILITY'; layerId: string; visible: boolean }
-    | { type: 'LAYER.UPDATE_OPACITY'; layerId: string; opacity: number; computedOpacity: number }
-    | { type: 'LAYER.UPDATE_TIME_INFO'; layerId: string; timeInfo: LayerTimeInfo }
-    | { type: 'LAYER.UPDATE_LAYER_DATA'; layerId: string; layerData: TLayer | TGroup }
     | { type: 'RESET' };
+
+/** Notifications that layer and group actors send to their manager. Not for callers. */
+export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
+  = | { type: 'CHILD.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
+    | { type: 'CHILD.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
+    | { type: 'CHILD.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }
+    | { type: 'CHILD.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup };
 
 export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
   = | { type: 'LAYER.ADDED'; layerId: string; visible: boolean }
@@ -138,7 +141,7 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
 // ============================================================================
 
 // Generic Actor References
-export type LayerManagerRef<TLayer, TGroup = TLayer> = ActorRef<Snapshot<unknown>, LayerManagerEvent<TLayer, TGroup>>;
+export type LayerManagerRef<TLayer, TGroup = TLayer> = ActorRef<Snapshot<unknown>, LayerManagerChildEvent<TLayer, TGroup>>;
 export type ParentLayerSnapshot = Snapshot<unknown> & {
   context: Pick<LayerContextBase<unknown>, 'layerId' | 'computedOpacity'>;
   hasTag: (tag: LayerStateTag) => boolean;
