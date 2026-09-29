@@ -2,7 +2,6 @@ import type { ActorRefFrom } from 'xstate';
 
 import type {
   AddManagedLayerParams,
-  ChildLayerActor,
   LayerManagerContext,
   LayerManagerEmittedEvent,
   LayerManagerEvent,
@@ -17,6 +16,7 @@ import {
   findParentActor,
   getAddLayerRejection,
   getFlatLayerOrder,
+  getGroupChildrenChangedEvent,
   getRemoveLayerRejection,
   getUpdatedLayerStructure,
   getUpdatedLayerStructureAfterRemoval,
@@ -94,12 +94,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         });
 
         if (parentRef) {
-          enqueue.sendTo(parentRef, ({ context }) => ({
-            type: 'LAYERS.ADD_CHILD' as const,
-            child: findManagedLayerById(context.layers, layerConfig.layerId)!.layerActor as ChildLayerActor,
-            index,
-            position,
-          }));
+          enqueue.sendTo(parentRef, ({ context }) => getGroupChildrenChangedEvent(context, parentRef.id));
         }
 
         enqueue.emit(({ context }) => ({
@@ -113,13 +108,13 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         const { layerId } = params;
 
         const parentRef = findManagedLayerById(context.layers, layerId)?.layerActor.getSnapshot().context.parentRef;
-        if (parentRef) {
-          enqueue.sendTo(parentRef, { type: 'LAYERS.REMOVE_CHILD', id: layerId });
-        }
         enqueue.stopChild(layerId);
         enqueue.assign(() => {
           return getUpdatedLayerStructureAfterRemoval(context, layerId);
         });
+        if (parentRef) {
+          enqueue.sendTo(parentRef, ({ context }) => getGroupChildrenChangedEvent(context, parentRef.id));
+        }
         enqueue.emit({ type: 'LAYER.REMOVED', layerId });
       }),
 
@@ -131,7 +126,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
 
       'Emit update layer order': emit(({ context }) => ({
         type: 'LAYER.ORDER_CHANGED' as const,
-        layerOrder: getFlatLayerOrder(context.layers, context.childLayerOrder),
+        layerOrder: getFlatLayerOrder(context),
       })),
 
       // Reset actions
@@ -143,6 +138,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         enqueue.assign({
           layers: [],
           childLayerOrder: [],
+          groupChildLayerOrder: {},
         });
       }),
     },
@@ -155,6 +151,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     context: ({ input }) => ({
       layers: [],
       childLayerOrder: [],
+      groupChildLayerOrder: {},
       allowNestedGroupLayers: input.allowNestedGroupLayers,
     }),
     on: {

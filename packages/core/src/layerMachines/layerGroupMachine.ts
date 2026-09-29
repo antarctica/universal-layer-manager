@@ -10,7 +10,6 @@ import type {
 } from '../types';
 
 import { assign, enqueueActions, setup } from 'xstate';
-import { updateLayerOrder } from '../utils';
 
 export function layerGroupMachine<TLayer, TGroup = TLayer>() {
   return setup({
@@ -115,33 +114,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           });
         },
       ),
-      'Update Children': assign(
-        (
-          { context },
-          params: {
-            child: ChildLayerActor;
-            index?: number;
-            position?: 'top' | 'bottom';
-          },
-        ) => {
-          const newOrder = updateLayerOrder(
-            context.childLayerOrder,
-            params.child.id,
-            params.index,
-            params.position,
-          );
-          return {
-            children: [...context.children, params.child],
-            childLayerOrder: newOrder,
-          };
-        },
-      ),
-      'Remove Child': assign(({ context }, params: { id: string }) => {
-        return {
-          children: context.children.filter((layer) => layer.id !== params.id),
-          childLayerOrder: context.childLayerOrder.filter((layerId) => layerId !== params.id),
-        };
-      }),
+      'Set Children': assign((_, params: { children: ChildLayerActor[]; childLayerOrder: string[] }) => ({
+        children: params.children,
+        childLayerOrder: params.childLayerOrder,
+      })),
     },
   }).createMachine({
     id: 'layerGroup',
@@ -256,21 +232,11 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       'CHILD.VISIBLE': {
         actions: 'Notify Parent of visibility change',
       },
-      'LAYERS.ADD_CHILD': {
-        actions: [
-          {
-            type: 'Update Children',
-            params: ({ event }) => event,
-          },
-        ],
-      },
-      'LAYERS.REMOVE_CHILD': {
-        actions: [
-          {
-            type: 'Remove Child',
-            params: ({ event }) => event,
-          },
-        ],
+      'LAYERS.CHILDREN_CHANGED': {
+        actions: {
+          type: 'Set Children',
+          params: ({ event }) => event,
+        },
       },
       'LAYER.SET_LAYER_DATA': {
         actions: [
