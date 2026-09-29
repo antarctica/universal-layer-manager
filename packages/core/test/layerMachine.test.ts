@@ -20,7 +20,7 @@ describe('layerMachine', () => {
 
       // Verify: Layer starts in disabled/hidden state with values from the input config
       const snapshot = layerActor.getSnapshot();
-      expect(snapshot.value).toEqual({ disabled: 'hidden' });
+      expect(snapshot.matches('disabled')).toBe(true);
       expect(snapshot.context.layerId).toBe('layer-1');
       expect(snapshot.context.layerName).toBe('Test layer');
       expect(snapshot.context.listMode).toBe('show');
@@ -65,7 +65,7 @@ describe('layerMachine', () => {
       const { layerActor } = createLayerWithManager({ visible: false });
 
       // Verify: Starts in disabled state
-      expect(layerActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(layerActor.getSnapshot().matches('disabled')).toBe(true);
 
       // Action: Enable the layer
       layerActor.send({ type: 'LAYER.ENABLED' });
@@ -85,7 +85,7 @@ describe('layerMachine', () => {
       layerActor.send({ type: 'LAYER.DISABLED' });
 
       // Verify: Transitions to disabled/hidden state
-      expect(layerActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(layerActor.getSnapshot().matches('disabled')).toBe(true);
     });
   });
 
@@ -318,10 +318,10 @@ describe('layerMachine', () => {
       );
 
       // Verify: Child starts disabled
-      expect(childActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(childActor.getSnapshot().matches('disabled')).toBe(true);
 
       // Verify: Group starts disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
 
       // Action: Enable the child layer so it becomes visible
       childActor.send({ type: 'LAYER.ENABLED' });

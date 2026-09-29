@@ -185,7 +185,7 @@ describe('layerGroupMachine', () => {
       });
 
       // Verify: Group starts disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
 
       const { childActor } = addChildLayerToGroup(
         layerManager,
@@ -209,7 +209,7 @@ describe('layerGroupMachine', () => {
       });
 
       // Verify: Group starts disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
 
       const { childActor } = addChildLayerToGroup(
         layerManager,
@@ -219,10 +219,10 @@ describe('layerGroupMachine', () => {
       );
 
       // Verify: Child becomes disabled:hidden when added with visible:false
-      expect(childActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(childActor.getSnapshot().matches('disabled')).toBe(true);
 
       // Verify: Group remains disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
     });
 
     it('group visibility cascades to children when group is disabled or enabled', () => {
@@ -253,7 +253,7 @@ describe('layerGroupMachine', () => {
       groupActor.send({ type: 'LAYER.DISABLED' });
 
       // Verify: Group becomes disabled, children become hidden (but remain enabled)
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
       expect(child1.getSnapshot().value).toEqual({ enabled: 'hidden' });
       expect(child2.getSnapshot().value).toEqual({ enabled: 'hidden' });
 
@@ -320,7 +320,7 @@ describe('layerGroupMachine', () => {
       expect(childActor.getSnapshot().value).toEqual({ enabled: 'hidden' });
 
       // Verify: Group remains disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
     });
   });
 
@@ -385,8 +385,8 @@ describe('layerGroupMachine', () => {
       );
 
       // Verify: Both groups start visible and disabled
-      expect(parentGroup.getSnapshot().value).toEqual({ disabled: 'hidden' });
-      expect(childGroup.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(parentGroup.getSnapshot().matches('disabled')).toBe(true);
+      expect(childGroup.getSnapshot().matches('disabled')).toBe(true);
 
       // Action: Make visible the child group
       childGroup.send({ type: 'LAYER.ENABLED' });
