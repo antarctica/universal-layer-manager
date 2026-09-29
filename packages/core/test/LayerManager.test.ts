@@ -4,6 +4,17 @@ import { LayerManager } from '../src/LayerManager';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
 
 describe('layerManager', () => {
+  describe('adding layers', () => {
+    it('reports an enabled top-level layer as visible when it is added', () => {
+      const onLayerAdded = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onLayerAdded });
+
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }), enabled: true });
+
+      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', enabled: true, visible: true }));
+    });
+  });
+
   describe('reset', () => {
     it('reports every layer as removed', () => {
       const onLayerRemoved = vi.fn();
