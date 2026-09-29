@@ -337,7 +337,7 @@ describe('layerManagerMachine', () => {
   });
 
   describe('event emissions', () => {
-    it('processes LAYER.UPDATE_VISIBILITY events', () => {
+    it('processes CHILD.VISIBILITY_CHANGED events', () => {
       // Setup: Create a manager with a layer
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }), { visible: false });
@@ -379,7 +379,7 @@ describe('layerManagerMachine', () => {
       });
     });
 
-    it('processes LAYER.UPDATE_OPACITY events', () => {
+    it('processes CHILD.OPACITY_CHANGED events', () => {
       // Setup: Create a manager with a layer
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
@@ -388,7 +388,7 @@ describe('layerManagerMachine', () => {
       layerManager.on('LAYER.OPACITY_CHANGED', opacityChangeWatcher);
 
       // Action: Update opacity through manager
-      layerManager.send({ type: 'LAYER.UPDATE_OPACITY', layerId: 'layer-1', opacity: 0.5, computedOpacity: 0.5 });
+      layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'layer-1', opacity: 0.5, computedOpacity: 0.5 });
 
       // Verify: Manager emits opacity changed event with correct payload
       expect(opacityChangeWatcher).toHaveBeenCalledWith({
@@ -400,7 +400,7 @@ describe('layerManagerMachine', () => {
       expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
     });
 
-    it('processes LAYER.UPDATE_OPACITY events for all layer groups and child layers when a layer group changes its opacity', () => {
+    it('processes CHILD.OPACITY_CHANGED events for all layer groups and child layers when a layer group changes its opacity', () => {
       // Setup: Create a manager with a layer group and a child layer
       const layerManager = createTestLayerManager();
       const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1', opacity: 1 }));
@@ -448,7 +448,7 @@ describe('layerManagerMachine', () => {
       });
     });
 
-    it('processes LAYER.UPDATE_TIME_INFO events', () => {
+    it('processes CHILD.TIME_INFO_CHANGED events', () => {
       // Setup: Create a manager with a layer
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
@@ -462,7 +462,7 @@ describe('layerManagerMachine', () => {
       layerManager.on('LAYER.TIME_INFO_CHANGED', timeInfoChangeWatcher);
 
       // Action: Update time info through manager
-      layerManager.send({ type: 'LAYER.UPDATE_TIME_INFO', layerId: 'layer-1', timeInfo });
+      layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'layer-1', timeInfo });
 
       // Verify: Manager emits time info changed event with correct payload
       expect(timeInfoChangeWatcher).toHaveBeenCalledWith({
@@ -473,7 +473,7 @@ describe('layerManagerMachine', () => {
       expect(layerActor.getSnapshot().context.layerId).toBe('layer-1');
     });
 
-    it('processes LAYER.UPDATE_LAYER_DATA events', () => {
+    it('processes CHILD.LAYER_DATA_CHANGED events', () => {
       // Setup: Create a manager with a layer
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
@@ -483,7 +483,7 @@ describe('layerManagerMachine', () => {
       layerManager.on('LAYER.LAYER_DATA_CHANGED', layerDataChangeWatcher);
 
       // Action: Update layer data through manager
-      layerManager.send({ type: 'LAYER.UPDATE_LAYER_DATA', layerId: 'layer-1', layerData: newLayerData });
+      layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'layer-1', layerData: newLayerData });
 
       // Verify: Manager emits layer data changed event with correct payload
       expect(layerDataChangeWatcher).toHaveBeenCalledWith({
@@ -642,18 +642,18 @@ describe('layerManagerMachine', () => {
       expect(managerSnapshot.context.layers).toHaveLength(0);
     });
 
-    it('handles events for non-existent layers gracefully', () => {
-      // Setup: Create a manager without layers
+    it('emits layer change events only for layers it manages', () => {
       const layerManager = createTestLayerManager();
+      const emittedWatcher = vi.fn();
+      layerManager.on('*', emittedWatcher);
+      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
 
-      // Action: Send events for non-existent layer
-      layerManager.send({ type: 'LAYER.UPDATE_VISIBILITY', layerId: 'non-existent', visible: true });
-      layerManager.send({ type: 'LAYER.UPDATE_OPACITY', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
-      layerManager.send({ type: 'LAYER.UPDATE_TIME_INFO', layerId: 'non-existent', timeInfo: undefined as never });
+      layerManager.send({ type: 'CHILD.VISIBILITY_CHANGED', layerId: 'non-existent', visible: true });
+      layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
+      layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'non-existent', timeInfo });
+      layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'non-existent', layerData: { test: 'data' } });
 
-      // Verify: Manager remains in valid state
-      const managerSnapshot = layerManager.getSnapshot();
-      expect(managerSnapshot.context.layers).toEqual([]);
+      expect(emittedWatcher).not.toHaveBeenCalled();
     });
   });
 });
