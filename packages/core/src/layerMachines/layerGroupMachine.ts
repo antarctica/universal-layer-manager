@@ -39,14 +39,6 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           });
         },
       ),
-      'Notify children of opacity change': enqueueActions(({ context, enqueue }) => {
-        context.children.forEach((child) => {
-          enqueue.sendTo(child, {
-            type: 'PARENT.OPACITY_CHANGED',
-            opacity: context.computedOpacity,
-          });
-        });
-      }),
       'Notify Parent of visibility change': enqueueActions(({ context, enqueue }) => {
         if (context.parentRef) {
           enqueue.sendTo(context.parentRef, {
@@ -152,7 +144,6 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       }),
     },
   }).createMachine({
-    /** @xstate-layout N4IgpgJg5mDOIC5QBsCGBPMAnA4lg9gK4AOAxAMIASAkgDIAiAdAGrUDK1AQrQKIDaABgC6iUMXywAlgBdJ+AHaiQAD0QBOABwAmRmoCMAgCwa1mjQGYArAHYNAGhDp1jPRu221WgVssDLPgF8AhzRMXAISUloAQQBNHgAlNkZo+noAfSo6ekERJBBxKVkFJVUEa3M1XT0tDWtrY0tDNUMANgcnBCrXd1a9c2tLDT1LNVagkIxsPCIyGPikxgSeAFkAeWYeTJoGXKVCmTlFfLLDY0YK2wFXATcbGw7EEZdzZp99Hz0R14mQUOmIsRGGB5KgAEbISBROKJRj0djRbg8HLCfYSQ4lE6ILT9Ri3NRWNr9ATmcytcyPBADVqMJpfDSteqGLTWPSDX7-cKzYGgiGQRgAN0kUj5pAACtFlgA5AAqjBoaR4Ur2+QOxWOoDK9R01wMagalkqX2slN8hgu+j05Is5NG1g5Uy5JB54MhEEYAAtJBAICDxZKlXLWBwkSqxOj1aVENrdMZWk0NIZrK0tJ5KWcBBavpZGbc9IYbONgn9HTNnRBha6ofNYUrEbwUXlw0UjlGEDjzHiTIS+uYSWSKY5EEnrLTDDU-EMNL5GQ6wmWgRXYFWIBQdkxg1xeGGChHW1j27j8T3iaTyemWXjx3oxq5+t2gsX5PhffB8pyF2iW5jNYgALQ4ro8bmDU5g2imYxaJSXydkYxr9jmwF6HOALciCK5fhiGoqIgYHmrUBbDGy1g+EMlJaK05p0myWikomRhWChTpAuhfLukKIqQphkYHoY5g6ARQzGiRlhkUOVJjGO2bMhYzR+ExC4umxnrer62Fqvuv5dKJjAEa0AgGQYWiGCS6bNIwAwFgY46mDihgKYCjBLhhqp7j+OHtjSJJtHUfTkgMJL2OJpJ6Iw44pgI+pybUWgOdyznKV6PogtxmkeQ0eKvK0vlWqS1hGOm5JhVaN5Wi0Xx8eYj4BEAA */
     id: 'layerGroup',
     description: 'A machine that represents a collection of layers that can be toggled as a group',
     initial: 'starting',
