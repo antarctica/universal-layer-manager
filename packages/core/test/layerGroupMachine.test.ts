@@ -422,5 +422,46 @@ describe('layerGroupMachine', () => {
       const updatedChildSnapshot = childGroup.getSnapshot();
       expect(updatedChildSnapshot.context.computedOpacity).toEqual(0.25 * 0.8);
     });
+
+    it('derives its computed opacity from the opacity its parent sends', () => {
+      const layerManager = createTestLayerManager({ allowNestedGroupLayers: true });
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'parent-group' }));
+      const { groupActor: childGroup } = addLayerGroupToManager(
+        layerManager,
+        createTestLayerGroupConfig({ layerId: 'child-group', parentId: 'parent-group', opacity: 0.8 }),
+      );
+      const opacityWatcher = vi.fn();
+      layerManager.on('LAYER.OPACITY_CHANGED', opacityWatcher);
+
+      childGroup.send({ type: 'PARENT.OPACITY_CHANGED', opacity: 0.5 });
+
+      expect(opacityWatcher).toHaveBeenCalledWith({
+        type: 'LAYER.OPACITY_CHANGED',
+        layerId: 'child-group',
+        opacity: 0.8,
+        computedOpacity: 0.4,
+      });
+    });
+
+    it('combines its own opacity with the last opacity its parent sent', () => {
+      const layerManager = createTestLayerManager({ allowNestedGroupLayers: true });
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'parent-group' }));
+      const { groupActor: childGroup } = addLayerGroupToManager(
+        layerManager,
+        createTestLayerGroupConfig({ layerId: 'child-group', parentId: 'parent-group' }),
+      );
+      childGroup.send({ type: 'PARENT.OPACITY_CHANGED', opacity: 0.5 });
+      const opacityWatcher = vi.fn();
+      layerManager.on('LAYER.OPACITY_CHANGED', opacityWatcher);
+
+      childGroup.send({ type: 'LAYER.SET_OPACITY', opacity: 0.8 });
+
+      expect(opacityWatcher).toHaveBeenCalledWith({
+        type: 'LAYER.OPACITY_CHANGED',
+        layerId: 'child-group',
+        opacity: 0.8,
+        computedOpacity: 0.4,
+      });
+    });
   });
 });

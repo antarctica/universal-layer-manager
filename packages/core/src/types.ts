@@ -162,6 +162,7 @@ export interface LayerContextBase<TLayer, TGroup = TLayer> {
   layerData: TLayer | TGroup;
   timeInfo?: LayerTimeInfo;
   opacity: number;
+  parentOpacity: number;
   computedOpacity: number;
   startState: LayerStartState;
 }
