@@ -10,7 +10,7 @@ import type {
 } from '../types';
 
 import { assign, enqueueActions, setup } from 'xstate';
-import { calculateComputedOpacity, updateLayerOrder } from '../utils';
+import { updateLayerOrder } from '../utils';
 
 export function layerGroupMachine<TLayer, TGroup = TLayer>() {
   return setup({
@@ -28,6 +28,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         opacity?: number;
         layerData: TGroup;
         startState?: LayerStartState;
+        parentOpacity?: number;
       },
     },
     actions: {
@@ -71,9 +72,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           layerData: params.layerData,
         });
       }),
-      'Update Computed Opacity': enqueueActions(({ context, enqueue }) => {
-        const computedOpacity = calculateComputedOpacity(context.parentRef, context.opacity);
+      'Update Computed Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
+        const computedOpacity = params.opacity * context.opacity;
         enqueue.assign({
+          parentOpacity: params.opacity,
           computedOpacity,
         });
         // Notify children of the new computed opacity
@@ -92,7 +94,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       }),
       'Change Layer Opacity': enqueueActions(
         ({ context, enqueue }, params: { opacity: number }) => {
-          const computedOpacity = calculateComputedOpacity(context.parentRef, params.opacity);
+          const computedOpacity = context.parentOpacity * params.opacity;
           enqueue.assign({
             opacity: params.opacity,
             computedOpacity,
@@ -156,7 +158,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     initial: 'starting',
     context: ({ input }) => {
       const opacity = input.opacity ?? 1;
-      const computedOpacity = calculateComputedOpacity(input.parentRef, opacity);
+      const parentOpacity = input.parentOpacity ?? 1;
       return {
         layerManagerRef: input.layerManagerRef,
         layerId: input.layerId,
@@ -169,7 +171,8 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         timeInfo: input.timeInfo,
         layerData: input.layerData,
         opacity,
-        computedOpacity,
+        parentOpacity,
+        computedOpacity: parentOpacity * opacity,
         startState: input.startState ?? 'disabled',
       };
     },
@@ -254,7 +257,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     },
     on: {
       'PARENT.OPACITY_CHANGED': {
-        actions: 'Update Computed Opacity',
+        actions: {
+          type: 'Update Computed Opacity',
+          params: ({ event }) => event,
+        },
       },
       'CHILD.VISIBLE': {
         actions: 'Notify Parent of visibility change',

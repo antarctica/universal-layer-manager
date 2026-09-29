@@ -44,6 +44,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         const { layerConfig, index, visible, enabled, position } = params;
 
         const parentRef = findParentActor(context.layers, layerConfig);
+        const parentOpacity = parentRef?.getSnapshot().context.computedOpacity ?? 1;
 
         function getStartState(enabled: boolean, visible: boolean): LayerStartState {
           if (visible || (enabled && (!parentRef || parentRef.getSnapshot().hasTag('visible')))) {
@@ -65,6 +66,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
                 parentRef,
                 ...layerConfig,
                 startState: getStartState(enabled ?? false, visible ?? false),
+                parentOpacity,
               },
             });
             newManagedLayer = {
@@ -79,6 +81,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
                 parentRef,
                 ...layerConfig,
                 startState: getStartState(enabled ?? false, visible ?? false),
+                parentOpacity,
               },
             });
             newManagedLayer = {

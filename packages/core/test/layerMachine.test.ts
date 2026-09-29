@@ -391,5 +391,23 @@ describe('layerMachine', () => {
       const updatedSnapshot = childActor.getSnapshot();
       expect(updatedSnapshot.context.computedOpacity).toEqual(0.25 * 0.8);
     });
+
+    it('combines its own opacity with the last opacity its parent sent', () => {
+      const layerManager = createTestLayerManager();
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      const { childActor } = addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+      childActor.send({ type: 'PARENT.OPACITY_CHANGED', opacity: 0.5 });
+      const opacityWatcher = vi.fn();
+      layerManager.on('LAYER.OPACITY_CHANGED', opacityWatcher);
+
+      childActor.send({ type: 'LAYER.SET_OPACITY', opacity: 0.8 });
+
+      expect(opacityWatcher).toHaveBeenCalledWith({
+        type: 'LAYER.OPACITY_CHANGED',
+        layerId: 'child-1',
+        opacity: 0.8,
+        computedOpacity: 0.4,
+      });
+    });
   });
 });
