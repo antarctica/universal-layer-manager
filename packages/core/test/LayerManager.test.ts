@@ -31,4 +31,18 @@ describe('layerManager', () => {
       expect(layer?.layerActor.getSnapshot().status).toBe('stopped');
     });
   });
+
+  describe('opacity', () => {
+    it('reports a nested group\'s computed opacity as its own opacity times its parent\'s', () => {
+      const onOpacityChanged = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ allowNestedGroupLayers: true, onOpacityChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'outer' }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer', opacity: 0.8 }) });
+
+      manager.setOpacity('outer', 0.5);
+
+      const innerReports = onOpacityChanged.mock.calls.filter(([info]) => info.layerId === 'inner');
+      expect(innerReports.map(([, computedOpacity]) => computedOpacity)).toEqual([0.4]);
+    });
+  });
 });
