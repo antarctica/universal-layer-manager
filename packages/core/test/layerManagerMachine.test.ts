@@ -257,6 +257,22 @@ describe('layerManagerMachine', () => {
     });
   });
 
+  describe('rejected changes', () => {
+    it('emits LAYER.ORDER_CHANGED only for adds and removes that are accepted', () => {
+      const layerManager = createTestLayerManager();
+      const orderChangedWatcher = vi.fn();
+      const rejectedWatcher = vi.fn();
+      layerManager.on('LAYER.ORDER_CHANGED', orderChangedWatcher);
+      layerManager.on('LAYER.REJECTED', rejectedWatcher);
+
+      layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'missing-group' }) } });
+      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'missing-layer' });
+
+      expect(rejectedWatcher).toHaveBeenCalledTimes(2);
+      expect(orderChangedWatcher).not.toHaveBeenCalled();
+    });
+  });
+
   describe('pure transitions', () => {
     it('updates the parent group of a removed layer only when the removal is executed', () => {
       const layerManager = createTestLayerManager();

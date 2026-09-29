@@ -44,6 +44,50 @@ describe('layerManager', () => {
     });
   });
 
+  describe('rejected changes', () => {
+    it('reports adding a layer with an id that is already in use through onError', () => {
+      const onError = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
+
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'layer-1' }) });
+
+      expect(onError).toHaveBeenCalledWith(new Error('Layer with ID layer-1 already exists. Layer not added.'));
+      expect(manager.layers).toHaveLength(1);
+    });
+
+    it('reports adding a layer to a parent that does not exist through onError', () => {
+      const onError = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'missing-group' }) });
+
+      expect(onError).toHaveBeenCalledWith(new Error('Unable to find parent group missing-group. Layer child-1 not added.'));
+      expect(manager.getLayer('child-1')).toBeUndefined();
+    });
+
+    it('reports removing a layer that does not exist through onError', () => {
+      const onError = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+
+      manager.removeLayer('missing-layer');
+
+      expect(onError).toHaveBeenCalledWith(new Error('Unable to find layer missing-layer. Layer not removed.'));
+    });
+
+    it('reports removing a group that still has children through onError', () => {
+      const onError = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onError });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }) });
+      manager.addLayer({ layerConfig: createTestLayerConfig({ layerId: 'child-1', parentId: 'group-1' }) });
+
+      manager.removeLayer('group-1');
+
+      expect(onError).toHaveBeenCalledWith(new Error('Layer group group-1 has children. Layer not removed.'));
+      expect(manager.getLayer('group-1')).toBeDefined();
+    });
+  });
+
   describe('reset', () => {
     it('reports every layer as removed', () => {
       const onLayerRemoved = vi.fn();
