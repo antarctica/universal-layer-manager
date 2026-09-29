@@ -9,7 +9,6 @@ import type {
 } from '../types';
 
 import { enqueueActions, setup } from 'xstate';
-import { calculateComputedOpacity } from '../utils';
 
 export function layerMachine<TLayer, TGroup = TLayer>() {
   return setup({
@@ -27,6 +26,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         timeInfo?: LayerTimeInfo;
         layerData: TLayer;
         startState?: LayerStartState;
+        parentOpacity?: number;
       },
     },
     actions: {
@@ -49,6 +49,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       'Update Computed Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
         const computedOpacity = params.opacity * context.opacity;
         enqueue.assign({
+          parentOpacity: params.opacity,
           computedOpacity,
         });
         enqueue.sendTo(context.layerManagerRef, {
@@ -60,7 +61,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       }),
       'Change Layer Opacity': enqueueActions(
         ({ context, enqueue }, params: { opacity: number }) => {
-          const computedOpacity = calculateComputedOpacity(context.parentRef, params.opacity);
+          const computedOpacity = context.parentOpacity * params.opacity;
           enqueue.assign({
             opacity: params.opacity,
             computedOpacity,
@@ -99,7 +100,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
     description: 'A machine that represents a layer on the map.',
     context: ({ input }) => {
       const opacity = input.opacity ?? 1;
-      const computedOpacity = calculateComputedOpacity(input.parentRef, opacity);
+      const parentOpacity = input.parentOpacity ?? 1;
       return {
         layerManagerRef: input.layerManagerRef,
         parentRef: input.parentRef,
@@ -107,7 +108,8 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         layerName: input.layerName,
         listMode: input.listMode ?? 'show',
         opacity,
-        computedOpacity,
+        parentOpacity,
+        computedOpacity: parentOpacity * opacity,
         layerType: 'layer',
         timeInfo: input.timeInfo,
         layerData: input.layerData,

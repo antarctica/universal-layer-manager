@@ -5,9 +5,9 @@ import type { LayerContext, LayerGroupContext, LayerTimeInfo, ManagedItem } from
 // ADAPTER LAYER INFO
 // Stable, non-XState shape passed to adapter methods and consumer callbacks.
 // ============================================================================
-export type LayerInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'startState'> & { enabled: boolean; visible: boolean; parentId: string | null };
+export type LayerInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
-export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder' | 'startState'> & { enabled: boolean; visible: boolean; parentId: string | null };
+export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
 export type ManagedLayerInfo<TLayer = unknown, TGroup = TLayer> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
 
