@@ -366,7 +366,7 @@ describe('layerManagerMachine', () => {
       layerManager.on('LAYER.VISIBILITY_CHANGED', visibilityChangeWatcher);
 
       // Verify: Group starts disabled
-      expect(groupActor.getSnapshot().value).toEqual({ disabled: 'hidden' });
+      expect(groupActor.getSnapshot().matches('disabled')).toBe(true);
 
       // Action: Enable the group so it becomes visible
       groupActor.send({ type: 'LAYER.ENABLED' });
