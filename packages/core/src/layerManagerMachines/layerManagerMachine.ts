@@ -13,14 +13,13 @@ import { emit, enqueueActions, setup } from 'xstate';
 import { layerGroupMachine } from '../layerMachines/layerGroupMachine';
 import { layerMachine } from '../layerMachines/layerMachine';
 import {
-  canRemoveLayer,
   findManagedLayerById,
   findParentActor,
+  getAddLayerRejection,
   getFlatLayerOrder,
+  getRemoveLayerRejection,
   getUpdatedLayerStructure,
   getUpdatedLayerStructureAfterRemoval,
-  isValidLayerConfig,
-  isValidParentRef,
 } from '../utils';
 
 export type LayerManagerMachine<TLayer, TGroup = TLayer> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
@@ -45,9 +44,6 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         const { layerConfig, index, visible, enabled, position } = params;
 
         const parentRef = findParentActor(context.layers, layerConfig);
-        if (!isValidParentRef(layerConfig, parentRef)) {
-          return;
-        }
 
         function getStartState(enabled: boolean, visible: boolean): LayerStartState {
           if (visible || (enabled && (!parentRef || parentRef.getSnapshot().hasTag('visible')))) {
@@ -113,12 +109,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       'Remove layer': enqueueActions(({ enqueue, context }, params: { layerId: string }) => {
         const { layerId } = params;
 
-        const layerToRemove = findManagedLayerById(context.layers, layerId);
-
-        if (!layerToRemove || !canRemoveLayer(layerToRemove)) {
-          return;
-        }
-        const { parentRef } = layerToRemove.layerActor.getSnapshot().context;
+        const parentRef = findManagedLayerById(context.layers, layerId)?.layerActor.getSnapshot().context.parentRef;
         if (parentRef) {
           enqueue.sendTo(parentRef, { type: 'LAYERS.REMOVE_CHILD', id: layerId });
         }
@@ -128,6 +119,12 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         });
         enqueue.emit({ type: 'LAYER.REMOVED', layerId });
       }),
+
+      'Emit layer rejected': emit((_, params: { layerId: string; reason: string }) => ({
+        type: 'LAYER.REJECTED' as const,
+        layerId: params.layerId,
+        reason: params.reason,
+      })),
 
       'Emit update layer order': emit(({ context }) => ({
         type: 'LAYER.ORDER_CHANGED' as const,
@@ -147,7 +144,8 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       }),
     },
     guards: {
-      isValidLayerConfig: ({ context }, params: AddManagedLayerParams<TLayer, TGroup>) => isValidLayerConfig(params.layerConfig, context),
+      canAddLayer: ({ context }, params: AddManagedLayerParams<TLayer, TGroup>) => getAddLayerRejection(params.layerConfig, context) === undefined,
+      canRemoveLayer: ({ context }, params: { layerId: string }) => getRemoveLayerRejection(params.layerId, context) === undefined,
     },
   }).createMachine({
     id: 'layerManager',
@@ -190,32 +188,58 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           layerData: event.layerData,
         })),
       },
-      'LAYER.ADD': {
-        guard: {
-          type: 'isValidLayerConfig',
-          params: ({ event }) => event.params,
-        },
-        actions: [
-          {
-            type: 'Add new layer',
+      'LAYER.ADD': [
+        {
+          guard: {
+            type: 'canAddLayer',
             params: ({ event }) => event.params,
           },
-          {
-            type: 'Emit update layer order',
+          actions: [
+            {
+              type: 'Add new layer',
+              params: ({ event }) => event.params,
+            },
+            {
+              type: 'Emit update layer order',
+            },
+          ],
+        },
+        {
+          actions: {
+            type: 'Emit layer rejected',
+            params: ({ context, event }) => ({
+              layerId: event.params.layerConfig.layerId,
+              reason: getAddLayerRejection(event.params.layerConfig, context) ?? '',
+            }),
           },
-        ],
-      },
-      'LAYER.REMOVE': {
-        actions: [
-          {
-            type: 'Remove layer',
-            params: ({ event }) => event,
+        },
+      ],
+      'LAYER.REMOVE': [
+        {
+          guard: {
+            type: 'canRemoveLayer',
+            params: ({ event }) => ({ layerId: event.layerId }),
           },
-          {
-            type: 'Emit update layer order',
+          actions: [
+            {
+              type: 'Remove layer',
+              params: ({ event }) => event,
+            },
+            {
+              type: 'Emit update layer order',
+            },
+          ],
+        },
+        {
+          actions: {
+            type: 'Emit layer rejected',
+            params: ({ context, event }) => ({
+              layerId: event.layerId,
+              reason: getRemoveLayerRejection(event.layerId, context) ?? '',
+            }),
           },
-        ],
-      },
+        },
+      ],
 
       'RESET': {
         actions: ['Reset layer manager'],

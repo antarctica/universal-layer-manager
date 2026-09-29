@@ -259,6 +259,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       this._adapter?.onLayerDataChanged?.(info);
     });
     this._subscriptions.push(() => layerDataSub.unsubscribe());
+
+    const rejectedSub = this._actor.on('LAYER.REJECTED', (event) => {
+      this._options.onError?.(new Error(event.reason));
+    });
+    this._subscriptions.push(() => rejectedSub.unsubscribe());
   }
 
   private _cleanupSubscriptions(): void {

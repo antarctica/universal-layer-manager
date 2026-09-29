@@ -89,30 +89,44 @@ export function findParentLayerGroupActor<TLayer, TGroup = TLayer>(
 // ============================================================================
 
 /**
+ * Explains why a layer configuration cannot be added to the current context.
+ *
+ * @param layerConfig - The proposed new layer configuration.
+ * @param context - The current Layer Manager context.
+ * @returns The rejection reason, or undefined if the layer can be added.
+ */
+export function getAddLayerRejection<TLayer, TGroup = TLayer>(
+  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
+  context: LayerManagerContext<TLayer, TGroup>,
+): string | undefined {
+  if (layerConfig.layerType === 'layerGroup' && layerConfig.parentId && !context.allowNestedGroupLayers) {
+    return 'Nested group layers are not allowed.';
+  }
+
+  if (context.layers.some((layer) => layer.layerActor.id === layerConfig.layerId)) {
+    return `Layer with ID ${layerConfig.layerId} already exists. Layer not added.`;
+  }
+
+  if (layerConfig.parentId && !findParentLayerGroupActor(context.layers, layerConfig.parentId)) {
+    return `Unable to find parent group ${layerConfig.parentId}. Layer ${layerConfig.layerId} not added.`;
+  }
+
+  return undefined;
+}
+
+/**
  * Validates if a layer configuration can be added to the current context.
  * Checks for duplicate IDs and nested group permissions.
  *
  * @param layerConfig - The proposed new layer configuration.
  * @param context - The current Layer Manager context.
- * @returns True if valid, false otherwise (logs warnings on failure).
+ * @returns True if valid, false otherwise.
  */
 export function isValidLayerConfig<TLayer, TGroup = TLayer>(
   layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
-  { layers, allowNestedGroupLayers }: LayerManagerContext<TLayer, TGroup>,
+  context: LayerManagerContext<TLayer, TGroup>,
 ): boolean {
-  // Check: Nested Groups
-  if (layerConfig.layerType === 'layerGroup' && layerConfig.parentId && !allowNestedGroupLayers) {
-    console.warn('Nested group layers are not allowed.');
-    return false;
-  }
-
-  // Check: Duplicate ID
-  if (layers.some((layer) => layer.layerActor.id === layerConfig.layerId)) {
-    console.warn(`Layer with ID ${layerConfig.layerId} already exists. Layer not added.`);
-    return false;
-  }
-
-  return true;
+  return getAddLayerRejection(layerConfig, context) === undefined;
 }
 
 /**
@@ -131,6 +145,29 @@ export function isValidParentRef<TLayer, TGroup = TLayer>(
     return false;
   }
   return true;
+}
+
+/**
+ * Explains why a layer cannot be removed from the current context.
+ *
+ * @param layerId - The ID of the layer to remove.
+ * @param context - The current Layer Manager context.
+ * @returns The rejection reason, or undefined if the layer can be removed.
+ */
+export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
+  layerId: string,
+  context: LayerManagerContext<TLayer, TGroup>,
+): string | undefined {
+  const layer = findManagedLayerById(context.layers, layerId);
+  if (!layer) {
+    return `Unable to find layer ${layerId}. Layer not removed.`;
+  }
+
+  if (isLayerGroupMachine(layer.layerActor) && layer.layerActor.getSnapshot().context.children.length > 0) {
+    return `Layer group ${layerId} has children. Layer not removed.`;
+  }
+
+  return undefined;
 }
 
 /**
