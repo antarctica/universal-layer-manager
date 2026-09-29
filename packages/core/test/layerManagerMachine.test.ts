@@ -257,6 +257,41 @@ describe('layerManagerMachine', () => {
     });
   });
 
+  describe('layer order', () => {
+    it('emits LAYER.ORDER_CHANGED with layers added to a group in their position', () => {
+      const layerManager = createTestLayerManager();
+      const orders: string[][] = [];
+      layerManager.on('LAYER.ORDER_CHANGED', (event) => orders.push(event.layerOrder));
+
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }));
+
+      expect(orders).toEqual([
+        ['group-1'],
+        ['group-1', 'child-1'],
+        ['group-1', 'child-2', 'child-1'],
+      ]);
+    });
+
+    it('emits LAYER.ORDER_CHANGED without a layer removed from a group', () => {
+      const layerManager = createTestLayerManager();
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }));
+      const orderChangedWatcher = vi.fn();
+      layerManager.on('LAYER.ORDER_CHANGED', orderChangedWatcher);
+
+      layerManager.send({ type: 'LAYER.REMOVE', layerId: 'child-1' });
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }));
+
+      expect(orderChangedWatcher.mock.calls.map(([event]) => event.layerOrder)).toEqual([
+        ['group-1', 'child-2'],
+        ['group-1', 'child-1', 'child-2'],
+      ]);
+    });
+  });
+
   describe('rejected changes', () => {
     it('emits LAYER.ORDER_CHANGED only for adds and removes that are accepted', () => {
       const layerManager = createTestLayerManager();
