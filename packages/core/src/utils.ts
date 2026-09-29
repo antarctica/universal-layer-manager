@@ -1,11 +1,13 @@
 import type {
   ChildLayerActor,
+  LayerActor,
   LayerConfig,
   LayerGroupConfig,
   LayerGroupContext,
   LayerGroupMachineActor,
   LayerManagerContext,
   ManagedItem,
+  ParentEvent,
   ParentLayerActor,
 } from './types';
 import { isLayerGroupMachine } from './types';
@@ -243,38 +245,18 @@ export function updateLayerOrder(
 }
 
 /**
- * Recursively flattens the layer tree into a single list of IDs.
- * Traverses into Group Layers to find children.
+ * Flattens the manager's layer tree into a single list of IDs.
  *
- * @param layers - The full map of managed layers.
- * @param topLevelLayerOrder - The root order array.
+ * @param context - The manager's top-level order and each group's child order.
  * @returns A flat array of all Layer IDs in depth-first order.
  */
 export function getFlatLayerOrder<TLayer, TGroup = TLayer>(
-  layers: ManagedItem<TLayer, TGroup>[],
-  topLevelLayerOrder: string[],
+  context: Pick<LayerManagerContext<TLayer, TGroup>, 'childLayerOrder' | 'groupChildLayerOrder'>,
 ): string[] {
-  const flatOrder: string[] = [];
+  const traverseLayers = (layerIds: string[]): string[] =>
+    layerIds.flatMap((layerId) => [layerId, ...traverseLayers(context.groupChildLayerOrder[layerId] ?? [])]);
 
-  const traverseLayers = (layerIds: string[]) => {
-    layerIds.forEach((layerId) => {
-      const layer = layers.find((l) => l.layerActor.id === layerId);
-      if (!layer) {
-        return;
-      }
-
-      flatOrder.push(layerId);
-
-      const snapshot = layer.layerActor.getSnapshot();
-      if (snapshot.context.layerType === 'layerGroup') {
-        const groupContext = snapshot.context as LayerGroupContext<TLayer, TGroup>;
-        traverseLayers(groupContext.childLayerOrder);
-      }
-    });
-  };
-
-  traverseLayers(topLevelLayerOrder);
-  return flatOrder;
+  return traverseLayers(context.childLayerOrder);
 }
 
 /**
@@ -287,6 +269,24 @@ export function getTopLevelLayersInOrder<TLayer, TGroup = TLayer>(
   return layerOrder
     .map((layerId) => layers.find((l) => l.layerActor.id === layerId))
     .filter((layer): layer is ManagedItem<TLayer, TGroup> => layer !== undefined);
+}
+
+/**
+ * Builds the event that tells a group which children it has, in the manager's order.
+ *
+ * @param context - The current Layer Manager context.
+ * @param groupId - The ID of the group whose children changed.
+ * @returns A LAYERS.CHILDREN_CHANGED event for the group.
+ */
+export function getGroupChildrenChangedEvent<TLayer, TGroup = TLayer>(
+  context: LayerManagerContext<TLayer, TGroup>,
+  groupId: string,
+): Extract<ParentEvent, { type: 'LAYERS.CHILDREN_CHANGED' }> {
+  const childLayerOrder = context.groupChildLayerOrder[groupId] ?? [];
+  const children = childLayerOrder
+    .map((layerId) => findManagedLayerById(context.layers, layerId)?.layerActor)
+    .filter((layerActor): layerActor is LayerActor<TLayer, TGroup> => layerActor !== undefined);
+  return { type: 'LAYERS.CHILDREN_CHANGED', children, childLayerOrder };
 }
 
 /**
@@ -308,7 +308,6 @@ export function getLayerGroupChildrenInOrder(
 
 /**
  * Calculates the new state for the Layer Manager after adding a layer.
- * Only top-level layers change the manager's order; a child's order lives in its parent group.
  *
  * @param context - Current manager context.
  * @param newManagedLayer - The new layer wrapper to add.
@@ -325,34 +324,27 @@ export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
   position?: 'top' | 'bottom',
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
   return parentRef
-    ? addLayerToParent(context.layers, newManagedLayer)
+    ? addLayerToParent(context, newManagedLayer, parentRef.id, index, position)
     : addLayerToTopLevel(context.layers, newManagedLayer, context.childLayerOrder, index, position);
 }
 
 /**
- * Handles cleanup when a layer is removed.
- * Sends a removal event to the parent actor if one exists.
- */
-export function cleanupLayerReferences<TLayer, TGroup = TLayer>(
-  layer: ManagedItem<TLayer, TGroup>,
-): void {
-  const { parentRef } = layer.layerActor.getSnapshot().context;
-  if (parentRef) {
-    parentRef.send({ type: 'LAYERS.REMOVE_CHILD', id: layer.layerActor.id });
-  }
-}
-
-/**
  * Calculates the new state after removing a layer.
- * Removes the layer from the main list and the top-level order array.
+ * Removes the layer from the main list, the top-level order and every group's child order.
  */
 export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
   layerId: string,
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
+  const groupChildLayerOrder = Object.fromEntries(
+    Object.entries(context.groupChildLayerOrder)
+      .filter(([groupId]) => groupId !== layerId)
+      .map(([groupId, order]) => [groupId, order.filter((id) => id !== layerId)]),
+  );
   return {
     layers: context.layers.filter((layer) => layer.layerActor.id !== layerId),
     childLayerOrder: context.childLayerOrder.filter((id) => id !== layerId),
+    groupChildLayerOrder,
   };
 }
 
@@ -387,11 +379,19 @@ export function calculateComputedOpacity(
 // ============================================================================
 
 function addLayerToParent<TLayer, TGroup = TLayer>(
-  layers: ManagedItem<TLayer, TGroup>[],
+  context: LayerManagerContext<TLayer, TGroup>,
   newLayer: ManagedItem<TLayer, TGroup>,
+  parentId: string,
+  index?: number,
+  position?: 'top' | 'bottom',
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
+  const siblingOrder = context.groupChildLayerOrder[parentId] ?? [];
   return {
-    layers: [...layers, newLayer],
+    layers: [...context.layers, newLayer],
+    groupChildLayerOrder: {
+      ...context.groupChildLayerOrder,
+      [parentId]: updateLayerOrder(siblingOrder, newLayer.layerActor.id, index, position),
+    },
   };
 }
 

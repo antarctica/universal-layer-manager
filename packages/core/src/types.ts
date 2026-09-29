@@ -103,8 +103,7 @@ export type ChildEvent
 
 export type ParentEvent
   = | { type: 'CHILD.VISIBLE'; layerId: string }
-    | { type: 'LAYERS.ADD_CHILD'; child: ChildLayerActor; index?: number; position?: 'top' | 'bottom' }
-    | { type: 'LAYERS.REMOVE_CHILD'; id: string };
+    | { type: 'LAYERS.CHILDREN_CHANGED'; children: ChildLayerActor[]; childLayerOrder: string[] };
 
 // --- Machine Specific Events ---
 
@@ -192,6 +191,7 @@ export interface LayerGroupContext<TLayer, TGroup = TLayer> extends LayerContext
 export interface LayerManagerContext<TLayer, TGroup = TLayer> {
   layers: ManagedItem<TLayer, TGroup>[];
   childLayerOrder: string[];
+  groupChildLayerOrder: Record<string, string[]>;
   allowNestedGroupLayers: boolean;
 }
 
