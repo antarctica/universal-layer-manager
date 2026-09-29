@@ -3,6 +3,7 @@ import type {
   LayerGroupContext,
   LayerGroupEvent,
   LayerManagerRef,
+  LayerStateTag,
   LayerTimeInfo,
   ParentLayerActor,
 } from '../types';
@@ -15,6 +16,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     types: {
       context: {} as LayerGroupContext<TLayer, TGroup>,
       events: {} as LayerGroupEvent<TGroup>,
+      tags: {} as LayerStateTag,
       input: {} as {
         layerId: string;
         parentRef: ParentLayerActor | null;
@@ -172,9 +174,11 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       enabled: {
         initial: 'visible',
         description: 'The layer group is enabled',
+        tags: ['enabled'],
         states: {
           visible: {
             description: 'The layer group should appear visible on the map',
+            tags: ['visible'],
             entry: [
               {
                 type: 'Notify Parent of visibility change',

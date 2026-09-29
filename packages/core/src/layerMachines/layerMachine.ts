@@ -2,6 +2,7 @@ import type {
   LayerContext,
   LayerEvent,
   LayerManagerRef,
+  LayerStateTag,
   LayerTimeInfo,
   ParentLayerActor,
 } from '../types';
@@ -14,6 +15,7 @@ export function layerMachine<TLayer, TGroup = TLayer>(initialEnabledState: 'enab
     types: {
       context: {} as LayerContext<TLayer, TGroup>,
       events: {} as LayerEvent<TLayer>,
+      tags: {} as LayerStateTag,
       input: {} as {
         layerManagerRef: LayerManagerRef<TLayer, TGroup>;
         layerId: string;
@@ -114,9 +116,11 @@ export function layerMachine<TLayer, TGroup = TLayer>(initialEnabledState: 'enab
       enabled: {
         initial: initialVisibleState,
         description: 'The layer is enabled',
+        tags: ['enabled'],
         states: {
           visible: {
             description: 'The layer should appear visible on the map',
+            tags: ['visible'],
             entry: [
               {
                 type: 'Notify Parent that layer is visible',

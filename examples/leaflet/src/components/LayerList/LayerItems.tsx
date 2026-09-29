@@ -67,8 +67,8 @@ interface SingleLayerItemProps {
 }
 
 export function LayerItem({ layerActor, indent }: SingleLayerItemProps) {
-  const isEnabled = useSelector(layerActor, (state) => state.matches('enabled'));
-  const isVisible = useSelector(layerActor, (state) => state.matches({ enabled: 'visible' }));
+  const isEnabled = useSelector(layerActor, (state) => state.hasTag('enabled'));
+  const isVisible = useSelector(layerActor, (state) => state.hasTag('visible'));
   const layerName = useSelector(layerActor, (state) => state.context.layerName);
   const opacity = useSelector(layerActor, (state) => state.context.opacity);
 
@@ -104,8 +104,8 @@ interface LayerGroupItemProps {
 }
 
 export function LayerGroupItem({ layerActor, indent }: LayerGroupItemProps) {
-  const isEnabled = useSelector(layerActor, (state) => state.matches('enabled'));
-  const isVisible = useSelector(layerActor, (state) => state.matches({ enabled: 'visible' }));
+  const isEnabled = useSelector(layerActor, (state) => state.hasTag('enabled'));
+  const isVisible = useSelector(layerActor, (state) => state.hasTag('visible'));
   const layerName = useSelector(layerActor, (state) => state.context.layerName);
   const opacity = useSelector(layerActor, (state) => state.context.opacity);
 

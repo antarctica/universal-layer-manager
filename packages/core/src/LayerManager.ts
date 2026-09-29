@@ -290,8 +290,8 @@ export class LayerManager<TLayer, TGroup = undefined> {
     }
 
     const snapshot = managed.layerActor.getSnapshot();
-    const isEnabled = snapshot.matches('enabled');
-    const isVisible = visible ?? snapshot.matches({ enabled: 'visible' });
+    const isEnabled = snapshot.hasTag('enabled');
+    const isVisible = visible ?? snapshot.hasTag('visible');
 
     if (isLayerMachine(managed.layerActor)) {
       const ctx = managed.layerActor.getSnapshot().context;
