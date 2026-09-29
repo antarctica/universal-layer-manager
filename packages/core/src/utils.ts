@@ -3,12 +3,10 @@ import type {
   LayerActor,
   LayerConfig,
   LayerGroupConfig,
-  LayerGroupContext,
   LayerGroupMachineActor,
   LayerManagerContext,
   ManagedItem,
   ParentEvent,
-  ParentLayerActor,
 } from './types';
 import { isLayerGroupMachine } from './types';
 
@@ -117,39 +115,6 @@ export function getAddLayerRejection<TLayer, TGroup = TLayer>(
 }
 
 /**
- * Validates if a layer configuration can be added to the current context.
- * Checks for duplicate IDs and nested group permissions.
- *
- * @param layerConfig - The proposed new layer configuration.
- * @param context - The current Layer Manager context.
- * @returns True if valid, false otherwise.
- */
-export function isValidLayerConfig<TLayer, TGroup = TLayer>(
-  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
-  context: LayerManagerContext<TLayer, TGroup>,
-): boolean {
-  return getAddLayerRejection(layerConfig, context) === undefined;
-}
-
-/**
- * Ensures that if a parentId was requested, a valid parent actor exists.
- *
- * @param layerConfig - The layer config.
- * @param parentRef - The resolved parent actor reference.
- * @returns False if parentId exists but parentRef is missing.
- */
-export function isValidParentRef<TLayer, TGroup = TLayer>(
-  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
-  parentRef: LayerGroupMachineActor<TLayer, TGroup> | null,
-): boolean {
-  if (layerConfig.parentId && !parentRef) {
-    console.warn('Unable to find valid parent layer. Layer not added.');
-    return false;
-  }
-  return true;
-}
-
-/**
  * Explains why a layer cannot be removed from the current context.
  *
  * @param layerId - The ID of the layer to remove.
@@ -170,34 +135,6 @@ export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
   }
 
   return undefined;
-}
-
-/**
- * Checks if a layer can be safely removed.
- * Prevents removal of Groups that still contain children.
- *
- * @param layer - The layer to check.
- * @returns True if removable.
- */
-export function canRemoveLayer<TLayer, TGroup = TLayer>(
-  layer: ManagedItem<TLayer, TGroup>,
-): boolean {
-  if (!layer) {
-    console.warn('Unable to find layer to remove.');
-    return false;
-  }
-
-  const { layerType } = layer.layerActor.getSnapshot().context;
-
-  if (layerType === 'layerGroup') {
-    const { children } = layer.layerActor.getSnapshot().context as LayerGroupContext<TLayer, TGroup>;
-    if (children.length > 0) {
-      console.warn('Layer group has children. Not removed.');
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**
@@ -346,31 +283,6 @@ export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
     childLayerOrder: context.childLayerOrder.filter((id) => id !== layerId),
     groupChildLayerOrder,
   };
-}
-
-// ============================================================================
-// OPACITY CALCULATION
-// Functions for computing opacity values.
-// ============================================================================
-
-/**
- * Calculates the computed opacity for a layer by multiplying its own opacity
- * with the parent's computed opacity (if a parent exists).
- *
- * @param parentRef - The parent layer actor reference, or null if no parent.
- * @param ownOpacity - The layer's own opacity value (0-1).
- * @returns The computed opacity value (0-1).
- */
-export function calculateComputedOpacity(
-  parentRef: ParentLayerActor | null,
-  ownOpacity: number,
-): number {
-  if (!parentRef) {
-    return ownOpacity;
-  }
-  const parentSnapshot = parentRef.getSnapshot();
-  const parentComputedOpacity = parentSnapshot.context.computedOpacity;
-  return parentComputedOpacity * ownOpacity;
 }
 
 // ============================================================================
