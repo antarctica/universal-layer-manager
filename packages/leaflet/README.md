@@ -1,6 +1,6 @@
 # @ulm/leaflet
 
-Leaflet adapter for [@ulm/core](../core/README.md). Subscribes to the layer manager's emitted events and syncs add/remove, visibility, and opacity to a Leaflet map.
+Leaflet adapter for [@ulm/core](../core/README.md). `LayerManager` calls the adapter as layers change, and the adapter adds, removes, shows, hides and fades the matching Leaflet layers.
 
 ## Installation
 
@@ -10,7 +10,7 @@ npm install @ulm/core @ulm/leaflet leaflet
 
 ## Minimal usage
 
-Create a `LayerManager`, create a Leaflet map, then create the adapter and attach it with `setAdapter`. The adapter reacts to manager events and updates the map.
+Create a `LayerManager`, create a Leaflet map, then create the adapter and attach it with `setAdapter`. The adapter then keeps the map in step with the manager.
 
 ```ts
 import { LayerManager } from '@ulm/core';
@@ -68,7 +68,7 @@ manager.setAdapter(
 
 ### Hooks
 
-Use `hooks` to run extra logic when the adapter adds/removes layers or changes visibility/opacity (e.g. custom behaviour for a "ship-track" style layer):
+Use `hooks` to run extra logic after the adapter has updated a Leaflet layer (for example custom styling for a "ship-track" layer):
 
 ```ts
 manager.setAdapter(
@@ -88,21 +88,45 @@ manager.setAdapter(
 
 ## API
 
-- **`new LeafletLayerManagerAdapter<TLayer>(map, options?)`**
-  Implements `LayerManagerAdapter`. Attach to a manager with `manager.setAdapter(adapter)`.
-  Generic `TLayer` is your `layerData` type.
+### `new LeafletLayerManagerAdapter<TLayer, TGroup>(map, options?)`
 
-- **`register(layerManager, callbacks)`**
-  Called automatically by `LayerManager` when `setAdapter` is invoked. Not called directly.
+Implements `LayerManagerAdapter`. Attach it with `manager.setAdapter(adapter)`. `TLayer` is your layer `layerData` type and `TGroup` your group data type (defaults to `TLayer`).
 
-- **`unregister()`**
-  Called automatically by `LayerManager` on `setAdapter(null)` or `destroy()`. Removes all managed layers from the map.
+**Options** (all optional):
 
-- **`getContext()`**
-  Returns the Leaflet map instance.
+| Option | Type | Description |
+|--------|------|-------------|
+| `layerFactory` | `(info, map) => L.Layer \| null` | Creates the Leaflet layer for a newly added layer. Return `null` to leave that layer off the map. Defaults to `createDefaultLeafletFactory()` |
+| `hooks` | `LeafletAdapterHooks` | Extra logic that runs after the adapter has updated a Leaflet layer (see below) |
 
-- **`createDefaultLeafletFactory<TLayer>()`**
-  Returns a factory that reads `layerData.leafletLayer` when present (the default when no custom factory is passed).
+**Hooks** (all optional; each runs only for layers that have a Leaflet layer):
+
+| Hook | Called after |
+|------|--------------|
+| `onLayerAdded(info, leafletLayer)` | A layer is created, and added to the map if it is visible |
+| `onLayerRemoved(layerId, leafletLayer)` | A layer is removed from the map |
+| `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
+| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes, after `setOpacity` where the Leaflet layer supports it |
+| `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `getContext()` | Returns the Leaflet map |
+| `register(manager, callbacks)` | Called by `LayerManager` when the adapter is attached |
+| `unregister()` | Called by `LayerManager` on `setAdapter(null)`, when another adapter replaces it, or on `destroy()`. Removes every managed layer from the map |
+| `onLayerAdded(info)`, `onLayerRemoved(layerId)`, `onVisibilityChanged(info, visible)`, `onOpacityChanged(info, computedOpacity)`, `onLayerDataChanged(info)` | Called by `LayerManager` as layers change; you do not call these yourself |
+
+### `createDefaultLeafletFactory<TLayer>()`
+
+Returns the default factory: it uses `layerData.leafletLayer` when present, and otherwise returns `null`.
+
+### Behaviour notes
+
+- Only layers are drawn. Groups have no Leaflet layer; hiding a group hides its layers.
+- Opacity is applied with `setOpacity(computedOpacity)` on Leaflet layers that support it, such as tile layers. For other layers, use the `onOpacityChanged` hook.
+- The adapter does not set the z-order of layers yet, and does not act on time info changes.
 
 ## License
 
