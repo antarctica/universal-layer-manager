@@ -206,7 +206,7 @@ describe('layerManager', () => {
       const { manager, map } = createManager();
       manager.addLayer({ ...layer('layer-1'), visible: true });
 
-      manager.setVisibility('layer-1', false);
+      manager.setEnabled('layer-1', false);
 
       expect(map.layers.get('layer-1')).toMatchObject({ enabled: false, visible: false });
     });
@@ -226,7 +226,7 @@ describe('layerManager', () => {
       manager.addLayer({ ...layer('layer-1'), visible: true });
       onVisibilityChanged.mockClear();
 
-      manager.setVisibility('layer-1', true);
+      manager.setEnabled('layer-1', true);
 
       expect(onVisibilityChanged).not.toHaveBeenCalled();
     });
@@ -237,7 +237,7 @@ describe('layerManager', () => {
       manager.addLayer({ ...layer('c1', { parentId: 'group-1' }), visible: true });
       manager.addLayer({ ...layer('c2', { parentId: 'group-1' }), visible: true });
 
-      manager.setVisibility('group-1', false);
+      manager.setEnabled('group-1', false);
 
       expect(map.visibleLayerIds()).toEqual([]);
       expect(map.layers.get('c1')).toMatchObject({ enabled: true, visible: false });
@@ -249,9 +249,9 @@ describe('layerManager', () => {
       manager.addGroup({ ...group('group-1'), visible: true });
       manager.addLayer({ ...layer('on', { parentId: 'group-1' }), visible: true });
       manager.addLayer(layer('off', { parentId: 'group-1' }));
-      manager.setVisibility('group-1', false);
+      manager.setEnabled('group-1', false);
 
-      manager.setVisibility('group-1', true);
+      manager.setEnabled('group-1', true);
 
       expect(map.visibleLayerIds()).toEqual(['group-1', 'on']);
     });
@@ -262,7 +262,7 @@ describe('layerManager', () => {
       manager.addGroup({ ...group('inner', 'outer'), visible: true });
       manager.addLayer({ ...layer('layer-1', { parentId: 'inner' }), visible: true });
 
-      manager.setVisibility('outer', false);
+      manager.setEnabled('outer', false);
 
       expect(map.visibleLayerIds()).toEqual([]);
       expect(map.layers.get('inner')).toMatchObject({ enabled: true });
@@ -275,7 +275,7 @@ describe('layerManager', () => {
       manager.addGroup(group('inner', 'outer'));
       manager.addLayer(layer('layer-1', { parentId: 'inner' }));
 
-      manager.setVisibility('layer-1', true);
+      manager.setEnabled('layer-1', true);
 
       expect(map.visibleLayerIds()).toEqual(['inner', 'layer-1', 'outer']);
     });
