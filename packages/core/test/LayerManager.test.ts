@@ -72,6 +72,33 @@ describe('layerManager', () => {
       expect(topLevelIds(manager)).toEqual(['group-1']);
     });
 
+    it('reports the whole layer order, bottom first, each time it changes', () => {
+      const onOrderChanged = vi.fn();
+      const { manager, map } = createManager({ onOrderChanged });
+
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('layer-1'));
+      manager.addLayer(layer('child-1', { parentId: 'group-1' }));
+      manager.removeLayer('layer-1');
+
+      expect(onOrderChanged.mock.calls.map(([layerOrder]) => layerOrder)).toEqual([
+        ['group-1'],
+        ['layer-1', 'group-1'],
+        ['layer-1', 'group-1', 'child-1'],
+        ['group-1', 'child-1'],
+      ]);
+      expect(map.order).toEqual(['group-1', 'child-1']);
+    });
+
+    it('reports an empty layer order after a reset', () => {
+      const { manager, map } = createManager();
+      manager.addLayer(layer('layer-1'));
+
+      manager.reset();
+
+      expect(map.order).toEqual([]);
+    });
+
     it('gives a group its child actors in display order', () => {
       const { manager } = createManager();
       manager.addGroup(group('group-1'));
