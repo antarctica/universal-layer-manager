@@ -108,7 +108,7 @@ function buildLayerEl(info: ManagedLayerInfo) {
   checkbox.type = 'checkbox';
   checkbox.className = 'layer-checkbox';
   checkbox.checked = info.visible;
-  checkbox.addEventListener('change', () => manager.setVisibility(info.layerId, checkbox.checked));
+  checkbox.addEventListener('change', () => manager.setEnabled(info.layerId, checkbox.checked));
 
   const labelText = document.createElement('span');
   labelText.className = 'layer-label-text';
