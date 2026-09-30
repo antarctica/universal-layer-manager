@@ -6,7 +6,7 @@ import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, M
 import { createActor } from 'xstate';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
 import { isLayerMachine } from './types';
-import { findManagedLayerById, findParentGroupId, getTopLevelLayersInOrder } from './utils';
+import { findLayerPlacement, findManagedLayerById, getTopLevelLayersInOrder } from './utils';
 
 // ============================================================================
 // OPTIONS
@@ -176,26 +176,20 @@ export class LayerManager<TLayer, TGroup = undefined> {
 
   /** Moves the layer or group with the given `layerId` one step towards the top of its parent. Does nothing at the top. */
   raiseLayer(layerId: string): void {
-    const { childLayerOrder, groupChildLayerOrder } = this._actor.getSnapshot().context;
-    const parentId = findParentGroupId({ groupChildLayerOrder }, layerId) ?? null;
-    const siblings = parentId ? groupChildLayerOrder[parentId] ?? [] : childLayerOrder;
-    const index = siblings.indexOf(layerId);
-    if (index === -1 || index === siblings.length - 1) {
+    const placement = findLayerPlacement(this._actor.getSnapshot().context, layerId);
+    if (!placement || placement.index === placement.siblingCount - 1) {
       return;
     }
-    this.moveLayer(layerId, { parentId, index: index + 1 });
+    this.moveLayer(layerId, { parentId: placement.parentId, index: placement.index + 1 });
   }
 
   /** Moves the layer or group with the given `layerId` one step towards the bottom of its parent. Does nothing at the bottom. */
   lowerLayer(layerId: string): void {
-    const { childLayerOrder, groupChildLayerOrder } = this._actor.getSnapshot().context;
-    const parentId = findParentGroupId({ groupChildLayerOrder }, layerId) ?? null;
-    const siblings = parentId ? groupChildLayerOrder[parentId] ?? [] : childLayerOrder;
-    const index = siblings.indexOf(layerId);
-    if (index <= 0) {
+    const placement = findLayerPlacement(this._actor.getSnapshot().context, layerId);
+    if (!placement || placement.index === 0) {
       return;
     }
-    this.moveLayer(layerId, { parentId, index: index - 1 });
+    this.moveLayer(layerId, { parentId: placement.parentId, index: placement.index - 1 });
   }
 
   /**
