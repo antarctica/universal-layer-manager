@@ -68,7 +68,7 @@ manager.addLayer({
   visible: true,
 });
 
-manager.setVisibility('basemap', false);
+manager.setEnabled('basemap', false);
 manager.destroy();
 ```
 
@@ -94,7 +94,7 @@ If you're using `LayerManager`, the raw actor is also available via `manager.act
 
 ## Adapters
 
-`LayerManager` owns state; adapters subscribe to its emitted events and perform map-library side-effects (add/remove layers, sync visibility, opacity). Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`.
+`LayerManager` owns the state and calls the adapter's methods as layers change: added, removed, shown or hidden, faded, re-dated, given new data or reordered. The adapter applies those changes to the map. Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`; see [`@ulm/core`](./packages/core/README.md#adapters) for every method.
 
 ```ts
 import { LeafletLayerManagerAdapter } from '@ulm/leaflet';
