@@ -24,6 +24,8 @@ export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
   /** Called whenever a layer's time info changes. */
   onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
+  /** Called whenever the layer order changes, with every layer ID from bottom to top. */
+  onOrderChanged?: (layerOrder: string[]) => void;
   /** Called when an internal error occurs. */
   onError?: (error: Error) => void;
 }
@@ -259,6 +261,12 @@ export class LayerManager<TLayer, TGroup = undefined> {
       this._adapter?.onLayerDataChanged?.(info);
     });
     this._subscriptions.push(() => layerDataSub.unsubscribe());
+
+    const orderSub = this._actor.on('LAYER.ORDER_CHANGED', (event) => {
+      this._adapter?.onOrderChanged?.(event.layerOrder);
+      this._options.onOrderChanged?.(event.layerOrder);
+    });
+    this._subscriptions.push(() => orderSub.unsubscribe());
 
     const rejectedSub = this._actor.on('LAYER.REJECTED', (event) => {
       this._options.onError?.(new Error(event.reason));
