@@ -15,6 +15,8 @@ import { layerMachine } from '../layerMachines/layerMachine';
 import {
   findManagedLayerById,
   findParentActor,
+  findParentGroupId,
+  findParentLayerGroupActor,
   getAddLayerRejection,
   getFlatLayerOrder,
   getGroupChildrenChangedEvent,
@@ -108,7 +110,8 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       'Remove layer': enqueueActions(({ enqueue, context }, params: { layerId: string }) => {
         const { layerId } = params;
 
-        const parentRef = findManagedLayerById(context.layers, layerId)?.layerActor.getSnapshot().context.parentRef;
+        const parentGroupId = findParentGroupId(context, layerId);
+        const parentRef = parentGroupId ? findParentLayerGroupActor(context.layers, parentGroupId) : null;
         enqueue.stopChild(layerId);
         enqueue.assign(() => {
           return getUpdatedLayerStructureAfterRemoval(context, layerId);
