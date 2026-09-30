@@ -1,3 +1,4 @@
+import type { InspectionEvent, Observer } from 'xstate';
 import type { LayerManagerAdapter, LayerManagerCallbacks, ManagedLayerInfo } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
@@ -14,6 +15,8 @@ import { findManagedLayerById, getTopLevelLayersInOrder } from './utils';
 export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   /** Allow layer groups to be nested inside other layer groups. */
   allowNestedGroupLayers?: boolean;
+  /** Receives XState inspection events, e.g. `createBrowserInspector().inspect` from `@statelyai/inspect`. */
+  inspect?: Observer<InspectionEvent> | ((inspectionEvent: InspectionEvent) => void);
   /** Called whenever a new layer is added. */
   onLayerAdded?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
   /** Called whenever a layer is removed. */
@@ -57,6 +60,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
     this._options = options;
     this._actor = createActor(createLayerManagerMachine<TLayer, TGroup>(), {
       input: { allowNestedGroupLayers: this._options.allowNestedGroupLayers ?? false },
+      inspect: this._options.inspect,
     });
     this.start();
   }

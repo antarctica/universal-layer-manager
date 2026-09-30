@@ -546,6 +546,22 @@ describe('layerManager', () => {
       expect(map.layers.size).toBe(0);
     });
 
+    it('lets an inspector see the events and actors behind each change', () => {
+      const inspect = vi.fn();
+      const { manager } = createManager({ inspect });
+
+      manager.addLayer(layer('layer-1'));
+
+      expect(inspect).toHaveBeenCalledWith(expect.objectContaining({
+        type: '@xstate.event',
+        event: expect.objectContaining({ type: 'LAYER.ADD' }),
+      }));
+      expect(inspect).toHaveBeenCalledWith(expect.objectContaining({
+        type: '@xstate.actor',
+        actorRef: expect.objectContaining({ id: 'layer-1' }),
+      }));
+    });
+
     it('unregisters the adapter when the manager is destroyed', () => {
       const { manager, map } = createManager();
 
