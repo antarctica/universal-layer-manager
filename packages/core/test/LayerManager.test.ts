@@ -337,6 +337,16 @@ describe('layerManager', () => {
       expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay);
     });
 
+    it('reports a layer\'s new data through onLayerDataChanged', () => {
+      const onLayerDataChanged = vi.fn();
+      const { manager } = createManager({ onLayerDataChanged });
+      manager.addLayer(layer('layer-1'));
+
+      manager.updateLayerData('layer-1', { test: 'updated' });
+
+      expect(onLayerDataChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', layerData: { test: 'updated' } }));
+    });
+
     it('passes a layer\'s new data to the adapter', () => {
       const { manager, map } = createManager();
       manager.addLayer(layer('layer-1'));
