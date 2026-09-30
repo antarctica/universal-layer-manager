@@ -153,6 +153,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     },
   }).createMachine({
     id: 'layerManager',
+    description: 'Owns the layer tree and its order, spawns layer and group actors, and reports their changes',
     context: ({ input }) => ({
       layers: [],
       childLayerOrder: [],
@@ -162,6 +163,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     on: {
       'CHILD.VISIBILITY_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'A layer or group started or stopped showing: report it, if the manager holds that layer',
         actions: emit(({ event }) => ({
           type: 'LAYER.VISIBILITY_CHANGED',
           layerId: event.layerId,
@@ -170,6 +172,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.OPACITY_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'A layer or group changed opacity: report it, if the manager holds that layer',
         actions: [
           emit(({ event }) => ({
             type: 'LAYER.OPACITY_CHANGED',
@@ -181,6 +184,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.TIME_INFO_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'A layer or group changed time info: report it, if the manager holds that layer',
         actions: emit(({ event }) => {
           return {
             type: 'LAYER.TIME_INFO_CHANGED',
@@ -191,6 +195,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.LAYER_DATA_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'A layer or group changed data: report it, if the manager holds that layer',
         actions: emit(({ event }) => ({
           type: 'LAYER.LAYER_DATA_CHANGED',
           layerId: event.layerId,
@@ -203,6 +208,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'canAddLayer',
             params: ({ event }) => event.params,
           },
+          description: 'Spawn the layer or group, place it in its parent\'s order and report the new order',
           actions: [
             {
               type: 'Add new layer',
@@ -214,6 +220,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           ],
         },
         {
+          description: 'Reject a duplicate ID, a missing parent group or a disallowed nested group',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
@@ -229,6 +236,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'canRemoveLayer',
             params: ({ event }) => ({ layerId: event.layerId }),
           },
+          description: 'Stop the layer or empty group, take it out of the order and report the new order',
           actions: [
             {
               type: 'Remove layer',
@@ -240,6 +248,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           ],
         },
         {
+          description: 'Reject an unknown ID or a group that still has children',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
@@ -251,6 +260,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       ],
 
       'RESET': {
+        description: 'Stop and remove every layer and group, and report an empty order',
         actions: ['Reset layer manager', 'Emit update layer order'],
       },
     },
