@@ -6,6 +6,7 @@ import type {
   LayerGroupMachineActor,
   LayerManagerContext,
   ManagedItem,
+  MoveLayerParams,
   ParentEvent,
 } from './types';
 import { isLayerGroupMachine } from './types';
@@ -295,6 +296,33 @@ export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
   return {
     layers: context.layers.filter((layer) => layer.layerActor.id !== layerId),
     childLayerOrder: context.childLayerOrder.filter((id) => id !== layerId),
+    groupChildLayerOrder,
+  };
+}
+
+/**
+ * Calculates the new state after moving a layer to a new place in the tree.
+ *
+ * @param context - Current manager context.
+ * @param move - The layer to move and its target parent, index and position.
+ * @returns A partial context update with the new order.
+ */
+export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = TLayer>(
+  context: LayerManagerContext<TLayer, TGroup>,
+  move: MoveLayerParams,
+): Partial<LayerManagerContext<TLayer, TGroup>> {
+  const childLayerOrder = context.childLayerOrder.filter((id) => id !== move.layerId);
+  const groupChildLayerOrder = Object.fromEntries(
+    Object.entries(context.groupChildLayerOrder).map(([groupId, order]) => [groupId, order.filter((id) => id !== move.layerId)]),
+  );
+
+  if (move.parentId) {
+    groupChildLayerOrder[move.parentId] = updateLayerOrder(groupChildLayerOrder[move.parentId] ?? [], move.layerId, move.index, move.position);
+    return { childLayerOrder, groupChildLayerOrder };
+  }
+
+  return {
+    childLayerOrder: updateLayerOrder(childLayerOrder, move.layerId, move.index, move.position),
     groupChildLayerOrder,
   };
 }
