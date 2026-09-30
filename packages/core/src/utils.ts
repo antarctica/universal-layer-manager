@@ -79,6 +79,24 @@ export function findParentGroupId<TLayer, TGroup = TLayer>(
 }
 
 /**
+ * Finds where a layer sits in the manager's structure.
+ *
+ * @param context - The manager's top-level order and each group's child order.
+ * @param layerId - The ID of the layer.
+ * @returns The parent group ID (null at the top level), the layer's index from the bottom
+ * and the number of layers in that parent, or undefined for an unknown layer.
+ */
+export function findLayerPlacement<TLayer, TGroup = TLayer>(
+  context: Pick<LayerManagerContext<TLayer, TGroup>, 'childLayerOrder' | 'groupChildLayerOrder'>,
+  layerId: string,
+): { parentId: string | null; index: number; siblingCount: number } | undefined {
+  const parentId = findParentGroupId(context, layerId) ?? null;
+  const siblings = parentId ? context.groupChildLayerOrder[parentId] ?? [] : context.childLayerOrder;
+  const index = siblings.indexOf(layerId);
+  return index === -1 ? undefined : { parentId, index, siblingCount: siblings.length };
+}
+
+/**
  * Specific helper to find an actor strictly if it is a Layer Group.
  *
  * @param layers - The list of layers.
