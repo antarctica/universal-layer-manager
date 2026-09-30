@@ -112,6 +112,65 @@ describe('layerManager', () => {
     });
   });
 
+  describe('moving layers', () => {
+    function managerWithTopLevel(...layerIds: string[]) {
+      const created = createManager();
+      layerIds.forEach((layerId) => created.manager.addLayer({ ...layer(layerId), position: 'top' }));
+      return created;
+    }
+
+    it('moves a top-level layer up to an index', () => {
+      const { manager, map } = managerWithTopLevel('a', 'b', 'c');
+
+      manager.moveLayer('a', { parentId: null, index: 2 });
+
+      expect(topLevelIds(manager)).toEqual(['b', 'c', 'a']);
+      expect(map.order).toEqual(['b', 'c', 'a']);
+    });
+
+    it('moves a layer down to an index within its group', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
+      ['c1', 'c2', 'c3'].forEach((layerId) => manager.addLayer({ ...layer(layerId, { parentId: 'group-1' }), position: 'top' }));
+
+      manager.moveLayer('c3', { parentId: 'group-1', index: 0 });
+
+      expect(childIdsOf(manager, 'group-1')).toEqual(['c3', 'c1', 'c2']);
+      expect(map.order).toEqual(['group-1', 'c3', 'c1', 'c2']);
+    });
+
+    it('moves a layer to the top or the bottom of its parent, and to the bottom by default', () => {
+      const { manager } = managerWithTopLevel('a', 'b', 'c', 'd');
+
+      manager.moveLayer('a', { parentId: null, position: 'top' });
+      expect(topLevelIds(manager)).toEqual(['b', 'c', 'd', 'a']);
+
+      manager.moveLayer('d', { parentId: null, position: 'bottom' });
+      expect(topLevelIds(manager)).toEqual(['d', 'b', 'c', 'a']);
+
+      manager.moveLayer('c', { parentId: null });
+      expect(topLevelIds(manager)).toEqual(['c', 'd', 'b', 'a']);
+    });
+
+    it('raises a layer one step towards the top of its parent', () => {
+      const { manager } = managerWithTopLevel('a', 'b', 'c');
+
+      manager.raiseLayer('a');
+
+      expect(topLevelIds(manager)).toEqual(['b', 'a', 'c']);
+    });
+
+    it('lowers a layer one step towards the bottom of its group', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      ['c1', 'c2', 'c3'].forEach((layerId) => manager.addLayer({ ...layer(layerId, { parentId: 'group-1' }), position: 'top' }));
+
+      manager.lowerLayer('c3');
+
+      expect(childIdsOf(manager, 'group-1')).toEqual(['c1', 'c3', 'c2']);
+    });
+  });
+
   describe('adding layers', () => {
     it('reports each added layer with its configuration', () => {
       const { manager, map } = createManager();

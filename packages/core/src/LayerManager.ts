@@ -2,11 +2,11 @@ import type { InspectionEvent, Observer } from 'xstate';
 import type { LayerManagerAdapter, LayerManagerCallbacks, ManagedLayerInfo } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
-import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem } from './types';
+import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
 import { createActor } from 'xstate';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
 import { isLayerMachine } from './types';
-import { findManagedLayerById, getTopLevelLayersInOrder } from './utils';
+import { findManagedLayerById, findParentGroupId, getTopLevelLayersInOrder } from './utils';
 
 // ============================================================================
 // OPTIONS
@@ -164,6 +164,38 @@ export class LayerManager<TLayer, TGroup = undefined> {
   /** Removes the layer or group with the given `layerId`. */
   removeLayer(layerId: string): void {
     this._actor.send({ type: 'LAYER.REMOVE', layerId });
+  }
+
+  /**
+   * Moves the layer or group with the given `layerId` to `target.parentId` (`null` for the top level).
+   * `target.index` counts from the bottom (0) and takes precedence over `target.position`, which defaults to `'bottom'`.
+   */
+  moveLayer(layerId: string, target: MoveLayerTarget): void {
+    this._actor.send({ type: 'LAYER.MOVE', layerId, ...target });
+  }
+
+  /** Moves the layer or group with the given `layerId` one step towards the top of its parent. Does nothing at the top. */
+  raiseLayer(layerId: string): void {
+    const { childLayerOrder, groupChildLayerOrder } = this._actor.getSnapshot().context;
+    const parentId = findParentGroupId({ groupChildLayerOrder }, layerId) ?? null;
+    const siblings = parentId ? groupChildLayerOrder[parentId] ?? [] : childLayerOrder;
+    const index = siblings.indexOf(layerId);
+    if (index === -1 || index === siblings.length - 1) {
+      return;
+    }
+    this.moveLayer(layerId, { parentId, index: index + 1 });
+  }
+
+  /** Moves the layer or group with the given `layerId` one step towards the bottom of its parent. Does nothing at the bottom. */
+  lowerLayer(layerId: string): void {
+    const { childLayerOrder, groupChildLayerOrder } = this._actor.getSnapshot().context;
+    const parentId = findParentGroupId({ groupChildLayerOrder }, layerId) ?? null;
+    const siblings = parentId ? groupChildLayerOrder[parentId] ?? [] : childLayerOrder;
+    const index = siblings.indexOf(layerId);
+    if (index <= 0) {
+      return;
+    }
+    this.moveLayer(layerId, { parentId, index: index - 1 });
   }
 
   /**
