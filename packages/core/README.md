@@ -80,7 +80,7 @@ manager.addLayer({
 });
 
 // Control layers
-manager.setVisibility('basemap', false);
+manager.setEnabled('basemap', false);
 manager.setOpacity('markers', 0.5);
 manager.removeLayer('markers');
 
@@ -92,55 +92,133 @@ manager.destroy();
 
 ### `new LayerManager<TLayer, TGroup>(options?)`
 
-`TLayer` is the type of `layerData` stored on each layer; `TGroup` is the type for groups (defaults to `TLayer`).
+`TLayer` is the type of `layerData` stored on each layer. `TGroup` is the type stored on each group; it defaults to `undefined`, so pass it when your groups carry data. The manager starts as soon as it is constructed.
 
-**Options** — all optional:
+**Options** (all optional):
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `allowNestedGroupLayers` | `boolean` | Allow groups inside other groups (default `false`) |
-| `onLayerAdded` | `(info, visible) => void` | Called when a layer or group is added |
-| `onLayerRemoved` | `(layerId) => void` | Called when a layer or group is removed |
-| `onVisibilityChanged` | `(info, visible) => void` | Called on visibility toggle |
-| `onOpacityChanged` | `(info, computedOpacity) => void` | Called when opacity changes (cascades from parents) |
-| `onTimeInfoChanged` | `(info, timeInfo) => void` | Called when a layer's time info changes |
-| `onError` | `(error) => void` | Called on internal errors |
+| `inspect` | `Observer<InspectionEvent> \| (event) => void` | Receives XState inspection events, for example `createBrowserInspector().inspect` from `@statelyai/inspect` |
+| `onLayerAdded` | `(info) => void` | A layer or group was added |
+| `onLayerRemoved` | `(layerId) => void` | A layer or group was removed, including by `reset()` |
+| `onVisibilityChanged` | `(info, visible) => void` | A layer or group started or stopped showing |
+| `onOpacityChanged` | `(info, computedOpacity) => void` | A layer's own opacity or a parent group's opacity changed |
+| `onTimeInfoChanged` | `(info, timeInfo) => void` | A layer's time info changed |
+| `onLayerDataChanged` | `(info) => void` | A layer's `layerData` was replaced |
+| `onOrderChanged` | `(layerOrder) => void` | The order changed; receives every layer ID, bottom to top, with each group followed by its children |
+| `onError` | `(error) => void` | An add or remove was rejected; `error.message` says why |
 
-The `info` object passed to callbacks is a `ManagedLayerInfo` with two distinct boolean fields:
+### Adding layers and groups
 
-- `enabled` — the user has enabled (`true`) or disabled (`false`) this layer
-- `visible` — the layer is actually rendering, i.e. it is enabled *and* its parent group is not hidden
+`addLayer(params)` and `addGroup(params)` take:
 
-A layer can be `enabled: true` but `visible: false` when a parent group is hidden.
+| Param | Type | Description |
+|-------|------|-------------|
+| `layerConfig` | `LayerConfig` / `LayerGroupConfig` | The layer or group (see below) |
+| `enabled` | `boolean` | Switch it on. It shows if every group above it is showing, otherwise it waits, switched on but hidden |
+| `visible` | `boolean` | Switch it on and switch on every group above it, so it shows straight away |
+| `position` | `'top' \| 'bottom'` | Place it at the top or bottom of its parent (default `'bottom'`) |
+| `index` | `number` | Place it at this index in its parent's order (0 is the bottom); takes precedence over `position` |
 
-**Methods:**
+With neither `enabled` nor `visible`, a layer is added switched off.
+
+`layerConfig` fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `layerId` | `string` | Unique ID |
+| `layerName` | `string` | Display name |
+| `layerType` | `'layer' \| 'layerGroup'` | Which kind of item this is |
+| `parentId` | `string \| null` | The ID of the group it belongs to, or `null` for the top level |
+| `layerData` | `TLayer` / `TGroup` | Your data for this layer or group |
+| `opacity` | `number` | Its own opacity, 0–1 (default `1`) |
+| `timeInfo` | `LayerTimeInfo` | Optional single date or date range |
+| `listMode` | `'show' \| 'hide'`, plus `'hide-children'` for groups | A hint for your layer list; the manager stores it but does not act on it (default `'show'`) |
+
+An add is rejected, and reported through `onError`, when the ID is already in use, the parent group does not exist, or the item is a group inside a group while `allowNestedGroupLayers` is `false`.
+
+### Methods
 
 | Method | Description |
 |--------|-------------|
-| `addLayer(params)` | Add a single layer |
+| `addLayer(params)` | Add a layer |
 | `addGroup(params)` | Add a layer group |
-| `removeLayer(layerId)` | Remove a layer or group by ID |
-| `setVisibility(layerId, visible)` | Show or hide a layer |
-| `setOpacity(layerId, opacity)` | Set opacity (0–1) |
-| `setTimeInfo(layerId, timeInfo)` | Set the time info (`LayerTimeInfo`) for a layer |
-| `updateLayerData(layerId, data)` | Replace the `layerData` payload |
-| `setAdapter(adapter \| null)` | Attach or detach a map-library adapter |
-| `reset()` | Remove all layers and groups |
-| `destroy()` | Teardown — stops the actor and cleans up |
-| `getLayer(id)` | Return the managed item for an ID |
+| `removeLayer(layerId)` | Remove a layer or an empty group. Removing an unknown ID or a group that still has children is rejected through `onError` |
+| `setEnabled(layerId, enabled)` | Switch a layer or group on or off. A switched-on layer shows only while every group above it is on. Switching a layer on also switches on the groups above it |
+| `setOpacity(layerId, opacity)` | Set a layer's or group's own opacity (0–1). Its computed opacity is its own opacity multiplied by its parent group's computed opacity |
+| `setTimeInfo(layerId, timeInfo)` | Set the time info (`LayerTimeInfo`) for a layer or group |
+| `updateLayerData(layerId, layerData)` | Replace the `layerData` for a layer or group |
+| `getLayer(layerId)` | Return the managed item (`{ type, layerActor }`) for an ID, or `undefined` |
+| `setAdapter(adapter \| null)` | Attach an adapter, replacing and unregistering any previous one, or detach it with `null` |
+| `reset()` | Remove and stop every layer and group; reports each removal and an empty order |
+| `destroy()` | Unregister the adapter, then stop every layer and the manager without reporting removals. The instance cannot be reused |
+| `stop()` | Alias for `destroy()` |
 
-**Properties:**
+### Properties
 
 | Property | Description |
 |----------|-------------|
-| `layers` | Current top-level items in display order |
-| `actor` | Raw XState actor — escape hatch for `@xstate/react` (`useSelector`, etc.) |
-| `isReady` | `true` while the actor is running |
+| `layers` | Top-level items in order, bottom first |
+| `actor` | The underlying XState actor, for `@xstate/react` (`useSelector`, etc.) |
+| `isReady` | `true` while the manager is running |
 | `destroyed` | `true` after `destroy()` |
 
-### Lower-level access
+### Layer info
 
-`createLayerManagerMachine` (and the individual `layerMachine` / `layerGroupMachine`) are exported for use cases where you want to work with the XState actor model directly:
+Callbacks and adapters receive a `ManagedLayerInfo`:
+
+| Field | Description |
+|-------|-------------|
+| `layerId`, `layerName`, `layerType`, `layerData`, `listMode`, `timeInfo` | From the layer's config and later updates |
+| `parentId` | The parent group's ID, or `null` |
+| `enabled` | Whether the layer is switched on |
+| `visible` | Whether it is actually showing: switched on, and every group above it is showing |
+| `opacity` | Its own opacity |
+| `computedOpacity` | Its opacity multiplied through every group above it; use this on the map |
+
+A layer can be `enabled: true` but `visible: false` while a group above it is switched off.
+
+### Layer order
+
+Order always runs bottom to top. `manager.layers` lists the top-level items. A group lists its own children, in order, on its actor:
+
+```ts
+const group = manager.getLayer('overlays');
+if (group?.type === 'layerGroup') {
+  const { children, childLayerOrder } = group.layerActor.getSnapshot().context;
+}
+```
+
+`onOrderChanged` receives the whole tree flattened: each group followed by its children.
+
+### Debugging with the Stately Inspector
+
+```ts
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const manager = new LayerManager<LayerData>({ inspect: createBrowserInspector().inspect });
+```
+
+## Adapters
+
+To sync the manager with a map library, implement `LayerManagerAdapter` and pass it to `manager.setAdapter()`. `LayerManager` calls the adapter's methods directly; every method is optional. See [`@ulm/leaflet`](../leaflet/README.md) for a ready-made Leaflet adapter.
+
+| Method | Called when |
+|--------|-------------|
+| `register(manager, callbacks)` | The adapter is attached. `callbacks.getSnapshot()` returns the top-level items and `callbacks.getLayer(id)` returns one item |
+| `unregister()` | The adapter is replaced, detached with `setAdapter(null)`, or the manager is destroyed |
+| `onLayerAdded(info)` | A layer or group was added |
+| `onLayerRemoved(layerId)` | A layer or group was removed |
+| `onVisibilityChanged(info, visible)` | A layer or group started or stopped showing |
+| `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changed |
+| `onTimeInfoChanged(info, timeInfo)` | A layer's time info changed |
+| `onLayerDataChanged(info)` | A layer's `layerData` was replaced |
+| `onOrderChanged(layerOrder)` | The order changed; every layer ID, bottom to top |
+
+## Lower-level access
+
+`createLayerManagerMachine`, `layerMachine` and `layerGroupMachine` are exported for working with the XState actors directly. `LayerManager` exposes the same actor as `manager.actor`.
 
 ```ts
 import { createLayerManagerMachine } from '@ulm/core';
@@ -152,11 +230,66 @@ const actor = createActor(createLayerManagerMachine<LayerData>(), {
 actor.start();
 ```
 
-If you are using `LayerManager`, the same actor is also available as `manager.actor`.
+**Events you send to the manager:**
 
-## Adapters
+| Event | Description |
+|-------|-------------|
+| `{ type: 'LAYER.ADD', params }` | Add a layer or group; `params` as for `addLayer` / `addGroup` |
+| `{ type: 'LAYER.REMOVE', layerId }` | Remove a layer or an empty group |
+| `{ type: 'RESET' }` | Remove and stop every layer and group |
 
-To sync layer manager state with a map library, implement `LayerManagerAdapter` and pass it to `manager.setAdapter()`. See [`@ulm/leaflet`](../leaflet/README.md) for a ready-made Leaflet adapter.
+Layer and group actors send `CHILD.*` notifications to the manager. These are internal; do not send them yourself.
+
+**Events you send to a layer or group actor** (from `manager.getLayer(id).layerActor`):
+
+| Event | Description |
+|-------|-------------|
+| `{ type: 'LAYER.ENABLED' }` / `{ type: 'LAYER.DISABLED' }` | Switch it on or off |
+| `{ type: 'LAYER.SET_OPACITY', opacity }` | Set its own opacity |
+| `{ type: 'LAYER.SET_TIME_INFO', timeInfo }` | Set its time info |
+| `{ type: 'LAYER.SET_LAYER_DATA', layerData }` | Replace its data |
+
+**Events the manager emits** (listen with `actor.on(type, handler)`):
+
+| Event | Payload |
+|-------|---------|
+| `LAYER.ADDED` | `layerId`, `visible` |
+| `LAYER.REMOVED` | `layerId` |
+| `LAYER.ORDER_CHANGED` | `layerOrder`: every layer ID, bottom to top |
+| `LAYER.VISIBILITY_CHANGED` | `layerId`, `visible` |
+| `LAYER.OPACITY_CHANGED` | `layerId`, `opacity`, `computedOpacity` |
+| `LAYER.TIME_INFO_CHANGED` | `layerId`, `timeInfo` |
+| `LAYER.LAYER_DATA_CHANGED` | `layerId`, `layerData` |
+| `LAYER.REJECTED` | `layerId`, `reason` |
+
+**Selecting on layer and group state:** use the tags, which do not depend on how the states are nested.
+
+| Check | Meaning |
+|-------|---------|
+| `snapshot.hasTag('enabled')` | Switched on |
+| `snapshot.hasTag('visible')` | Switched on and showing |
+| `snapshot.matches('disabled')` | Switched off |
+
+### Helper functions
+
+| Function | Description |
+|----------|-------------|
+| `findManagedLayerById(layers, layerId)` | Find a managed item in the manager's `layers` |
+| `getLayerDataFromLayerId(layers, layerId)` | Read an item's `layerData` |
+| `getTopLevelLayersInOrder(childLayerOrder, layers)` | Map the manager's top-level order to managed items |
+| `getLayerGroupChildrenInOrder(childLayerOrder, children)` | Map a group's order to its child actors |
+| `getFlatLayerOrder(context)` | Flatten the manager's order, bottom to top, each group followed by its children |
+| `findParentActor(layers, layerConfig)` | The group actor a config's `parentId` points at, or `null` |
+| `findParentLayerGroupActor(layers, groupId)` | A group actor by ID, or `null` if the ID is not a group |
+| `findParentGroupId(context, layerId)` | The ID of the group that holds a layer, from the manager's context |
+| `getAddLayerRejection(layerConfig, context)` | Why an add would be rejected, or `undefined` |
+| `getRemoveLayerRejection(layerId, context)` | Why a remove would be rejected, or `undefined` |
+| `updateLayerOrder(order, layerId, index?, position?)` | Insert an ID into an order, as `addLayer` does |
+| `isValidLayerIndex(index, length)` | Whether an index can be inserted at |
+| `isLayerMachine(actor)` / `isLayerGroupMachine(actor)` | Narrow a layer actor to a layer or a group |
+| `isSingleTimeInfo(timeInfo)` / `isRangeTimeInfo(timeInfo)` | Narrow a `LayerTimeInfo` |
+
+`getUpdatedLayerStructure`, `getUpdatedLayerStructureAfterRemoval` and `getGroupChildrenChangedEvent` are also exported; the manager machine uses them to update its context.
 
 ## License
 
