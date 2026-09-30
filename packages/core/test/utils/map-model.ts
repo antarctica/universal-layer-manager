@@ -21,6 +21,7 @@ export interface MapLayerState<TData> {
 export interface MapModel<TLayer, TGroup = TLayer> extends LayerManagerAdapter<TLayer, TGroup> {
   registered: boolean;
   readonly layers: Map<string, MapLayerState<TLayer | TGroup>>;
+  order: string[];
   visibleLayerIds: () => string[];
 }
 
@@ -45,6 +46,7 @@ export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGro
   const model: MapModel<TLayer, TGroup> = {
     registered: false,
     layers,
+    order: [],
     visibleLayerIds: () => [...layers].filter(([, layer]) => layer.visible).map(([layerId]) => layerId).sort(),
     register: () => {
       model.registered = true;
@@ -61,6 +63,9 @@ export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGro
     onOpacityChanged: record,
     onTimeInfoChanged: record,
     onLayerDataChanged: record,
+    onOrderChanged: (layerOrder) => {
+      model.order = layerOrder;
+    },
   };
 
   return model;

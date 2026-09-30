@@ -248,7 +248,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       ],
 
       'RESET': {
-        actions: ['Reset layer manager'],
+        actions: ['Reset layer manager', 'Emit update layer order'],
       },
     },
   });
