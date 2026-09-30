@@ -94,9 +94,9 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       starting: {
         description: 'Resolves the state the layer starts in from its input',
         always: [
-          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible' },
-          { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden' },
-          { target: 'disabled' },
+          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible', description: 'Added switched on, with every group above showing' },
+          { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden', description: 'Added switched on under a group that is not showing' },
+          { target: 'disabled', description: 'Added switched off' },
         ],
       },
       enabled: {
@@ -129,6 +129,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
             on: {
               'PARENT.HIDDEN': {
                 target: 'hidden',
+                description: 'A group above stopped showing: hide, but stay switched on',
               },
             },
           },
@@ -137,6 +138,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
             on: {
               'PARENT.VISIBLE': {
                 target: 'visible',
+                description: 'Every group above is showing again: show',
               },
             },
           },
@@ -144,6 +146,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.DISABLED': {
             target: 'disabled',
+            description: 'Switched off: hide whatever the groups above are doing',
           },
         },
       },
@@ -152,12 +155,14 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.ENABLED': {
             target: 'enabled.visible',
+            description: 'Switched on: show, and tell the parent group so every group above switches on',
           },
         },
       },
     },
     on: {
       'PARENT.OPACITY_CHANGED': {
+        description: 'A group above changed opacity: recompute computed opacity from the opacity it sent',
         actions: [
           {
             type: 'Update Computed Opacity',
@@ -166,6 +171,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         ],
       },
       'LAYER.SET_OPACITY': {
+        description: 'Set own opacity: computed opacity combines it with the last opacity the parent sent',
         actions: [
           {
             type: 'Change Layer Opacity',
@@ -174,6 +180,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         ],
       },
       'LAYER.SET_TIME_INFO': {
+        description: 'Store new time info and report it to the manager',
         actions: [
           {
             type: 'Change Layer Time Info',
@@ -182,6 +189,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         ],
       },
       'LAYER.SET_LAYER_DATA': {
+        description: 'Store new layer data and report it to the manager',
         actions: [
           {
             type: 'Change Layer Data',
