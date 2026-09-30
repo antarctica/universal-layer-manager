@@ -77,7 +77,7 @@ describe('leafletLayerManagerAdapter', () => {
     manager.addLayer(layerParams('layer-1', leafletLayer));
     expect(map.hasLayer(leafletLayer)).toBe(false);
 
-    manager.setVisibility('layer-1', true);
+    manager.setEnabled('layer-1', true);
 
     expect(map.hasLayer(leafletLayer)).toBe(true);
   });
@@ -87,7 +87,7 @@ describe('leafletLayerManagerAdapter', () => {
     const leafletLayer = createStubLayer('layer-1');
     manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
 
-    manager.setVisibility('layer-1', false);
+    manager.setEnabled('layer-1', false);
 
     expect(map.hasLayer(leafletLayer)).toBe(false);
   });
@@ -98,10 +98,10 @@ describe('leafletLayerManagerAdapter', () => {
     manager.addGroup({ ...groupParams('group-1'), visible: true });
     manager.addLayer({ ...layerParams('child-1', leafletLayer, 'group-1'), visible: true });
 
-    manager.setVisibility('group-1', false);
+    manager.setEnabled('group-1', false);
     expect(map.hasLayer(leafletLayer)).toBe(false);
 
-    manager.setVisibility('group-1', true);
+    manager.setEnabled('group-1', true);
     expect(map.hasLayer(leafletLayer)).toBe(true);
   });
 
