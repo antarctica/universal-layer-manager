@@ -9,6 +9,14 @@ import type {
 } from '../types';
 
 import { enqueueActions, setup } from 'xstate';
+import {
+  childVisibleNotice,
+  layerDataChange,
+  ownOpacityChange,
+  parentOpacityChange,
+  timeInfoChange,
+  visibilityChange,
+} from './layerChanges';
 
 export function layerMachine<TLayer, TGroup = TLayer>() {
   return setup({
@@ -32,67 +40,32 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
     actions: {
       'Notify Parent that layer is visible': enqueueActions(({ context, enqueue }) => {
         if (context.parentRef) {
-          enqueue.sendTo(context.parentRef, {
-            type: 'CHILD.VISIBLE',
-            layerId: context.layerId,
-          });
+          enqueue.sendTo(context.parentRef, childVisibleNotice(context));
         }
       }),
       'Notify Manager of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) =>
-          enqueue.sendTo(context.layerManagerRef, {
-            type: 'CHILD.VISIBILITY_CHANGED',
-            layerId: context.layerId,
-            visible: params.visible,
-          }),
+          enqueue.sendTo(context.layerManagerRef, visibilityChange(context, params.visible).notification),
       ),
       'Update Computed Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
-        const computedOpacity = params.opacity * context.opacity;
-        enqueue.assign({
-          parentOpacity: params.opacity,
-          computedOpacity,
-        });
-        enqueue.sendTo(context.layerManagerRef, {
-          type: 'CHILD.OPACITY_CHANGED',
-          layerId: context.layerId,
-          opacity: context.opacity,
-          computedOpacity,
-        });
+        const { update, notification } = parentOpacityChange(context, params.opacity);
+        enqueue.assign(update);
+        enqueue.sendTo(context.layerManagerRef, notification);
       }),
-      'Change Layer Opacity': enqueueActions(
-        ({ context, enqueue }, params: { opacity: number }) => {
-          const computedOpacity = context.parentOpacity * params.opacity;
-          enqueue.assign({
-            opacity: params.opacity,
-            computedOpacity,
-          });
-          enqueue.sendTo(context.layerManagerRef, {
-            type: 'CHILD.OPACITY_CHANGED',
-            layerId: context.layerId,
-            opacity: params.opacity,
-            computedOpacity,
-          });
-        },
-      ),
-      'Change Layer Time Info': enqueueActions(
-        ({ context, enqueue }, params: { timeInfo: LayerTimeInfo }) => {
-          enqueue.assign({
-            timeInfo: params.timeInfo,
-          });
-          enqueue.sendTo(context.layerManagerRef, {
-            type: 'CHILD.TIME_INFO_CHANGED',
-            layerId: context.layerId,
-            timeInfo: params.timeInfo,
-          });
-        },
-      ),
+      'Change Layer Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
+        const { update, notification } = ownOpacityChange(context, params.opacity);
+        enqueue.assign(update);
+        enqueue.sendTo(context.layerManagerRef, notification);
+      }),
+      'Change Layer Time Info': enqueueActions(({ context, enqueue }, params: { timeInfo: LayerTimeInfo }) => {
+        const { update, notification } = timeInfoChange(context, params.timeInfo);
+        enqueue.assign(update);
+        enqueue.sendTo(context.layerManagerRef, notification);
+      }),
       'Change Layer Data': enqueueActions(({ context, enqueue }, params: { layerData: TLayer }) => {
-        enqueue.assign({ layerData: params.layerData });
-        enqueue.sendTo(context.layerManagerRef, {
-          type: 'CHILD.LAYER_DATA_CHANGED',
-          layerId: context.layerId,
-          layerData: params.layerData,
-        });
+        const { update, notification } = layerDataChange(context, params.layerData);
+        enqueue.assign(update);
+        enqueue.sendTo(context.layerManagerRef, notification);
       }),
     },
   }).createMachine({
