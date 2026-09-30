@@ -24,6 +24,8 @@ export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
   /** Called whenever a layer's time info changes. */
   onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
+  /** Called whenever a layer's data payload changes. */
+  onLayerDataChanged?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
   /** Called whenever the layer order changes, with every layer ID from bottom to top. */
   onOrderChanged?: (layerOrder: string[]) => void;
   /** Called when an internal error occurs. */
@@ -259,6 +261,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
         return;
       }
       this._adapter?.onLayerDataChanged?.(info);
+      this._options.onLayerDataChanged?.(info);
     });
     this._subscriptions.push(() => layerDataSub.unsubscribe());
 
