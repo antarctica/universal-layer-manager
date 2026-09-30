@@ -64,6 +64,20 @@ export function findParentActor<TLayer, TGroup = TLayer>(
 }
 
 /**
+ * Finds the group that holds a layer, from the manager's own structure.
+ *
+ * @param context - The manager's child order for each group.
+ * @param layerId - The ID of the child layer.
+ * @returns The parent group ID, or undefined for a top-level or unknown layer.
+ */
+export function findParentGroupId<TLayer, TGroup = TLayer>(
+  context: Pick<LayerManagerContext<TLayer, TGroup>, 'groupChildLayerOrder'>,
+  layerId: string,
+): string | undefined {
+  return Object.keys(context.groupChildLayerOrder).find((groupId) => context.groupChildLayerOrder[groupId]?.includes(layerId));
+}
+
+/**
  * Specific helper to find an actor strictly if it is a Layer Group.
  *
  * @param layers - The list of layers.
