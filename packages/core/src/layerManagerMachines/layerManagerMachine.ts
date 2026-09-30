@@ -8,6 +8,7 @@ import type {
   LayerManagerEvent,
   LayerStartState,
   ManagedItem,
+  MoveLayerParams,
 } from '../types';
 import { emit, enqueueActions, setup } from 'xstate';
 import { layerGroupMachine } from '../layerMachines/layerGroupMachine';
@@ -22,6 +23,7 @@ import {
   getGroupChildrenChangedEvent,
   getRemoveLayerRejection,
   getUpdatedLayerStructure,
+  getUpdatedLayerStructureAfterMove,
   getUpdatedLayerStructureAfterRemoval,
 } from '../utils';
 
@@ -120,6 +122,16 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           enqueue.sendTo(parentRef, ({ context }) => getGroupChildrenChangedEvent(context, parentRef.id));
         }
         enqueue.emit({ type: 'LAYER.REMOVED', layerId });
+      }),
+
+      'Move layer': enqueueActions(({ enqueue, context }, params: MoveLayerParams) => {
+        const newParentRef = params.parentId ? findParentLayerGroupActor(context.layers, params.parentId) : null;
+
+        enqueue.assign(({ context }) => getUpdatedLayerStructureAfterMove(context, params));
+
+        if (newParentRef) {
+          enqueue.sendTo(newParentRef, ({ context }) => getGroupChildrenChangedEvent(context, newParentRef.id));
+        }
       }),
 
       'Emit layer rejected': emit((_, params: { layerId: string; reason: string }) => ({
@@ -258,6 +270,18 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           },
         },
       ],
+      'LAYER.MOVE': {
+        description: 'Place the layer or group at its new place in the order and report the new order',
+        actions: [
+          {
+            type: 'Move layer',
+            params: ({ event }) => event,
+          },
+          {
+            type: 'Emit update layer order',
+          },
+        ],
+      },
 
       'RESET': {
         description: 'Stop and remove every layer and group, and report an empty order',

@@ -82,6 +82,16 @@ export interface AddGroupLayerParams<TGroup> extends BaseAddLayerParams {
 
 export type AddManagedLayerParams<TLayer, TGroup = TLayer> = AddLayerParams<TLayer> | AddGroupLayerParams<TGroup>;
 
+export interface MoveLayerTarget {
+  parentId: string | null;
+  index?: number;
+  position?: 'top' | 'bottom';
+}
+
+export interface MoveLayerParams extends MoveLayerTarget {
+  layerId: string;
+}
+
 // ============================================================================
 // DOMAIN: EVENTS
 // Communication messages between actors.
@@ -116,6 +126,7 @@ export type LayerGroupEvent<TGroup> = ChildEvent | ParentEvent | LayerEventBase<
 export type LayerManagerEvent<TLayer, TGroup = TLayer>
   = | { type: 'LAYER.ADD'; params: AddManagedLayerParams<TLayer, TGroup> }
     | { type: 'LAYER.REMOVE'; layerId: string }
+    | ({ type: 'LAYER.MOVE' } & MoveLayerParams)
     | { type: 'RESET' };
 
 /** Notifications that layer and group actors send to their manager. Not for callers. */
