@@ -30,4 +30,4 @@ Everything lives in a single file (`src/main.ts`):
 
 1. **`LayerManager` options** — `onLayerAdded`, `onVisibilityChanged`, and `onOpacityChanged` callbacks update the DOM directly when the manager emits changes
 2. **`addLayer` / `addGroup`** — call `manager.addLayer` / `manager.addGroup` to add items; the `onLayerAdded` callback handles rendering
-3. **`buildLayerEl`** — builds the DOM element for a layer or group, wiring checkbox and opacity slider events back to `manager.setVisibility` and `manager.setOpacity`
+3. **`buildLayerEl`** — builds the DOM element for a layer or group, wiring checkbox and opacity slider events back to `manager.setEnabled` and `manager.setOpacity`
