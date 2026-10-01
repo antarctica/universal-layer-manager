@@ -179,5 +179,20 @@ describe('layerManagerMachine', () => {
       layerManager.send(addChild);
       expect(childIds()).toEqual(['child-1']);
     });
+
+    it('updates the group of a moved layer only when the move is executed', () => {
+      const layerManager = createTestLayerManager();
+      const { groupActor } = addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }), { position: 'top' });
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }), { position: 'top' });
+      const moveChild = { type: 'LAYER.MOVE', layerId: 'child-1', parentId: 'group-1', position: 'top' } as const;
+      const childOrder = () => groupActor.getSnapshot().context.childLayerOrder;
+
+      transition(createLayerManagerMachine<TestLayerData>(), layerManager.getSnapshot(), moveChild);
+      expect(childOrder()).toEqual(['child-1', 'child-2']);
+
+      layerManager.send(moveChild);
+      expect(childOrder()).toEqual(['child-2', 'child-1']);
+    });
   });
 });
