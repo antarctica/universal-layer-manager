@@ -1,4 +1,4 @@
-import type { DateValue } from '@internationalized/date';
+import type { Temporal } from 'temporal-spec';
 import type { ActorRef, ActorRefFrom, Snapshot } from 'xstate';
 
 import type { layerGroupMachine } from './layerMachines/layerGroupMachine';
@@ -8,6 +8,8 @@ import type { layerMachine } from './layerMachines/layerMachine';
 // DOMAIN: TIME
 // Value objects and guards for handling temporal data.
 // ============================================================================
+
+type DateValue = Temporal.PlainDate | Temporal.PlainDateTime | Temporal.ZonedDateTime;
 
 export interface BaseTimeInfo {
   precision: 'date' | 'datetime';

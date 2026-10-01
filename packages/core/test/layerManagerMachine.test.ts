@@ -1,7 +1,7 @@
 import type { SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
 
-import { ZonedDateTime } from '@internationalized/date';
+import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, vi } from 'vitest';
 import { transition } from 'xstate';
 import { createLayerManagerMachine } from '../src/layerManagerMachines/layerManagerMachine';
@@ -46,7 +46,7 @@ describe('layerManagerMachine', () => {
     it('emits a change event when a layer is shown, faded, dated or given new data', () => {
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
-      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
+      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
       const emittedWatcher = vi.fn();
       layerManager.on('*', emittedWatcher);
 
@@ -67,7 +67,7 @@ describe('layerManagerMachine', () => {
       const layerManager = createTestLayerManager();
       const emittedWatcher = vi.fn();
       layerManager.on('*', emittedWatcher);
-      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
+      const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
 
       layerManager.send({ type: 'CHILD.VISIBILITY_CHANGED', layerId: 'non-existent', visible: true });
       layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
