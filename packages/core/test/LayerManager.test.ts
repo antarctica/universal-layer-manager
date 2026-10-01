@@ -271,6 +271,44 @@ describe('layerManager', () => {
       expect(map.layers.get('c1')).toMatchObject({ enabled: false, visible: false });
     });
 
+    it('hides a switched-on group and its layers when the group moves into a group that is not showing', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup({ ...group('showing'), visible: true });
+      manager.addGroup(group('switched-off'));
+      manager.addGroup({ ...group('inner', 'showing'), visible: true });
+      manager.addLayer({ ...layer('c1', { parentId: 'inner' }), visible: true });
+
+      manager.moveLayer('inner', { parentId: 'switched-off' });
+
+      expect(map.layers.get('inner')).toMatchObject({ parentId: 'switched-off', enabled: true, visible: false });
+      expect(map.layers.get('c1')).toMatchObject({ enabled: true, visible: false });
+    });
+
+    it('shows a switched-on group and its switched-on layers when the group moves into a group that is showing', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('switched-off'));
+      manager.addGroup({ ...group('showing'), visible: true });
+      manager.addGroup({ ...group('inner', 'switched-off'), enabled: true });
+      manager.addLayer({ ...layer('on', { parentId: 'inner' }), enabled: true });
+      manager.addLayer(layer('off', { parentId: 'inner' }));
+
+      manager.moveLayer('inner', { parentId: 'showing' });
+
+      expect(map.visibleLayerIds()).toEqual(['inner', 'on', 'showing']);
+      expect(map.layers.get('off')).toMatchObject({ enabled: false, visible: false });
+    });
+
+    it('keeps a switched-off group switched off when it moves into a group that is showing', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('switched-off'));
+      manager.addGroup({ ...group('showing'), visible: true });
+      manager.addGroup(group('inner', 'switched-off'));
+
+      manager.moveLayer('inner', { parentId: 'showing' });
+
+      expect(map.layers.get('inner')).toMatchObject({ parentId: 'showing', enabled: false, visible: false });
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
