@@ -171,6 +171,24 @@ export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
 }
 
 /**
+ * Explains why a layer cannot be moved to the given target.
+ *
+ * @param context - The current Layer Manager context.
+ * @param move - The layer to move and its target parent, index and position.
+ * @returns The rejection reason, or undefined if the layer can be moved.
+ */
+export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
+  context: LayerManagerContext<TLayer, TGroup>,
+  move: MoveLayerParams,
+): string | undefined {
+  if (!findManagedLayerById(context.layers, move.layerId)) {
+    return `Unable to find layer ${move.layerId}. Layer not moved.`;
+  }
+
+  return undefined;
+}
+
+/**
  * Checks if a provided index is within the bounds of the array.
  */
 export function isValidLayerIndex(index: number, length: number): boolean {
