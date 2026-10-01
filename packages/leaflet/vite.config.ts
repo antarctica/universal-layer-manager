@@ -2,7 +2,7 @@
 import camelCase from 'camelcase';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import packageJson from './package.json';
+import packageJson from './package.json' with { type: 'json' };
 
 const packageName = packageJson.name.split('/').pop() ?? packageJson.name;
 
@@ -24,6 +24,6 @@ export default defineConfig({
     },
   },
   plugins: [
-    dts({ rollupTypes: true }),
+    dts({ bundleTypes: true }),
   ],
 });
