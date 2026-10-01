@@ -322,6 +322,20 @@ describe('layerManager', () => {
       expect(map.layers.get('inner')).toMatchObject({ parentId: 'showing', enabled: false, visible: false });
     });
 
+    it('switches on the new groups above a moved layer when it is switched on, and not the old group', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup(group('old'));
+      manager.addGroup(group('outer'));
+      manager.addGroup(group('inner', 'outer'));
+      manager.addLayer(layer('c1', { parentId: 'old' }));
+      manager.moveLayer('c1', { parentId: 'inner' });
+
+      manager.setEnabled('c1', true);
+
+      expect(map.visibleLayerIds()).toEqual(['c1', 'inner', 'outer']);
+      expect(map.layers.get('old')).toMatchObject({ enabled: false });
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
