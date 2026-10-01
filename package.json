@@ -13,7 +13,10 @@
     "changelog:preview": "git-cliff --unreleased --bump",
     "changelog:draft": "git-cliff --unreleased --bump --prepend CHANGELOG.md",
     "changelog:range": "git-cliff",
-    "version:next": "git-cliff --bumped-version"
+    "version:next": "git-cliff --bumped-version",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs",
+    "docs:preview": "vitepress preview docs"
   },
   "workspaces": [
     "packages/*",
@@ -30,8 +33,11 @@
     "git-cliff": "^2.14.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "mermaid": "^11.17.2",
     "turbo": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": "eslint --fix"
