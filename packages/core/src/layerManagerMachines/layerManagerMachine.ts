@@ -290,7 +290,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           ],
         },
         {
-          description: 'Reject an unknown ID or a parent that is not a group',
+          description: 'Reject an unknown ID, a parent that is not a group, or a group moved into itself or a descendant',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
