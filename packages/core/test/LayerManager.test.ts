@@ -169,6 +169,19 @@ describe('layerManager', () => {
 
       expect(childIdsOf(manager, 'group-1')).toEqual(['c1', 'c3', 'c2']);
     });
+
+    it('leaves the order alone when raising the top layer or lowering the bottom layer', () => {
+      const onOrderChanged = vi.fn();
+      const { manager } = createManager({ onOrderChanged });
+      ['a', 'b', 'c'].forEach((layerId) => manager.addLayer({ ...layer(layerId), position: 'top' }));
+      onOrderChanged.mockClear();
+
+      manager.raiseLayer('c');
+      manager.lowerLayer('a');
+
+      expect(topLevelIds(manager)).toEqual(['a', 'b', 'c']);
+      expect(onOrderChanged).not.toHaveBeenCalled();
+    });
   });
 
   describe('adding layers', () => {
@@ -528,6 +541,20 @@ describe('layerManager', () => {
 
       expect(onError).toHaveBeenCalledWith(new Error('Layer group group-1 has children. Layer not removed.'));
       expect(manager.getLayer('group-1')).toBeDefined();
+    });
+
+    it('reports moving a layer that does not exist through onError and keeps the order', () => {
+      const onError = vi.fn();
+      const onOrderChanged = vi.fn();
+      const { manager } = createManager({ onError, onOrderChanged });
+      manager.addLayer(layer('layer-1'));
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('missing-layer', { parentId: null, position: 'top' });
+
+      expect(onError).toHaveBeenCalledWith(new Error('Unable to find layer missing-layer. Layer not moved.'));
+      expect(topLevelIds(manager)).toEqual(['layer-1']);
+      expect(onOrderChanged).not.toHaveBeenCalled();
     });
   });
 
