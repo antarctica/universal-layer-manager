@@ -14,6 +14,7 @@ import {
   childVisibleNotice,
   layerDataChange,
   ownOpacityChange,
+  parentChange,
   parentOpacityChange,
   timeInfoChange,
   visibilityChange,
@@ -76,6 +77,13 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         context.children.forEach((child) => {
           enqueue.sendTo(child, { type: 'PARENT.OPACITY_CHANGED', opacity: update.computedOpacity });
         });
+      }),
+      'Change Parent': enqueueActions(({ context, enqueue }, params: { parentRef: ParentLayerActor | null; parentOpacity: number }) => {
+        const { update, notification } = parentChange(context, params.parentRef, params.parentOpacity);
+        enqueue.assign(update);
+        if (notification) {
+          enqueue.sendTo(context.layerManagerRef, notification);
+        }
       }),
       'Change Layer Time Info': enqueueActions(({ context, enqueue }, params: { timeInfo: LayerTimeInfo }) => {
         const { update, notification } = timeInfoChange(context, params.timeInfo);
@@ -156,6 +164,24 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
                 target: 'hidden',
                 description: 'A group above stopped showing: hide this group and its children, which stay switched on',
               },
+              'PARENT.CHANGED': [
+                {
+                  guard: ({ event }) => event.parentVisible,
+                  description: 'Moved under a showing group: stay shown',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+                {
+                  target: 'hidden',
+                  description: 'Moved under a group that is not showing: hide this group and its children, which stay switched on',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+              ],
             },
           },
           hidden: {
@@ -165,6 +191,24 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
                 target: 'visible',
                 description: 'Every group above is showing again: show, and show the children that are switched on',
               },
+              'PARENT.CHANGED': [
+                {
+                  guard: ({ event }) => event.parentVisible,
+                  target: 'visible',
+                  description: 'Moved under a showing group: show, and show the children that are switched on',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+                {
+                  description: 'Moved under a group that is not showing: stay hidden, stay switched on',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+              ],
             },
           },
         },
@@ -185,6 +229,13 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           'CHILD.VISIBLE': {
             target: 'enabled',
             description: 'A child was switched on: switch this group on so the child can show',
+          },
+          'PARENT.CHANGED': {
+            description: 'Moved while switched off: stay off',
+            actions: {
+              type: 'Change Parent',
+              params: ({ event }) => event,
+            },
           },
         },
       },
