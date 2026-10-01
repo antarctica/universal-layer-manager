@@ -185,6 +185,10 @@ export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
     return `Unable to find layer ${move.layerId}. Layer not moved.`;
   }
 
+  if (move.parentId && !findParentLayerGroupActor(context.layers, move.parentId)) {
+    return `Unable to find parent group ${move.parentId}. Layer ${move.layerId} not moved.`;
+  }
+
   return undefined;
 }
 
