@@ -556,6 +556,25 @@ describe('layerManager', () => {
       expect(topLevelIds(manager)).toEqual(['layer-1']);
       expect(onOrderChanged).not.toHaveBeenCalled();
     });
+
+    it('reports moving a layer into a parent that is missing or not a group through onError and keeps the order', () => {
+      const onError = vi.fn();
+      const onOrderChanged = vi.fn();
+      const { manager } = createManager({ onError, onOrderChanged });
+      manager.addLayer({ ...layer('layer-1'), position: 'top' });
+      manager.addLayer({ ...layer('layer-2'), position: 'top' });
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('layer-1', { parentId: 'missing-group' });
+      manager.moveLayer('layer-1', { parentId: 'layer-2' });
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Unable to find parent group missing-group. Layer layer-1 not moved.'),
+        new Error('Unable to find parent group layer-2. Layer layer-1 not moved.'),
+      ]);
+      expect(topLevelIds(manager)).toEqual(['layer-1', 'layer-2']);
+      expect(onOrderChanged).not.toHaveBeenCalled();
+    });
   });
 
   describe('reset', () => {
