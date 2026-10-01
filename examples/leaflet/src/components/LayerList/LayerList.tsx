@@ -4,43 +4,45 @@ import { isLayerGroupMachine } from '@ulm/core';
 import { useLayerGroupChildLayers, useTopLevelLayers } from '../../layerManager/baseSelectors';
 import { LayerControls } from './LayerControls';
 import { LayerGroupItem, LayerItem } from './LayerItems';
+import styles from './LayerList.module.css';
 
 interface LayerGroupProps {
   layerGroupActor: ClientLayerGroupMachineActor;
-  indent: number;
 }
 
-function LayerGroup({ layerGroupActor, indent }: LayerGroupProps) {
+// A group's controls and children sit in a container with a guide line, so nesting reads as a tree.
+function LayerGroup({ layerGroupActor }: LayerGroupProps) {
   const childLayers = useLayerGroupChildLayers(layerGroupActor);
 
   return (
-    <section style={{ marginBottom: '20px', marginTop: '20px' }}>
-      <LayerGroupItem layerActor={layerGroupActor} indent={indent} />
-      <LayerControls parentId={layerGroupActor.id} indent={indent + 1} />
-      <LayerItemList layers={childLayers as ClientLayerActor[]} indent={indent + 1} />
+    <section className={`${styles.treeItem} ${styles.group}`}>
+      <LayerGroupItem layerActor={layerGroupActor} />
+      <div className={styles.groupChildren}>
+        <LayerControls parentId={layerGroupActor.id} />
+        <LayerItemList layers={childLayers as ClientLayerActor[]} />
+      </div>
     </section>
   );
 }
 
 interface LayerListProps {
   layers: ClientLayerActor[];
-  indent: number;
 }
 
-function LayerItemList({ layers, indent }: LayerListProps) {
+// The manager orders layers bottom first; the panel lists them top first, like the map.
+function LayerItemList({ layers }: LayerListProps) {
   return (
     <>
-      {layers.map((layer) =>
+      {[...layers].reverse().map((layer) =>
         isLayerGroupMachine(layer)
           ? (
               <LayerGroup
                 key={layer.id}
                 layerGroupActor={layer as ClientLayerGroupMachineActor}
-                indent={indent}
               />
             )
           : (
-              <LayerItem key={layer.id} layerActor={layer as ClientLayerMachineActor} indent={indent} />
+              <LayerItem key={layer.id} layerActor={layer as ClientLayerMachineActor} />
             ),
       )}
     </>
@@ -55,8 +57,8 @@ export function LayerList() {
 
   return (
     <div>
-      <LayerControls indent={0} parentId={null} />
-      <LayerItemList layers={topLevelLayers.map((layer) => layer.layerActor)} indent={0} />
+      <LayerControls parentId={null} />
+      <LayerItemList layers={topLevelLayers.map((layer) => layer.layerActor)} />
     </div>
   );
 }

@@ -22,7 +22,7 @@ function MapWithLayers() {
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
       <section
         style={{
-          width: '350px',
+          width: '420px',
           padding: '20px',
           overflowY: 'auto',
           borderRight: '1px solid #ccc',
@@ -30,7 +30,8 @@ function MapWithLayers() {
       >
         <h1 style={{ marginTop: 0 }}>Layer Manager</h1>
         <p style={{ marginTop: 0 }}>
-          Use the controls below to add markers or groups, and to toggle visibility or opacity.
+          Use the controls below to add markers or groups, and to toggle visibility or opacity. Drag a
+          layer by its ⠿ handle to reorder it, or drop it on the middle of a group to move it in.
         </p>
         <LayerList />
       </section>

@@ -58,6 +58,7 @@ export const LayerManagerProvider = React.memo(
     if (!managerRef.current) {
       managerRef.current = new LayerManager<LayerData, undefined>({
         allowNestedGroupLayers: true,
+        onError: (error) => console.warn(error.message),
       });
     }
 
