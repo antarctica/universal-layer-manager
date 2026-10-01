@@ -139,6 +139,15 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
                 target: 'hidden',
                 description: 'A group above stopped showing: hide, but stay switched on',
               },
+              'PARENT.CHANGED': {
+                guard: ({ event }) => !event.parentVisible,
+                target: 'hidden',
+                description: 'Moved under a group that is not showing: hide, stay switched on',
+                actions: {
+                  type: 'Change Parent',
+                  params: ({ event }) => event,
+                },
+              },
             },
           },
           hidden: {
