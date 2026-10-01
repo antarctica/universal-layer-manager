@@ -12,8 +12,16 @@ const LONDON_CENTER: LatLngExpression = [51.505, -0.09];
 const DEFAULT_ZOOM = 13;
 const BASE_LAYER_GROUP_ID = 'baselayers';
 const OSM_LAYER_ID = 'osm';
-const CARTO_LAYER_ID = 'carto';
+const IMAGERY_LAYER_ID = 'imagery';
 const LONDON_MARKER_ID = 'marker1';
+const SHAPES_GROUP_ID = 'shapes';
+
+// Overlapping circles, so raising or lowering one shows the stacking on the map.
+const SHAPES = [
+  { layerId: 'red-circle', layerName: 'Red circle', color: '#d62728', center: [51.505, -0.105] },
+  { layerId: 'green-circle', layerName: 'Green circle', color: '#2ca02c', center: [51.512, -0.09] },
+  { layerId: 'blue-circle', layerName: 'Blue circle', color: '#1f77b4', center: [51.505, -0.075] },
+] as const;
 
 function MapInitializer() {
   const map = useMap();
@@ -54,16 +62,44 @@ function MapInitializer() {
     manager.addLayer({
       layerConfig: {
         layerType: 'layer',
-        layerId: CARTO_LAYER_ID,
-        layerName: 'CartoDB Positron',
+        layerId: IMAGERY_LAYER_ID,
+        layerName: 'Esri World Imagery',
         parentId: BASE_LAYER_GROUP_ID,
         layerData: {
-          leafletLayer: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          leafletLayer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
           }),
         },
       },
-      visible: false,
+      visible: true,
+    });
+
+    manager.addGroup({
+      layerConfig: {
+        layerId: SHAPES_GROUP_ID,
+        layerName: 'Shapes',
+        parentId: null,
+        layerData: undefined,
+        layerType: 'layerGroup',
+      },
+      visible: true,
+      position: 'top',
+    });
+
+    SHAPES.forEach(({ layerId, layerName, color, center }) => {
+      manager.addLayer({
+        layerConfig: {
+          layerType: 'layer',
+          layerId,
+          layerName,
+          parentId: SHAPES_GROUP_ID,
+          layerData: {
+            leafletLayer: L.circle([...center], { radius: 1200, color, fillOpacity: 0.8 }),
+          },
+        },
+        visible: true,
+        position: 'top',
+      });
     });
 
     manager.addLayer({
@@ -71,12 +107,13 @@ function MapInitializer() {
         layerType: 'layer',
         layerId: LONDON_MARKER_ID,
         layerName: 'London Marker',
-        parentId: BASE_LAYER_GROUP_ID,
+        parentId: null,
         layerData: {
           leafletLayer: L.marker(LONDON_CENTER).bindPopup('This is London!'),
         },
       },
       visible: true,
+      position: 'top',
     });
   }, [map, manager]);
 

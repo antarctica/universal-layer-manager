@@ -2,10 +2,11 @@ import type { ClientLayerGroupMachineActor, ClientLayerMachineActor } from '../.
 import { useSelector } from '@xstate/react';
 import * as React from 'react';
 import styles from './LayerList.module.css';
+import { useLayerDragAndDrop } from './useLayerDragAndDrop';
 
 interface BaseLayerItemProps {
+  layerId: string;
   isGroup: boolean;
-  indent: number;
   isEnabled: boolean;
   isVisible: boolean;
   layerName: string;
@@ -15,8 +16,8 @@ interface BaseLayerItemProps {
 }
 
 function BaseLayerItem({
+  layerId,
   isGroup,
-  indent,
   isEnabled,
   isVisible,
   layerName,
@@ -25,10 +26,13 @@ function BaseLayerItem({
   onOpacityChange,
 }: BaseLayerItemProps) {
   const icon = isGroup ? '📁' : '📄';
+  const { dropZone, handleProps, dropProps } = useLayerDragAndDrop(layerId, isGroup);
+  const dropZoneClass = dropZone ? styles[`drop-${dropZone}`] : '';
 
   return (
-    <div style={{ marginLeft: `${indent * 20}px`, marginBottom: '5px' }}>
-      <div className={`${styles.layerItem} ${isVisible ? styles.visible : styles.hidden}`}>
+    <div className={isGroup ? undefined : styles.treeItem}>
+      <div className={`${styles.layerItem} ${isVisible ? styles.visible : styles.hidden} ${dropZoneClass}`} {...dropProps}>
+        <span className={styles.dragHandle} title="Drag to reorder" {...handleProps}>⠿</span>
         <label className={styles.label}>
           <input type="checkbox" checked={isEnabled} onChange={onToggle} />
           <span className={styles.labelText}>
@@ -63,10 +67,9 @@ function BaseLayerItem({
 
 interface SingleLayerItemProps {
   layerActor: ClientLayerMachineActor;
-  indent: number;
 }
 
-export function LayerItem({ layerActor, indent }: SingleLayerItemProps) {
+export function LayerItem({ layerActor }: SingleLayerItemProps) {
   const isEnabled = useSelector(layerActor, (state) => state.hasTag('enabled'));
   const isVisible = useSelector(layerActor, (state) => state.hasTag('visible'));
   const layerName = useSelector(layerActor, (state) => state.context.layerName);
@@ -86,8 +89,8 @@ export function LayerItem({ layerActor, indent }: SingleLayerItemProps) {
 
   return (
     <BaseLayerItem
+      layerId={layerActor.id}
       isGroup={false}
-      indent={indent}
       isEnabled={isEnabled}
       isVisible={isVisible}
       layerName={layerName}
@@ -100,10 +103,9 @@ export function LayerItem({ layerActor, indent }: SingleLayerItemProps) {
 
 interface LayerGroupItemProps {
   layerActor: ClientLayerGroupMachineActor;
-  indent: number;
 }
 
-export function LayerGroupItem({ layerActor, indent }: LayerGroupItemProps) {
+export function LayerGroupItem({ layerActor }: LayerGroupItemProps) {
   const isEnabled = useSelector(layerActor, (state) => state.hasTag('enabled'));
   const isVisible = useSelector(layerActor, (state) => state.hasTag('visible'));
   const layerName = useSelector(layerActor, (state) => state.context.layerName);
@@ -123,8 +125,8 @@ export function LayerGroupItem({ layerActor, indent }: LayerGroupItemProps) {
 
   return (
     <BaseLayerItem
+      layerId={layerActor.id}
       isGroup
-      indent={indent}
       isEnabled={isEnabled}
       isVisible={isVisible}
       layerName={layerName}

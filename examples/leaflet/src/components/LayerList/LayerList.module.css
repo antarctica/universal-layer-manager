@@ -47,3 +47,45 @@
 .opacityValue {
   min-width: 40px;
 }
+
+.dragHandle {
+  cursor: grab;
+  color: #666;
+}
+
+.drop-above {
+  box-shadow: inset 0 3px 0 #1f77b4;
+}
+
+.drop-below {
+  box-shadow: inset 0 -3px 0 #1f77b4;
+}
+
+.drop-into {
+  outline: 2px dashed #1f77b4;
+  outline-offset: -2px;
+}
+
+.treeItem {
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.group {
+  margin: 0.75rem 0;
+}
+
+.groupChildren {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #9aa5b1;
+}
+
+.groupChildren > .treeItem::before {
+  content: '';
+  position: absolute;
+  top: 1.1rem;
+  left: -0.75rem;
+  width: 0.6rem;
+  border-top: 2px solid #9aa5b1;
+}
