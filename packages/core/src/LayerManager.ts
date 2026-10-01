@@ -114,7 +114,10 @@ export class LayerManager<TLayer, TGroup = undefined> {
     }
   }
 
-  /** Alias for {@link destroy}. */
+  /**
+   * Alias for {@link destroy}.
+   * @internal
+   */
   stop(): void {
     this.destroy();
   }

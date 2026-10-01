@@ -13,13 +13,13 @@ An adapter is any object that implements `LayerManagerAdapter` from `@ulm/core`.
 |---|---|
 | `register(manager, callbacks)` | The adapter is attached. `callbacks.getSnapshot()` returns the top-level items and `callbacks.getLayer(id)` returns one item |
 | `unregister()` | The adapter is detached, replaced, or the manager is destroyed |
-| `onLayerAdded(info)` | A layer or group is added |
+| `onLayerAdded(info)` | A layer or group is added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group is removed |
 | `onVisibilityChanged(info, visible)` | A layer or group starts or stops showing |
 | `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changes |
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time information changes |
 | `onLayerDataChanged(info)` | A layer's `layerData` is replaced |
-| `onOrderChanged(layerOrder)` | The order changes, with every layer ID from bottom to top |
+| `onOrderChanged(layerOrder)` | The order changes, or the adapter is attached, with every layer ID from bottom to top |
 | `onLayerMoved(info)` | A layer or group is moved, raised or lowered, with `info.parentId` set to its new parent |
 
 ## A minimal adapter
