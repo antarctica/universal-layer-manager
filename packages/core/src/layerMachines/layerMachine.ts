@@ -139,15 +139,24 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
                 target: 'hidden',
                 description: 'A group above stopped showing: hide, but stay switched on',
               },
-              'PARENT.CHANGED': {
-                guard: ({ event }) => !event.parentVisible,
-                target: 'hidden',
-                description: 'Moved under a group that is not showing: hide, stay switched on',
-                actions: {
-                  type: 'Change Parent',
-                  params: ({ event }) => event,
+              'PARENT.CHANGED': [
+                {
+                  guard: ({ event }) => event.parentVisible,
+                  description: 'Moved under a showing group: stay shown',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
                 },
-              },
+                {
+                  target: 'hidden',
+                  description: 'Moved under a group that is not showing: hide, stay switched on',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+              ],
             },
           },
           hidden: {
@@ -157,15 +166,24 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
                 target: 'visible',
                 description: 'Every group above is showing again: show',
               },
-              'PARENT.CHANGED': {
-                guard: ({ event }) => event.parentVisible,
-                target: 'visible',
-                description: 'Moved under a showing group: show',
-                actions: {
-                  type: 'Change Parent',
-                  params: ({ event }) => event,
+              'PARENT.CHANGED': [
+                {
+                  guard: ({ event }) => event.parentVisible,
+                  target: 'visible',
+                  description: 'Moved under a showing group: show',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
                 },
-              },
+                {
+                  description: 'Moved under a group that is not showing: stay hidden, stay switched on',
+                  actions: {
+                    type: 'Change Parent',
+                    params: ({ event }) => event,
+                  },
+                },
+              ],
             },
           },
         },
@@ -183,17 +201,17 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
             target: 'enabled.visible',
             description: 'Switched on: show, and tell the parent group so every group above switches on',
           },
+          'PARENT.CHANGED': {
+            description: 'Moved while switched off: stay off',
+            actions: {
+              type: 'Change Parent',
+              params: ({ event }) => event,
+            },
+          },
         },
       },
     },
     on: {
-      'PARENT.CHANGED': {
-        description: 'Moved under another parent: store it, and recompute computed opacity from the opacity it sent, reporting it only if it changed',
-        actions: {
-          type: 'Change Parent',
-          params: ({ event }) => event,
-        },
-      },
       'PARENT.OPACITY_CHANGED': {
         description: 'A group above changed opacity: recompute computed opacity from the opacity it sent',
         actions: [
