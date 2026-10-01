@@ -14,6 +14,22 @@ State-machine-powered layer management for map applications. Framework-agnostic 
 npm install @ulm/core
 ```
 
+If your layers carry time info, also install the Temporal polyfill, because [not every browser supports Temporal yet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal#browser_compatibility):
+
+```bash
+npm install temporal-polyfill
+```
+
+```ts
+import { Temporal } from 'temporal-polyfill';
+
+manager.setTimeInfo('sea-ice', {
+  type: 'single',
+  precision: 'date',
+  value: Temporal.PlainDate.from('2026-10-01'),
+});
+```
+
 ## Quick start
 
 `LayerManager` is the primary public API. It wraps the XState machines and starts automatically on construction.
