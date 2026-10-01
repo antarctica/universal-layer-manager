@@ -18,8 +18,16 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 | `onLayerAdded(info, leafletLayer)` | A layer is created, and added to the map if it is visible |
 | `onLayerRemoved(layerId, leafletLayer)` | A layer is removed from the map |
 | `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
-| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes |
+| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes and its pane has been faded |
 | `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced |
+
+**Methods** you might call yourself:
+
+| Method | Description |
+|--------|-------------|
+| `getContext()` | Returns the Leaflet map |
+
+`LayerManager` calls the adapter's other methods as layers change. When the adapter is detached, replaced, or the manager is destroyed, it removes every layer it added from the map.
 
 ## `createDefaultLeafletFactory<TLayer>()`
 

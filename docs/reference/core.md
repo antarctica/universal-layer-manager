@@ -9,6 +9,7 @@
 | Option | Type | Description |
 |--------|------|-------------|
 | `allowNestedGroupLayers` | `boolean` | Allow groups inside other groups (default `false`) |
+| `inspect` | `Observer<InspectionEvent> \| (event) => void` | Receives XState inspection events |
 | `onLayerAdded` | `(info) => void` | A layer or group was added |
 | `onLayerRemoved` | `(layerId) => void` | A layer or group was removed, including by `reset()` |
 | `onVisibilityChanged` | `(info, visible) => void` | A layer or group started or stopped showing |
@@ -35,15 +36,16 @@
 | `updateLayerData(layerId, layerData)` | Replace a layer's or group's `layerData` |
 | `getLayer(layerId)` | Return the managed item, `{ type, layerActor }`, or `undefined` |
 | `setAdapter(adapter \| null)` | Attach an adapter, replacing any existing one, or detach it with `null` |
-| `reset()` | Remove every layer and group |
-| `destroy()` | Detach the adapter and stop the manager. The instance can't be used again |
-
+| `reset()` | Remove every layer and group, reporting each removal and the empty order |
+| `destroy()` | Detach the adapter and stop the manager, without reporting the removals. The instance can't be used again |
 ## Properties
 
 | Property | Description |
 |----------|-------------|
 | `layers` | The top-level items in order, bottom first |
 | `actor` | The manager's XState actor. See [Working with XState](../xstate) |
+| `isReady` | `true` while the manager is running |
+| `destroyed` | `true` after `destroy()` |
 
 ## Add parameters
 
