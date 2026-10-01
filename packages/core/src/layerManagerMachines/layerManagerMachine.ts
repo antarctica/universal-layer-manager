@@ -144,6 +144,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'PARENT.CHANGED',
             parentRef: newParentRef,
             parentOpacity: newParentRef?.getSnapshot().context.computedOpacity ?? 1,
+            parentVisible: newParentRef?.getSnapshot().hasTag('visible') ?? true,
           });
         }
       }),
