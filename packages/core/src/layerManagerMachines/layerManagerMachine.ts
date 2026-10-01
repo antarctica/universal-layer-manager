@@ -126,12 +126,21 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       }),
 
       'Move layer': enqueueActions(({ enqueue, context }, params: MoveLayerParams) => {
+        const oldParentId = findParentGroupId(context, params.layerId) ?? null;
+        const oldParentRef = oldParentId ? findParentLayerGroupActor(context.layers, oldParentId) : null;
         const newParentRef = params.parentId ? findParentLayerGroupActor(context.layers, params.parentId) : null;
+        const movedActor = findManagedLayerById(context.layers, params.layerId)?.layerActor;
 
         enqueue.assign(({ context }) => getUpdatedLayerStructureAfterMove(context, params));
 
+        if (oldParentRef && oldParentRef !== newParentRef) {
+          enqueue.sendTo(oldParentRef, ({ context }) => getGroupChildrenChangedEvent(context, oldParentRef.id));
+        }
         if (newParentRef) {
           enqueue.sendTo(newParentRef, ({ context }) => getGroupChildrenChangedEvent(context, newParentRef.id));
+        }
+        if (movedActor && oldParentRef !== newParentRef) {
+          enqueue.sendTo(movedActor, { type: 'PARENT.CHANGED', parentRef: newParentRef });
         }
       }),
 

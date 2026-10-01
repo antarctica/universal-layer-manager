@@ -109,7 +109,8 @@ export type ChildEvent
     | { type: 'LAYER.DISABLED' }
     | { type: 'PARENT.VISIBLE' }
     | { type: 'PARENT.HIDDEN' }
-    | { type: 'PARENT.OPACITY_CHANGED'; opacity: number };
+    | { type: 'PARENT.OPACITY_CHANGED'; opacity: number }
+    | { type: 'PARENT.CHANGED'; parentRef: ParentLayerActor | null };
 
 export type ParentEvent
   = | { type: 'CHILD.VISIBLE'; layerId: string }
