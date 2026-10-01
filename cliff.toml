@@ -60,9 +60,7 @@ skip_tags = "^v1\\.0\\.[12]$"
 
 # A bare #NNN becomes a link. The leading boundary keeps the pattern
 # clear of scopes such as `fix(#404):`.
-commit_preprocessors = [
-  { pattern = '(?m)(^|\\s)#(\\d+)\\b', replace = "${1}[#${2}](https://github.com/antarctica/universal-layer-manager/issues/${2})" },
-]
+commit_preprocessors = [ { pattern = '(?m)(^|\\s)#(\\d+)\\b', replace = "${1}[#${2}](https://github.com/antarctica/universal-layer-manager/issues/${2})" }, ]
 
 # First match wins. The HTML comment fixes section order (Keep a Changelog);
 # the template strips it.
