@@ -8,11 +8,12 @@ import type {
   ParentLayerActor,
 } from '../types';
 
-import { assign, enqueueActions, setup } from 'xstate';
+import { enqueueActions, setup } from 'xstate';
 import {
   childVisibleNotice,
   layerDataChange,
   ownOpacityChange,
+  parentChange,
   parentOpacityChange,
   timeInfoChange,
   visibilityChange,
@@ -62,9 +63,11 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         enqueue.assign(update);
         enqueue.sendTo(context.layerManagerRef, notification);
       }),
-      'Change Parent': assign((_, params: { parentRef: ParentLayerActor | null }) => ({
-        parentRef: params.parentRef,
-      })),
+      'Change Parent': enqueueActions(({ context, enqueue }, params: { parentRef: ParentLayerActor | null; parentOpacity: number }) => {
+        const { update, notification } = parentChange(context, params.parentRef, params.parentOpacity);
+        enqueue.assign(update);
+        enqueue.sendTo(context.layerManagerRef, notification);
+      }),
       'Change Layer Data': enqueueActions(({ context, enqueue }, params: { layerData: TLayer }) => {
         const { update, notification } = layerDataChange(context, params.layerData);
         enqueue.assign(update);
@@ -165,7 +168,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
     },
     on: {
       'PARENT.CHANGED': {
-        description: 'Moved under another parent: store the new parent',
+        description: 'Moved under another parent: store it, and recompute computed opacity from the opacity it sent',
         actions: {
           type: 'Change Parent',
           params: ({ event }) => event,

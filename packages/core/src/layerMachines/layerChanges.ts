@@ -1,4 +1,4 @@
-import type { LayerContextBase, LayerTimeInfo } from '../types';
+import type { LayerContextBase, LayerTimeInfo, ParentLayerActor } from '../types';
 
 type LayerIdentity = Pick<LayerContextBase<unknown>, 'layerId'>;
 
@@ -25,6 +25,18 @@ export function parentOpacityChange(context: LayerIdentity & Pick<LayerContextBa
   return {
     update: { parentOpacity, computedOpacity },
     notification: { type: 'CHILD.OPACITY_CHANGED' as const, layerId: context.layerId, opacity: context.opacity, computedOpacity },
+  };
+}
+
+export function parentChange(
+  context: LayerIdentity & Pick<LayerContextBase<unknown>, 'opacity'>,
+  parentRef: ParentLayerActor | null,
+  parentOpacity: number,
+) {
+  const { update, notification } = parentOpacityChange(context, parentOpacity);
+  return {
+    update: { ...update, parentRef },
+    notification,
   };
 }
 
