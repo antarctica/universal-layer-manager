@@ -1,0 +1,26 @@
+# @ulm/leaflet
+
+## `new LeafletLayerManagerAdapter<TLayer, TGroup>(map, options?)`
+
+A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)`. `TLayer` is your layer data type and `TGroup` your group data type. See the [Leaflet guide](../adapters/leaflet) for how it stacks and fades layers.
+
+**Options** (all optional):
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `layerFactory` | `(info, map) => L.Layer \| null` | Creates the Leaflet layer for each new layer. Return `null` to leave that layer off the map. Defaults to `createDefaultLeafletFactory()` |
+| `hooks` | `LeafletAdapterHooks` | Your own code to run after the adapter updates a Leaflet layer (see below) |
+
+**Hooks** (all optional; each runs only for layers that have a Leaflet layer):
+
+| Hook | Called after |
+|------|--------------|
+| `onLayerAdded(info, leafletLayer)` | A layer is created, and added to the map if it is visible |
+| `onLayerRemoved(layerId, leafletLayer)` | A layer is removed from the map |
+| `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
+| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes |
+| `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced |
+
+## `createDefaultLeafletFactory<TLayer>()`
+
+Returns the default factory, which uses `layerData.leafletLayer` when present and otherwise returns `null`.

@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
   workflow_dispatch:
 
 permissions:
@@ -34,9 +38,8 @@ jobs:
       - name: Build package
         run: npm run build
 
-      - name: Build TypeDoc documentation
-        working-directory: ./packages/core
-        run: npm run docs
+      - name: Build documentation
+        run: npm run docs:build
 
       - name: Build simple example
         working-directory: ./examples/simple
@@ -53,8 +56,8 @@ jobs:
       - name: Prepare GitHub Pages structure
         run: |
           mkdir -p gh-pages
-          # Copy TypeDoc documentation to root
-          cp -r packages/core/docs/* gh-pages/
+          # Copy the documentation site to root
+          cp -r docs/.vitepress/dist/* gh-pages/
           # Copy examples to subdirectories
           mkdir -p gh-pages/examples/simple
           cp -r examples/simple/dist/* gh-pages/examples/simple/
@@ -68,7 +71,7 @@ jobs:
             exit 1
           fi
           if [ ! -f "gh-pages/index.html" ]; then
-            echo "Error: gh-pages/index.html (TypeDoc) not found"
+            echo "Error: gh-pages/index.html (documentation) not found"
             exit 1
           fi
           if [ ! -f "gh-pages/examples/simple/index.html" ]; then
@@ -89,6 +92,7 @@ jobs:
           path: ./gh-pages
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

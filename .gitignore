@@ -25,5 +25,6 @@ coverage
 *.sln
 *.sw?
 
-# ignore docs 
-docs/
+# generated docs
+docs/.vitepress/dist/
+docs/.vitepress/cache/
