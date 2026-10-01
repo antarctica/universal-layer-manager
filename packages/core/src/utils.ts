@@ -181,12 +181,17 @@ export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
   move: MoveLayerParams,
 ): string | undefined {
-  if (!findManagedLayerById(context.layers, move.layerId)) {
+  const layer = findManagedLayerById(context.layers, move.layerId);
+  if (!layer) {
     return `Unable to find layer ${move.layerId}. Layer not moved.`;
   }
 
   if (move.parentId && !findParentLayerGroupActor(context.layers, move.parentId)) {
     return `Unable to find parent group ${move.parentId}. Layer ${move.layerId} not moved.`;
+  }
+
+  if (layer.type === 'layerGroup' && move.parentId && !context.allowNestedGroupLayers) {
+    return 'Nested group layers are not allowed.';
   }
 
   if (move.parentId && isSameOrDescendant(context, move.parentId, move.layerId)) {
