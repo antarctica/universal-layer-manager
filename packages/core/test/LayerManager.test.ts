@@ -2,7 +2,7 @@ import type { LayerManagerAdapter, LayerManagerCallbacks } from '../src/adapters
 import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
-import { ZonedDateTime } from '@internationalized/date';
+import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, vi } from 'vitest';
 import { LayerManager } from '../src/LayerManager';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
@@ -34,7 +34,7 @@ function childIdsOf(manager: TestManager, groupId: string): string[] {
   return item?.type === 'layerGroup' ? item.layerActor.getSnapshot().context.childLayerOrder : [];
 }
 
-const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: new ZonedDateTime(2024, 1, 1, 'UTC', 0) };
+const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
 
 describe('layerManager', () => {
   describe('layer order', () => {
@@ -588,6 +588,26 @@ describe('layerManager', () => {
 
       expect(map.layers.get('layer-1')?.timeInfo).toEqual(newYearsDay);
       expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay);
+    });
+
+    it('gives the map a layer\'s Temporal date range', () => {
+      const { manager, map } = createManager();
+
+      manager.addLayer(layer('layer-1', {
+        timeInfo: {
+          type: 'range',
+          precision: 'date',
+          start: Temporal.PlainDate.from('2026-06-01'),
+          end: Temporal.PlainDate.from('2026-08-31'),
+        },
+      }));
+
+      expect(map.layers.get('layer-1')?.timeInfo).toEqual({
+        type: 'range',
+        precision: 'date',
+        start: Temporal.PlainDate.from('2026-06-01'),
+        end: Temporal.PlainDate.from('2026-08-31'),
+      });
     });
 
     it('reports a layer\'s new data through onLayerDataChanged', () => {
