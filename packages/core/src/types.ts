@@ -140,6 +140,7 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
   = | { type: 'LAYER.ADDED'; layerId: string; visible: boolean }
     | { type: 'LAYER.REMOVED'; layerId: string }
     | { type: 'LAYER.ORDER_CHANGED'; layerOrder: string[] }
+    | { type: 'LAYER.MOVED'; layerId: string; parentId: string | null }
     | { type: 'LAYER.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
     | { type: 'LAYER.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
     | { type: 'LAYER.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }

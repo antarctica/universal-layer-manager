@@ -141,6 +141,12 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         reason: params.reason,
       })),
 
+      'Emit layer moved': emit((_, params: MoveLayerParams) => ({
+        type: 'LAYER.MOVED' as const,
+        layerId: params.layerId,
+        parentId: params.parentId,
+      })),
+
       'Emit update layer order': emit(({ context }) => ({
         type: 'LAYER.ORDER_CHANGED' as const,
         layerOrder: getFlatLayerOrder(context),
@@ -278,7 +284,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'canMoveLayer',
             params: ({ event }) => event,
           },
-          description: 'Place the layer or group at its new place in the order and report the new order',
+          description: 'Place the layer or group at its new place in the order, and report the new order and the move',
           actions: [
             {
               type: 'Move layer',
@@ -286,6 +292,10 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             },
             {
               type: 'Emit update layer order',
+            },
+            {
+              type: 'Emit layer moved',
+              params: ({ event }) => event,
             },
           ],
         },

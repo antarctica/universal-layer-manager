@@ -29,6 +29,8 @@ export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
   /** Called whenever a layer's data payload changes. */
   onLayerDataChanged?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
+  /** Called whenever a layer or group is moved, with `info.parentId` set to its new parent. */
+  onLayerMoved?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
   /** Called whenever the layer order changes, with every layer ID from bottom to top. */
   onOrderChanged?: (layerOrder: string[]) => void;
   /** Called when an internal error occurs. */
@@ -298,6 +300,16 @@ export class LayerManager<TLayer, TGroup = undefined> {
       this._options.onOrderChanged?.(event.layerOrder);
     });
     this._subscriptions.push(() => orderSub.unsubscribe());
+
+    const movedSub = this._actor.on('LAYER.MOVED', (event) => {
+      const info = this._toManagedLayerInfo(event.layerId);
+      if (!info) {
+        return;
+      }
+      this._adapter?.onLayerMoved?.(info);
+      this._options.onLayerMoved?.(info);
+    });
+    this._subscriptions.push(() => movedSub.unsubscribe());
 
     const rejectedSub = this._actor.on('LAYER.REJECTED', (event) => {
       this._options.onError?.(new Error(event.reason));
