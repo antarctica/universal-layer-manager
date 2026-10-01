@@ -30,7 +30,7 @@ A state-machine-powered layer management library for map applications. Model you
 - **Framework-agnostic**: Pure TypeScript/XState core — works with any UI rendering layer.
 - **Visibility and opacity**: Per-layer enable/disable and opacity that cascades through parents.
 - **Ordering**: Move, raise and lower layers and groups, within a group or between groups, and adapters restack the map to match.
-- **Time metadata**: Optional `LayerTimeInfo` using `@internationalized/date` for date ranges.
+- **Time metadata**: Optional `LayerTimeInfo` with [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) dates or date ranges.
 - **Typed events**: Strongly typed input and output events for reactive UIs.
 - **Adapter pattern**: Implement `LayerManagerAdapter` to connect any mapping library.
 
