@@ -133,8 +133,12 @@ For [working with XState](../xstate) directly. The manager actor emits these eve
 | Function | Description |
 |----------|-------------|
 | `createLayerManagerMachine()` | Create the manager machine yourself, without the `LayerManager` class |
+| `findManagedLayerById(layers, layerId)` | Find a managed item in the manager's `layers`, for example inside a selector |
+| `getLayerDataFromLayerId(layers, layerId)` | Read an item's `layerData` from the manager's `layers` |
 | `getTopLevelLayersInOrder(childLayerOrder, layers)` | Turn the manager's top-level order into a list of managed items |
 | `getLayerGroupChildrenInOrder(childLayerOrder, children)` | Turn a group's order into a list of its child actors |
+| `getFlatLayerOrder(context)` | Every layer ID, bottom to top, with each group followed by its children |
 | `findLayerPlacement(context, layerId)` | Where a layer sits: `{ parentId, index, siblingCount }`, counting from the bottom |
+| `getMoveLayerRejection(context, move)` | Why a move would be rejected, or `undefined` if it would succeed. Useful for checking a drop before making it |
 | `isLayerMachine(actor)` / `isLayerGroupMachine(actor)` | Check whether an actor is a layer or a group |
 | `isSingleTimeInfo(timeInfo)` / `isRangeTimeInfo(timeInfo)` | Check whether time info is a single date or a range |
