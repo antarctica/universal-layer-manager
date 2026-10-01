@@ -11,6 +11,24 @@ import type { LeafletAdapterOptions, LeafletLayerFactory } from './types';
 
 import { createDefaultLeafletFactory } from './default-factory';
 
+const CONTAINER_PANE = 'ulmPane';
+// Between Leaflet's overlay pane (400) and shadow pane (500), so popups, tooltips and unmanaged markers stay on top.
+const CONTAINER_PANE_Z_INDEX = '450';
+
+function layerPaneName(layerId: string): string {
+  return `ulm-${layerId}`;
+}
+
+function placeInPane(layer: L.Layer, pane: string): void {
+  layer.options.pane = pane;
+  if ('shadowPane' in layer.options) {
+    (layer.options as L.MarkerOptions).shadowPane = pane;
+  }
+  if (typeof (layer as L.LayerGroup).eachLayer === 'function') {
+    (layer as L.LayerGroup).eachLayer((child) => placeInPane(child, pane));
+  }
+}
+
 export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = TLayer>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: L.Map;
@@ -57,6 +75,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
 
     this.leafletLayers.set(info.layerId, leafletLayer);
+    placeInPane(leafletLayer, this.createLayerPane(info.layerId));
 
     if (info.visible) {
       leafletLayer.addTo(this.map);
@@ -105,5 +124,38 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     this.options.hooks?.onLayerDataChanged?.(info as LayerInfo<TLayer>, leafletLayer);
+  }
+
+  onOrderChanged(layerOrder: string[]): void {
+    let zIndex = 1;
+    for (const layerId of layerOrder) {
+      const pane = this.map.getPane(layerPaneName(layerId));
+      if (pane) {
+        pane.style.zIndex = String(zIndex);
+        zIndex += 1;
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Private helpers
+  // --------------------------------------------------------------------------
+
+  private createLayerPane(layerId: string): string {
+    const name = layerPaneName(layerId);
+    if (!this.map.getPane(name)) {
+      this.map.createPane(name, this.getContainerPane());
+    }
+    return name;
+  }
+
+  private getContainerPane(): HTMLElement {
+    const existing = this.map.getPane(CONTAINER_PANE);
+    if (existing) {
+      return existing;
+    }
+    const pane = this.map.createPane(CONTAINER_PANE);
+    pane.style.zIndex = CONTAINER_PANE_Z_INDEX;
+    return pane;
   }
 }

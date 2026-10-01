@@ -3,36 +3,63 @@ import { LayerManager } from '@ulm/core';
 import { describe, expect, it } from 'vitest';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 
+interface StubLayerOptions {
+  pane?: string;
+  shadowPane?: string;
+}
+
 interface StubLayer {
   id: string;
   opacity: number;
+  options: StubLayerOptions;
   addTo: (map: FakeMap) => StubLayer;
   setOpacity: (opacity: number) => StubLayer;
+  eachLayer?: (fn: (layer: StubLayer) => void) => StubLayer;
 }
 
 interface StubLayerData {
   leafletLayer: StubLayer;
 }
 
+interface FakePane {
+  parent: FakePane | null;
+  style: { zIndex: string };
+}
+
 type FakeMap = ReturnType<typeof createFakeMap>;
 
 function createFakeMap() {
-  const layers = new Set<StubLayer>();
+  const drawn: StubLayer[] = [];
+  const panes = new Map<string, FakePane>();
+  const zIndexOf = (layer: StubLayer) => Number(panes.get(layer.options.pane ?? '')?.style.zIndex ?? 0);
   return {
-    hasLayer: (layer: StubLayer) => layers.has(layer),
+    hasLayer: (layer: StubLayer) => drawn.includes(layer),
     addLayer: (layer: StubLayer) => {
-      layers.add(layer);
+      if (!drawn.includes(layer)) {
+        drawn.push(layer);
+      }
     },
     removeLayer: (layer: StubLayer) => {
-      layers.delete(layer);
+      if (drawn.includes(layer)) {
+        drawn.splice(drawn.indexOf(layer), 1);
+      }
     },
+    createPane: (name: string, container?: FakePane) => {
+      const pane: FakePane = { parent: container ?? null, style: { zIndex: '' } };
+      panes.set(name, pane);
+      return pane;
+    },
+    getPane: (name: string) => panes.get(name),
+    // The layers on the map from the bottom up, as the browser stacks them: by pane z-index, then by when they were added.
+    drawOrder: () => [...drawn].sort((a, b) => zIndexOf(a) - zIndexOf(b)).map((layer) => layer.id),
   };
 }
 
-function createStubLayer(id: string): StubLayer {
+function createStubLayer(id: string, options: StubLayerOptions = {}): StubLayer {
   const stub: StubLayer = {
     id,
     opacity: 1,
+    options,
     addTo: (map) => {
       map.addLayer(stub);
       return stub;
@@ -43,6 +70,15 @@ function createStubLayer(id: string): StubLayer {
     },
   };
   return stub;
+}
+
+function createStubLayerGroup(id: string, children: StubLayer[]): StubLayer {
+  const group = createStubLayer(id);
+  group.eachLayer = (fn) => {
+    children.forEach(fn);
+    return group;
+  };
+  return group;
 }
 
 function setup() {
@@ -148,6 +184,48 @@ describe('leafletLayerManagerAdapter', () => {
     manager.setAdapter(null);
 
     expect(map.hasLayer(leafletLayer)).toBe(false);
+  });
+
+  it('draws layers in the manager\'s order, from the bottom up', () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('first', createStubLayer('first')), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('second', createStubLayer('second')), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('third', createStubLayer('third')), visible: true, position: 'top' });
+
+    manager.moveLayer('first', { parentId: null, position: 'top' });
+
+    expect(map.drawOrder()).toEqual(['second', 'third', 'first']);
+  });
+
+  it('puts a layer back in its place in the order when it is shown again', () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('bottom', createStubLayer('bottom')), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('top', createStubLayer('top')), visible: true, position: 'top' });
+
+    manager.setEnabled('bottom', false);
+    manager.setEnabled('bottom', true);
+
+    expect(map.drawOrder()).toEqual(['bottom', 'top']);
+  });
+
+  it('draws a marker\'s shadow in the marker\'s place in the order', () => {
+    const { manager } = setup();
+    const marker = createStubLayer('marker', { shadowPane: 'shadowPane' });
+
+    manager.addLayer({ ...layerParams('marker', marker), visible: true });
+
+    expect(marker.options.shadowPane).toBe(marker.options.pane);
+  });
+
+  it('draws every layer in a Leaflet layer group, such as GeoJSON, in the group\'s place in the order', () => {
+    const { manager } = setup();
+    const polygon = createStubLayer('polygon');
+    const point = createStubLayer('point', { shadowPane: 'shadowPane' });
+    const geoJson = createStubLayerGroup('geojson', [polygon, point]);
+
+    manager.addLayer({ ...layerParams('geojson', geoJson), visible: true });
+
+    expect([polygon.options.pane, point.options.pane, point.options.shadowPane]).toEqual([geoJson.options.pane, geoJson.options.pane, geoJson.options.pane]);
   });
 
   it('exposes the map it draws on', () => {
