@@ -76,6 +76,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
     this.leafletLayers.set(info.layerId, leafletLayer);
     placeInPane(leafletLayer, this.createLayerPane(info.layerId));
+    this.fadeLayerPane(info.layerId, info.computedOpacity);
 
     if (info.visible) {
       leafletLayer.addTo(this.map);
@@ -112,9 +113,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (!leafletLayer) {
       return;
     }
-    if ('setOpacity' in leafletLayer && typeof (leafletLayer as L.GridLayer).setOpacity === 'function') {
-      (leafletLayer as L.GridLayer).setOpacity(computedOpacity);
-    }
+    this.fadeLayerPane(info.layerId, computedOpacity);
     this.options.hooks?.onOpacityChanged?.(info as LayerInfo<TLayer>, info.opacity, computedOpacity, leafletLayer);
   }
 
@@ -147,6 +146,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       this.map.createPane(name, this.getContainerPane());
     }
     return name;
+  }
+
+  private fadeLayerPane(layerId: string, computedOpacity: number): void {
+    const pane = this.map.getPane(layerPaneName(layerId));
+    if (pane) {
+      pane.style.opacity = String(computedOpacity);
+    }
   }
 
   private getContainerPane(): HTMLElement {

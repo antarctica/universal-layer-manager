@@ -10,10 +10,8 @@ interface StubLayerOptions {
 
 interface StubLayer {
   id: string;
-  opacity: number;
   options: StubLayerOptions;
   addTo: (map: FakeMap) => StubLayer;
-  setOpacity: (opacity: number) => StubLayer;
   eachLayer?: (fn: (layer: StubLayer) => void) => StubLayer;
 }
 
@@ -23,7 +21,7 @@ interface StubLayerData {
 
 interface FakePane {
   parent: FakePane | null;
-  style: { zIndex: string };
+  style: { zIndex: string; opacity: string };
 }
 
 type FakeMap = ReturnType<typeof createFakeMap>;
@@ -45,11 +43,13 @@ function createFakeMap() {
       }
     },
     createPane: (name: string, container?: FakePane) => {
-      const pane: FakePane = { parent: container ?? null, style: { zIndex: '' } };
+      const pane: FakePane = { parent: container ?? null, style: { zIndex: '', opacity: '' } };
       panes.set(name, pane);
       return pane;
     },
     getPane: (name: string) => panes.get(name),
+    // The opacity the browser draws a layer at: its pane's CSS opacity, which is 1 when unset.
+    opacityOf: (layer: StubLayer) => Number(panes.get(layer.options.pane ?? '')?.style.opacity || 1),
     // The layers on the map from the bottom up, as the browser stacks them: by pane z-index, then by when they were added.
     drawOrder: () => [...drawn].sort((a, b) => zIndexOf(a) - zIndexOf(b)).map((layer) => layer.id),
   };
@@ -58,14 +58,9 @@ function createFakeMap() {
 function createStubLayer(id: string, options: StubLayerOptions = {}): StubLayer {
   const stub: StubLayer = {
     id,
-    opacity: 1,
     options,
     addTo: (map) => {
       map.addLayer(stub);
-      return stub;
-    },
-    setOpacity: (opacity) => {
-      stub.opacity = opacity;
       return stub;
     },
   };
@@ -141,8 +136,8 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(leafletLayer)).toBe(true);
   });
 
-  it('sets a layer\'s opacity to its opacity combined with its group\'s', () => {
-    const { manager } = setup();
+  it('draws a layer at its opacity combined with its group\'s', () => {
+    const { map, manager } = setup();
     const leafletLayer = createStubLayer('child-1');
     manager.addGroup(groupParams('group-1'));
     manager.addLayer(layerParams('child-1', leafletLayer, 'group-1'));
@@ -150,7 +145,17 @@ describe('leafletLayerManagerAdapter', () => {
     manager.setOpacity('group-1', 0.5);
     manager.setOpacity('child-1', 0.8);
 
-    expect(leafletLayer.opacity).toBe(0.4);
+    expect(map.opacityOf(leafletLayer)).toBe(0.4);
+  });
+
+  it('draws a layer at its opacity combined with its group\'s as soon as it is added', () => {
+    const { map, manager } = setup();
+    const leafletLayer = createStubLayer('child-1');
+    manager.addGroup({ layerConfig: { ...groupParams('group-1').layerConfig, opacity: 0.5 } });
+
+    manager.addLayer({ layerConfig: { ...layerParams('child-1', leafletLayer, 'group-1').layerConfig, opacity: 0.8 } });
+
+    expect(map.opacityOf(leafletLayer)).toBe(0.4);
   });
 
   it('takes a layer off the map when it is removed', () => {

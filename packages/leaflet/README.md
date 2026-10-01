@@ -106,7 +106,7 @@ Implements `LayerManagerAdapter`. Attach it with `manager.setAdapter(adapter)`. 
 | `onLayerAdded(info, leafletLayer)` | A layer is created, and added to the map if it is visible |
 | `onLayerRemoved(layerId, leafletLayer)` | A layer is removed from the map |
 | `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
-| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes, after `setOpacity` where the Leaflet layer supports it |
+| `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes, after its pane is faded |
 | `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced |
 
 **Methods:**
@@ -125,7 +125,7 @@ Returns the default factory: it uses `layerData.leafletLayer` when present, and 
 ### Behaviour notes
 
 - Only layers are drawn. Groups have no Leaflet layer; hiding a group hides its layers.
-- Opacity is applied with `setOpacity(computedOpacity)` on Leaflet layers that support it, such as tile layers. For other layers, use the `onOpacityChanged` hook.
+- Opacity is applied as the CSS `opacity` of the layer's pane (see below), set to the computed opacity when the layer is added and each time it changes. This works for every kind of layer, including paths such as circles. The adapter does not call the layer's own `setOpacity` or `setStyle`, so styles such as a path's `fillOpacity` still apply on top.
 - The adapter stacks layers in the manager's order, from the bottom up, whatever kind of layer they are. Each layer is drawn in its own Leaflet pane, named `ulm-<layerId>`, and the adapter sets each pane's `z-index` when the order changes. So a tile layer can sit above a polygon, and a marker below a tile layer.
   - The adapter sets the layer's `pane` option before adding it to the map, which replaces any `pane` you set yourself. It also sets `shadowPane` on markers, and the pane of every layer already in a `L.LayerGroup`, such as a `L.GeoJSON`.
   - The layer panes sit in one container pane, `ulmPane`, at `z-index` 450. That is above Leaflet's overlay pane (400) and below its shadow, marker, tooltip and popup panes (500–700), so popups, tooltips and markers you add yourself stay on top.
