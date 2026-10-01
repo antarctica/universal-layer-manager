@@ -36,29 +36,9 @@ body {
   background-color: hsla(0, 100%, 70%, var(--opacity, 1));
 }
 
-.layer-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.layer-label-text {
-  margin-left: 0.3125rem;
-}
-
-.opacity-controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+.layer-item input[type='range'] {
   margin-left: auto;
-}
-
-.opacity-slider {
   width: 100px;
-}
-
-.opacity-value {
-  min-width: 40px;
 }
 
 .layer-wrapper:has(> .children) {
