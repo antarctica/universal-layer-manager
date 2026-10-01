@@ -29,6 +29,7 @@ A state-machine-powered layer management library for map applications. Model you
 - **Layers and layer groups**: Model flat lists or nested trees with optional depth control.
 - **Framework-agnostic**: Pure TypeScript/XState core — works with any UI rendering layer.
 - **Visibility and opacity**: Per-layer enable/disable and opacity that cascades through parents.
+- **Ordering**: Move, raise and lower layers and groups, within a group or between groups, and adapters restack the map to match.
 - **Time metadata**: Optional `LayerTimeInfo` using `@internationalized/date` for date ranges.
 - **Typed events**: Strongly typed input and output events for reactive UIs.
 - **Adapter pattern**: Implement `LayerManagerAdapter` to connect any mapping library.
@@ -94,7 +95,7 @@ If you're using `LayerManager`, the raw actor is also available via `manager.act
 
 ## Adapters
 
-`LayerManager` owns the state and calls the adapter's methods as layers change: added, removed, shown or hidden, faded, re-dated, given new data or reordered. The adapter applies those changes to the map. Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`; see [`@ulm/core`](./packages/core/README.md#adapters) for every method.
+`LayerManager` owns the state and calls the adapter's methods as layers change: added, removed, shown or hidden, faded, re-dated, given new data, reordered or moved between groups. The adapter applies those changes to the map. Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`; see [`@ulm/core`](./packages/core/README.md#adapters) for every method.
 
 ```ts
 import { LeafletLayerManagerAdapter } from '@ulm/leaflet';
@@ -112,7 +113,7 @@ See [`@ulm/leaflet`](./packages/leaflet/README.md) for a complete example, or im
 | Example | Description |
 |---------|-------------|
 | [`examples/simple`](./examples/simple/README.md) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
-| [`examples/leaflet`](./examples/leaflet/README.md) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI |
+| [`examples/leaflet`](./examples/leaflet/README.md) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering |
 
 To run an example:
 
