@@ -66,7 +66,9 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       'Change Parent': enqueueActions(({ context, enqueue }, params: { parentRef: ParentLayerActor | null; parentOpacity: number }) => {
         const { update, notification } = parentChange(context, params.parentRef, params.parentOpacity);
         enqueue.assign(update);
-        enqueue.sendTo(context.layerManagerRef, notification);
+        if (notification) {
+          enqueue.sendTo(context.layerManagerRef, notification);
+        }
       }),
       'Change Layer Data': enqueueActions(({ context, enqueue }, params: { layerData: TLayer }) => {
         const { update, notification } = layerDataChange(context, params.layerData);
@@ -168,7 +170,7 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
     },
     on: {
       'PARENT.CHANGED': {
-        description: 'Moved under another parent: store it, and recompute computed opacity from the opacity it sent',
+        description: 'Moved under another parent: store it, and recompute computed opacity from the opacity it sent, reporting it only if it changed',
         actions: {
           type: 'Change Parent',
           params: ({ event }) => event,

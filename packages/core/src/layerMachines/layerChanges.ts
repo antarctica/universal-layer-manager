@@ -29,14 +29,14 @@ export function parentOpacityChange(context: LayerIdentity & Pick<LayerContextBa
 }
 
 export function parentChange(
-  context: LayerIdentity & Pick<LayerContextBase<unknown>, 'opacity'>,
+  context: LayerIdentity & Pick<LayerContextBase<unknown>, 'opacity' | 'computedOpacity'>,
   parentRef: ParentLayerActor | null,
   parentOpacity: number,
 ) {
   const { update, notification } = parentOpacityChange(context, parentOpacity);
   return {
     update: { ...update, parentRef },
-    notification,
+    notification: update.computedOpacity === context.computedOpacity ? undefined : notification,
   };
 }
 
