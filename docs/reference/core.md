@@ -103,13 +103,13 @@ Implement `LayerManagerAdapter` and attach it with `manager.setAdapter()`. Every
 |--------|-------------|
 | `register(manager, callbacks)` | The adapter is attached. `callbacks.getSnapshot()` returns the top-level items and `callbacks.getLayer(id)` returns one item |
 | `unregister()` | The adapter is detached, replaced, or the manager is destroyed |
-| `onLayerAdded(info)` | A layer or group was added |
+| `onLayerAdded(info)` | A layer or group was added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group was removed |
 | `onVisibilityChanged(info, visible)` | A layer or group started or stopped showing |
 | `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changed |
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time info changed |
 | `onLayerDataChanged(info)` | A layer's `layerData` was replaced |
-| `onOrderChanged(layerOrder)` | The order changed; every layer ID, bottom to top |
+| `onOrderChanged(layerOrder)` | The order changed, or the adapter was attached; every layer ID, bottom to top |
 | `onLayerMoved(info)` | A layer or group was moved, raised or lowered. Called after `onOrderChanged` |
 
 ## Emitted events

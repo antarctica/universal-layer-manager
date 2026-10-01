@@ -27,11 +27,7 @@ manager.setAdapter(new LeafletLayerManagerAdapter(map)); // attach
 manager.setAdapter(null); // detach
 ```
 
-Attaching an adapter replaces any existing one. When an adapter is detached, replaced, or the manager is destroyed, the adapter cleans up after itself. The Leaflet adapter, for example, removes its layers from the map.
-
-::: warning
-Attach the adapter before adding layers. An adapter attached later isn't told about layers that already exist.
-:::
+Attaching an adapter replaces any existing one, and tells it about any layers already added. When an adapter is detached, replaced, or the manager is destroyed, the adapter cleans up after itself. The Leaflet adapter, for example, removes its layers from the map.
 
 ## Available adapters
 

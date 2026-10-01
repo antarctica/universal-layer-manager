@@ -39,6 +39,6 @@ A single `LayerManager` is created once and shared through React context. The la
 
 ### Worth a closer look
 
-+ **Setting up in an effect.** The map calls `manager.reset()` before attaching the adapter and adding layers. React runs effects twice in development, and without the reset the second run's layers would be rejected as duplicates.
++ **Setting up in an effect.** The map calls `manager.reset()` before setting up its layers. React runs effects twice in development, and without the reset the second run's layers would be rejected as duplicates.
 + **Drag and drop.** `useLayerDragAndDrop.ts` turns a drop in a top-first list into a `moveLayer` call, which counts from the bottom and from after the layer has left its old place.
 + **Invalid moves.** The list doesn't try to prevent drops such as a group into itself. It leaves the manager to reject them, and logs the reason from `onError`.
