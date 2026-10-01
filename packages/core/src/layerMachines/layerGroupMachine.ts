@@ -83,6 +83,9 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         enqueue.assign(update);
         if (notification) {
           enqueue.sendTo(context.layerManagerRef, notification);
+          context.children.forEach((child) => {
+            enqueue.sendTo(child, { type: 'PARENT.OPACITY_CHANGED', opacity: update.computedOpacity });
+          });
         }
       }),
       'Change Layer Time Info': enqueueActions(({ context, enqueue }, params: { timeInfo: LayerTimeInfo }) => {
