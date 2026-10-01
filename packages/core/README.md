@@ -202,9 +202,9 @@ A layer list usually shows the top layer first, so reverse these lists when you 
 
 ```ts
 manager.moveLayer('sea-ice', { parentId: 'forecasts', index: 2 }); // into a group, at an index
-manager.moveLayer('sea-ice', { parentId: null, position: 'top' });  // to the top level, at the top
-manager.raiseLayer('sea-ice');                                      // one step towards the top of its parent
-manager.lowerLayer('sea-ice');                                      // one step towards the bottom of its parent
+manager.moveLayer('sea-ice', { parentId: null, position: 'top' }); // to the top level, at the top
+manager.raiseLayer('sea-ice'); // one step towards the top of its parent
+manager.lowerLayer('sea-ice'); // one step towards the bottom of its parent
 ```
 
 `target` has the same placement fields as `addLayer`:
