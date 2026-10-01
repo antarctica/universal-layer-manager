@@ -27,11 +27,10 @@ function createRandomId() {
 
 interface LayerControlsProps {
   parentId: string | null;
-  indent: number;
 }
 
-// Adds layers or groups under the given parent, indented visually to show nesting.
-export function LayerControls({ parentId, indent }: LayerControlsProps) {
+// Adds layers or groups under the given parent.
+export function LayerControls({ parentId }: LayerControlsProps) {
   const manager = useLayerManager();
 
   const handleAddLayer = () => {
@@ -66,7 +65,7 @@ export function LayerControls({ parentId, indent }: LayerControlsProps) {
   };
 
   return (
-    <div className={styles.controls} style={{ marginLeft: `${indent * 20}px` }}>
+    <div className={styles.controls}>
       <Button onPress={handleAddLayer}>+ Layer</Button>
       <Button onPress={handleAddGroup}>+ Group</Button>
     </div>
