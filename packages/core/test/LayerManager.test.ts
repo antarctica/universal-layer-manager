@@ -225,6 +225,18 @@ describe('layerManager', () => {
       expect(map.layers.get('c1')).toMatchObject({ opacity: 0.8, computedOpacity: 0.2 });
     });
 
+    it('reports opacity after a move only when the computed opacity changes', () => {
+      const onOpacityChanged = vi.fn();
+      const { manager } = createManager({ onOpacityChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-2', opacity: 0.5 }) });
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+
+      manager.moveLayer('c1', { parentId: 'group-2' });
+
+      expect(onOpacityChanged).not.toHaveBeenCalled();
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
