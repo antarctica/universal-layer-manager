@@ -187,6 +187,33 @@ describe('layerManager', () => {
       expect(onLayerMoved).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'c1', parentId: 'group-2' }));
     });
 
+    it('moves a layer out of its group to the top level', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+
+      manager.moveLayer('c1', { parentId: null, position: 'top' });
+
+      expect(childIdsOf(manager, 'group-1')).toEqual([]);
+      expect(topLevelIds(manager)).toEqual(['group-1', 'c1']);
+      expect(map.order).toEqual(['group-1', 'c1']);
+      expect(map.layers.get('c1')?.parentId).toBeNull();
+    });
+
+    it('moves a top-level layer into a group', () => {
+      const { manager, map } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer(layer('layer-1'));
+
+      manager.moveLayer('layer-1', { parentId: 'group-1', index: 0 });
+
+      expect(topLevelIds(manager)).toEqual(['group-1']);
+      expect(childIdsOf(manager, 'group-1')).toEqual(['layer-1', 'c1']);
+      expect(map.order).toEqual(['group-1', 'layer-1', 'c1']);
+      expect(map.layers.get('layer-1')?.parentId).toBe('group-1');
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
