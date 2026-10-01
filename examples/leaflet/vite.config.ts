@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
     // Only use base path in production builds
     base: isProduction ? (process.env.VITE_BASE_PATH || '/universal-layer-manager/') : '/',
     plugins: [react()],
+    // VitePress keeps React 18 at the repository root for its search box.
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
     server: {
       port: 5176,
     },
