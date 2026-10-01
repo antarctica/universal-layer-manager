@@ -10,7 +10,7 @@
 
 A state-machine-powered layer management library for map applications. Model your map contents as layers and layer groups, then control visibility, opacity, and ordering from any UI framework and any mapping library.
 
-**[API documentation →](https://antarctica.github.io/universal-layer-manager/)**
+**[Documentation →](https://antarctica.github.io/universal-layer-manager/)**
 
 ---
 
@@ -20,6 +20,8 @@ A state-machine-powered layer management library for map applications. Model you
 |---------|---------|-------------|
 | [`@ulm/core`](./packages/core/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/core.svg)](https://www.npmjs.com/package/@ulm/core) | Core state machine library — framework and map-library agnostic |
 | [`@ulm/leaflet`](./packages/leaflet/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/leaflet.svg)](https://www.npmjs.com/package/@ulm/leaflet) | Leaflet adapter — syncs manager state to a Leaflet map |
+
+For another map library, [write your own adapter](https://antarctica.github.io/universal-layer-manager/adapters/writing-an-adapter).
 
 ---
 
@@ -50,11 +52,8 @@ interface LayerData {
 }
 
 const manager = new LayerManager<LayerData>({
-  onLayerAdded(info) {
-    console.log('added:', info.layerId);
-  },
   onVisibilityChanged(info, visible) {
-    console.log(info.layerId, 'visible:', visible);
+    console.log(info.layerName, visible ? 'showing' : 'hidden');
   },
 });
 
@@ -68,43 +67,9 @@ manager.addLayer({
   },
   visible: true,
 });
-
-manager.setEnabled('basemap', false);
-manager.destroy();
 ```
 
-See [`@ulm/core`](./packages/core/README.md) for the full API reference.
-
-### Lower-level access
-
-`createLayerManagerMachine` is exported for direct XState usage (e.g. integrating with `@xstate/react`):
-
-```ts
-import { createLayerManagerMachine } from '@ulm/core';
-import { createActor } from 'xstate';
-
-const actor = createActor(createLayerManagerMachine<LayerData>(), {
-  input: { allowNestedGroupLayers: true },
-});
-actor.start();
-```
-
-If you're using `LayerManager`, the raw actor is also available via `manager.actor`.
-
----
-
-## Adapters
-
-`LayerManager` owns the state and calls the adapter's methods as layers change: added, removed, shown or hidden, faded, re-dated, given new data, reordered or moved between groups. The adapter applies those changes to the map. Implement the `LayerManagerAdapter` interface and attach it with `manager.setAdapter(adapter)`; see [`@ulm/core`](./packages/core/README.md#adapters) for every method.
-
-```ts
-import { LeafletLayerManagerAdapter } from '@ulm/leaflet';
-
-manager.setAdapter(new LeafletLayerManagerAdapter(map));
-// manager.setAdapter(null) detaches and calls adapter.unregister()
-```
-
-See [`@ulm/leaflet`](./packages/leaflet/README.md) for a complete example, or implement `LayerManagerAdapter` yourself for other mapping libraries (OpenLayers, Mapbox, etc.).
+Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet adapter](https://antarctica.github.io/universal-layer-manager/adapters/leaflet).
 
 ---
 
@@ -112,14 +77,15 @@ See [`@ulm/leaflet`](./packages/leaflet/README.md) for a complete example, or im
 
 | Example | Description |
 |---------|-------------|
-| [`examples/simple`](./examples/simple/README.md) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
-| [`examples/leaflet`](./examples/leaflet/README.md) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering |
+| [`examples/simple`](./examples/simple/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/simple/)) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
+| [`examples/leaflet`](./examples/leaflet/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet/)) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering |
 
-To run an example:
+To run them locally:
 
 ```bash
 npm install        # install all workspace dependencies
-npm run dev        # starts all dev servers via Turbo
+npm run build      # build the packages
+npm run dev        # start all dev servers via Turbo
 ```
 
 ---
@@ -133,37 +99,14 @@ packages/
 examples/
   simple/     vanilla TypeScript example
   leaflet/    React + Leaflet example
+docs/         documentation site (VitePress)
 ```
 
 ---
 
-## Changelog
+## Contributing
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
-
-```
-type(scope): description
-```
-
-A scope is required. It names the package that changed: `core`, `leaflet`, `examples`, `repo`, or `deps`.
-
-| Type | Use for | In the changelog |
-| --- | --- | --- |
-| `feat` | User-visible capability | Added |
-| `fix` | Defect repair | Fixed |
-| `perf` | Measurable speed or resource change | Changed |
-| `revert` | Undoes an earlier commit | Changed |
-| `refactor`, `test`, `docs`, `build`, `ci`, `chore` | Internal work | Not shown |
-
-`feat` and `fix` that remove or drop something land under Removed. Mark a breaking change with `!` before the colon.
-
-```bash
-npm run changelog:preview   # print the pending section
-npm run changelog:draft     # prepend it to CHANGELOG.md
-npm run version:next        # print the next version
-```
-
-Edit the drafted section before tagging. `@ulm/core` and `@ulm/leaflet` ship on the same tag, `vX.Y.Z`. The current release is [`v1.0.0`](https://github.com/antarctica/universal-layer-manager/releases/tag/v1.0.0). `v1.0.1` and `v1.0.2` already belong to the previous single package. If `npm run version:next` prints one of those, tag the next free version instead. See [CHANGELOG.md](./CHANGELOG.md).
+See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for pull requests, commit messages and releases. Changes are listed in [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
