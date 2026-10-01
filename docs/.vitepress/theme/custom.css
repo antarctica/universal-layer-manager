@@ -1,0 +1,4 @@
+:root {
+  /* Default is 272px; give the site title a little more room. */
+  --vp-sidebar-width: 312px;
+}
