@@ -237,6 +237,18 @@ describe('layerManager', () => {
       expect(onOpacityChanged).not.toHaveBeenCalled();
     });
 
+    it('hides a switched-on layer moved into a group that is not showing, and keeps it switched on', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('showing'), visible: true });
+      manager.addGroup(group('switched-off'));
+      manager.addLayer({ ...layer('c1', { parentId: 'showing' }), visible: true });
+
+      manager.moveLayer('c1', { parentId: 'switched-off' });
+
+      expect(map.layers.get('c1')).toMatchObject({ enabled: true, visible: false });
+      expect(map.layers.get('switched-off')).toMatchObject({ enabled: false, visible: false });
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
