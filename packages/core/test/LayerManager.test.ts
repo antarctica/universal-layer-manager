@@ -595,6 +595,21 @@ describe('layerManager', () => {
       expect(childIdsOf(manager, 'outer')).toEqual(['inner']);
       expect(onOrderChanged).not.toHaveBeenCalled();
     });
+
+    it('reports moving a group into another group while nesting is off through onError and keeps the order', () => {
+      const onError = vi.fn();
+      const onOrderChanged = vi.fn();
+      const { manager } = createManager({ allowNestedGroupLayers: false, onError, onOrderChanged });
+      manager.addGroup({ ...group('group-1'), position: 'top' });
+      manager.addGroup({ ...group('group-2'), position: 'top' });
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('group-1', { parentId: 'group-2' });
+
+      expect(onError).toHaveBeenCalledWith(new Error('Nested group layers are not allowed.'));
+      expect(topLevelIds(manager)).toEqual(['group-1', 'group-2']);
+      expect(onOrderChanged).not.toHaveBeenCalled();
+    });
   });
 
   describe('reset', () => {
