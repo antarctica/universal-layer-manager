@@ -63,6 +63,7 @@ export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGro
     onOpacityChanged: record,
     onTimeInfoChanged: record,
     onLayerDataChanged: record,
+    onLayerMoved: record,
     onOrderChanged: (layerOrder) => {
       model.order = layerOrder;
     },
