@@ -157,6 +157,15 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
                 target: 'visible',
                 description: 'Every group above is showing again: show',
               },
+              'PARENT.CHANGED': {
+                guard: ({ event }) => event.parentVisible,
+                target: 'visible',
+                description: 'Moved under a showing group: show',
+                actions: {
+                  type: 'Change Parent',
+                  params: ({ event }) => event,
+                },
+              },
             },
           },
         },
