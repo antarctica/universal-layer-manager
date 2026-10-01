@@ -8,7 +8,7 @@ import type {
   ParentLayerActor,
 } from '../types';
 
-import { enqueueActions, setup } from 'xstate';
+import { assign, enqueueActions, setup } from 'xstate';
 import {
   childVisibleNotice,
   layerDataChange,
@@ -62,6 +62,9 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         enqueue.assign(update);
         enqueue.sendTo(context.layerManagerRef, notification);
       }),
+      'Change Parent': assign((_, params: { parentRef: ParentLayerActor | null }) => ({
+        parentRef: params.parentRef,
+      })),
       'Change Layer Data': enqueueActions(({ context, enqueue }, params: { layerData: TLayer }) => {
         const { update, notification } = layerDataChange(context, params.layerData);
         enqueue.assign(update);
@@ -161,6 +164,13 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       },
     },
     on: {
+      'PARENT.CHANGED': {
+        description: 'Moved under another parent: store the new parent',
+        actions: {
+          type: 'Change Parent',
+          params: ({ event }) => event,
+        },
+      },
       'PARENT.OPACITY_CHANGED': {
         description: 'A group above changed opacity: recompute computed opacity from the opacity it sent',
         actions: [

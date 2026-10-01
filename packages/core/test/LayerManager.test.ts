@@ -170,6 +170,23 @@ describe('layerManager', () => {
       expect(childIdsOf(manager, 'group-1')).toEqual(['c1', 'c3', 'c2']);
     });
 
+    it('moves a layer from one group into another', () => {
+      const onLayerMoved = vi.fn();
+      const { manager, map } = createManager({ onLayerMoved });
+      manager.addGroup({ ...group('group-1'), position: 'top' });
+      manager.addGroup({ ...group('group-2'), position: 'top' });
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer(layer('c2', { parentId: 'group-2' }));
+
+      manager.moveLayer('c1', { parentId: 'group-2', position: 'top' });
+
+      expect(childIdsOf(manager, 'group-1')).toEqual([]);
+      expect(childIdsOf(manager, 'group-2')).toEqual(['c2', 'c1']);
+      expect(map.order).toEqual(['group-1', 'group-2', 'c2', 'c1']);
+      expect(map.layers.get('c1')?.parentId).toBe('group-2');
+      expect(onLayerMoved).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'c1', parentId: 'group-2' }));
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
