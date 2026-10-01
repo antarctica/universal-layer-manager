@@ -107,7 +107,8 @@ manager.destroy();
 | `onTimeInfoChanged` | `(info, timeInfo) => void` | A layer's time info changed |
 | `onLayerDataChanged` | `(info) => void` | A layer's `layerData` was replaced |
 | `onOrderChanged` | `(layerOrder) => void` | The order changed; receives every layer ID, bottom to top, with each group followed by its children |
-| `onError` | `(error) => void` | An add or remove was rejected; `error.message` says why |
+| `onLayerMoved` | `(info) => void` | A layer or group was moved; `info.parentId` is its new parent |
+| `onError` | `(error) => void` | An add, remove or move was rejected; `error.message` says why |
 
 ### Adding layers and groups
 
@@ -145,6 +146,9 @@ An add is rejected, and reported through `onError`, when the ID is already in us
 | `addLayer(params)` | Add a layer |
 | `addGroup(params)` | Add a layer group |
 | `removeLayer(layerId)` | Remove a layer or an empty group. Removing an unknown ID or a group that still has children is rejected through `onError` |
+| `moveLayer(layerId, target)` | Move a layer or group to `target.parentId` (`null` for the top level), at `target.index` or `target.position`. See [Moving layers](#moving-layers) |
+| `raiseLayer(layerId)` | Move a layer or group one step towards the top of its parent. Does nothing at the top |
+| `lowerLayer(layerId)` | Move a layer or group one step towards the bottom of its parent. Does nothing at the bottom |
 | `setEnabled(layerId, enabled)` | Switch a layer or group on or off. A switched-on layer shows only while every group above it is on. Switching a layer on also switches on the groups above it |
 | `setOpacity(layerId, opacity)` | Set a layer's or group's own opacity (0–1). Its computed opacity is its own opacity multiplied by its parent group's computed opacity |
 | `setTimeInfo(layerId, timeInfo)` | Set the time info (`LayerTimeInfo`) for a layer or group |
@@ -192,6 +196,34 @@ if (group?.type === 'layerGroup') {
 
 `onOrderChanged` receives the whole tree flattened: each group followed by its children.
 
+A layer list usually shows the top layer first, so reverse these lists when you draw them.
+
+### Moving layers
+
+```ts
+manager.moveLayer('sea-ice', { parentId: 'forecasts', index: 2 }); // into a group, at an index
+manager.moveLayer('sea-ice', { parentId: null, position: 'top' });  // to the top level, at the top
+manager.raiseLayer('sea-ice');                                      // one step towards the top of its parent
+manager.lowerLayer('sea-ice');                                      // one step towards the bottom of its parent
+```
+
+`target` has the same placement fields as `addLayer`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parentId` | `string \| null` | The group to move into, or `null` for the top level. It can be the layer's current parent |
+| `index` | `number` | Where the layer ends up in its parent's order, 0 being the bottom. It counts once the layer has left its old place, so moving a layer to index 2 within a parent of three puts it at the top. Takes precedence over `position`; an index outside the order is ignored and `position` is used |
+| `position` | `'top' \| 'bottom'` | The top or bottom of the parent (default `'bottom'`) |
+
+A moved group takes its children with it. After a move:
+
+- `onOrderChanged` receives the new order, and `onLayerMoved` receives the moved layer's info.
+- A layer or group that is switched on shows if its new parent is showing. Otherwise it stays switched on but hidden. A switched-off layer stays off, and a move never switches other layers on.
+- Its computed opacity uses its new parent's opacity. `onOpacityChanged` is called only for layers whose computed opacity changed, including the children of a moved group.
+- Switching the layer on later switches on its new groups, not its old ones.
+
+A move is rejected, reported through `onError` and leaves the order as it was, when the layer does not exist, the target parent does not exist or is not a group, a group is moved into itself or one of its descendants, or a group is moved into a group while `allowNestedGroupLayers` is `false`.
+
 ### Debugging with the Stately Inspector
 
 ```ts
@@ -215,6 +247,7 @@ To sync the manager with a map library, implement `LayerManagerAdapter` and pass
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time info changed |
 | `onLayerDataChanged(info)` | A layer's `layerData` was replaced |
 | `onOrderChanged(layerOrder)` | The order changed; every layer ID, bottom to top |
+| `onLayerMoved(info)` | A layer or group was moved; `info.parentId` is its new parent. Called after `onOrderChanged` |
 
 ## Lower-level access
 
@@ -236,6 +269,7 @@ actor.start();
 |-------|-------------|
 | `{ type: 'LAYER.ADD', params }` | Add a layer or group; `params` as for `addLayer` / `addGroup` |
 | `{ type: 'LAYER.REMOVE', layerId }` | Remove a layer or an empty group |
+| `{ type: 'LAYER.MOVE', layerId, parentId, index?, position? }` | Move a layer or group; fields as for `moveLayer` |
 | `{ type: 'RESET' }` | Remove and stop every layer and group |
 
 Layer and group actors send `CHILD.*` notifications to the manager. These are internal; do not send them yourself.
@@ -256,6 +290,7 @@ Layer and group actors send `CHILD.*` notifications to the manager. These are in
 | `LAYER.ADDED` | `layerId`, `visible` |
 | `LAYER.REMOVED` | `layerId` |
 | `LAYER.ORDER_CHANGED` | `layerOrder`: every layer ID, bottom to top |
+| `LAYER.MOVED` | `layerId`, `parentId`: its new parent, or `null`. Emitted after `LAYER.ORDER_CHANGED` |
 | `LAYER.VISIBILITY_CHANGED` | `layerId`, `visible` |
 | `LAYER.OPACITY_CHANGED` | `layerId`, `opacity`, `computedOpacity` |
 | `LAYER.TIME_INFO_CHANGED` | `layerId`, `timeInfo` |
@@ -282,14 +317,16 @@ Layer and group actors send `CHILD.*` notifications to the manager. These are in
 | `findParentActor(layers, layerConfig)` | The group actor a config's `parentId` points at, or `null` |
 | `findParentLayerGroupActor(layers, groupId)` | A group actor by ID, or `null` if the ID is not a group |
 | `findParentGroupId(context, layerId)` | The ID of the group that holds a layer, from the manager's context |
+| `findLayerPlacement(context, layerId)` | Where a layer sits: `{ parentId, index, siblingCount }`, counting from the bottom, or `undefined` |
 | `getAddLayerRejection(layerConfig, context)` | Why an add would be rejected, or `undefined` |
 | `getRemoveLayerRejection(layerId, context)` | Why a remove would be rejected, or `undefined` |
+| `getMoveLayerRejection(context, move)` | Why a move would be rejected, or `undefined` |
 | `updateLayerOrder(order, layerId, index?, position?)` | Insert an ID into an order, as `addLayer` does |
 | `isValidLayerIndex(index, length)` | Whether an index can be inserted at |
 | `isLayerMachine(actor)` / `isLayerGroupMachine(actor)` | Narrow a layer actor to a layer or a group |
 | `isSingleTimeInfo(timeInfo)` / `isRangeTimeInfo(timeInfo)` | Narrow a `LayerTimeInfo` |
 
-`getUpdatedLayerStructure`, `getUpdatedLayerStructureAfterRemoval` and `getGroupChildrenChangedEvent` are also exported; the manager machine uses them to update its context.
+`getUpdatedLayerStructure`, `getUpdatedLayerStructureAfterRemoval`, `getUpdatedLayerStructureAfterMove` and `getGroupChildrenChangedEvent` are also exported; the manager machine uses them to update its context.
 
 ## License
 
