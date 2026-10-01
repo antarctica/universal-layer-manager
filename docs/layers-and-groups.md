@@ -149,10 +149,20 @@ This is a good place for anything the rest of your application needs to know abo
 
 ## Time info
 
-Layers can optionally carry time information in `timeInfo`, either a single point in time or a range. Dates use [`@internationalized/date`](https://react-spectrum.adobe.com/internationalized/date/), which follows the ISO 8601 standard, and `precision` says whether the value is a date or a date and time. Install it in your own project to create dates.
+Layers can optionally carry time information in `timeInfo`, either a single point in time or a range. `precision` says whether the value is a date or a date and time.
+
+Dates are [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) values, and each one can be any of these:
+
+| Type | Use it for | Example |
+|------|------------|---------|
+| `Temporal.PlainDate` | A calendar date | `Temporal.PlainDate.from('2026-06-01')` |
+| `Temporal.PlainDateTime` | A date and time, with no time zone | `Temporal.PlainDateTime.from('2026-06-01T06:00')` |
+| `Temporal.ZonedDateTime` | A date and time in a time zone | `Temporal.ZonedDateTime.from('2026-06-01T06:00[UTC]')` |
+
+Not every browser supports Temporal yet, so import it from `temporal-polyfill`. See [Dates for time info](./installation#dates-for-time-info) to install it.
 
 ```ts
-import { parseDate } from '@internationalized/date';
+import { Temporal } from 'temporal-polyfill';
 
 manager.addLayer({
   layerConfig: {
@@ -164,8 +174,8 @@ manager.addLayer({
     timeInfo: {
       type: 'range',
       precision: 'date',
-      start: parseDate('2026-06-01'),
-      end: parseDate('2026-08-31'),
+      start: Temporal.PlainDate.from('2026-06-01'),
+      end: Temporal.PlainDate.from('2026-08-31'),
     },
   },
 });
@@ -177,11 +187,15 @@ Change it later with `setTimeInfo`:
 manager.setTimeInfo('sea-ice', {
   type: 'single',
   precision: 'date',
-  value: parseDate('2026-10-01'),
+  value: Temporal.PlainDate.from('2026-10-01'),
 });
 ```
 
 The manager stores the time information and reports changes through `onTimeInfoChanged`. What you do with it, such as showing dates in your layer list or driving a time slider, is up to you.
+
+::: tip
+You only need the polyfill until every browser you support has Temporal built in. The manager accepts built-in and polyfilled dates alike, so your layer code stays the same when you drop it.
+:::
 
 ## Listening for changes
 

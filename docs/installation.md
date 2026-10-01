@@ -20,6 +20,34 @@ yarn add @ulm/core
 
 :::
 
+### Dates for time info
+
+You only need this if your layers carry [time info](./layers-and-groups#time-info). Dates are [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) values, and [not every browser supports Temporal yet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal#browser_compatibility), so install the polyfill as well:
+
+::: code-group
+
+```sh [npm]
+npm install temporal-polyfill
+```
+
+```sh [pnpm]
+pnpm add temporal-polyfill
+```
+
+```sh [yarn]
+yarn add temporal-polyfill
+```
+
+:::
+
+Then import `Temporal` from it wherever you create dates:
+
+```ts
+import { Temporal } from 'temporal-polyfill';
+```
+
+The TypeScript types come with `@ulm/core`, so there is nothing else to install.
+
 ## Adapters
 
 ### Leaflet
