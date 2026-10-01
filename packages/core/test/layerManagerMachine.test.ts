@@ -116,6 +116,24 @@ describe('layerManagerMachine', () => {
     });
   });
 
+  describe('moving layers', () => {
+    it('emits LAYER.ORDER_CHANGED with the new order, then LAYER.MOVED with the layer and its parent', () => {
+      const layerManager = createTestLayerManager();
+      addLayerGroupToManager(layerManager, createTestLayerGroupConfig({ layerId: 'group-1' }));
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-1' }), { position: 'top' });
+      addChildLayerToGroup(layerManager, 'group-1', createTestLayerConfig({ layerId: 'child-2' }), { position: 'top' });
+      const emittedWatcher = vi.fn();
+      layerManager.on('*', emittedWatcher);
+
+      layerManager.send({ type: 'LAYER.MOVE', layerId: 'child-1', parentId: 'group-1', position: 'top' });
+
+      expect(emittedWatcher.mock.calls.map(([event]) => event)).toEqual([
+        { type: 'LAYER.ORDER_CHANGED', layerOrder: ['group-1', 'child-2', 'child-1'] },
+        { type: 'LAYER.MOVED', layerId: 'child-1', parentId: 'group-1' },
+      ]);
+    });
+  });
+
   describe('rejected changes', () => {
     it('emits LAYER.REJECTED and no LAYER.ORDER_CHANGED for a rejected add or remove', () => {
       const layerManager = createTestLayerManager();

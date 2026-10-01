@@ -57,6 +57,9 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = unknown> {
   /** Called when a layer's data payload is updated. */
   onLayerDataChanged?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
 
+  /** Called when a layer or group is moved, with `info.parentId` set to its new parent. */
+  onLayerMoved?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
+
   /** Called when the layer order changes, with every layer ID from bottom to top. */
   onOrderChanged?: (layerOrder: string[]) => void;
 }
