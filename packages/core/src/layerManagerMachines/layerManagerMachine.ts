@@ -21,6 +21,7 @@ import {
   getAddLayerRejection,
   getFlatLayerOrder,
   getGroupChildrenChangedEvent,
+  getMoveLayerRejection,
   getRemoveLayerRejection,
   getUpdatedLayerStructure,
   getUpdatedLayerStructureAfterMove,
@@ -161,6 +162,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     guards: {
       canAddLayer: ({ context }, params: AddManagedLayerParams<TLayer, TGroup>) => getAddLayerRejection(params.layerConfig, context) === undefined,
       canRemoveLayer: ({ context }, params: { layerId: string }) => getRemoveLayerRejection(params.layerId, context) === undefined,
+      canMoveLayer: ({ context }, params: MoveLayerParams) => getMoveLayerRejection(context, params) === undefined,
       isManagedLayer: ({ context }, params: { layerId: string }) => findManagedLayerById(context.layers, params.layerId) !== undefined,
     },
   }).createMachine({
@@ -270,18 +272,34 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           },
         },
       ],
-      'LAYER.MOVE': {
-        description: 'Place the layer or group at its new place in the order and report the new order',
-        actions: [
-          {
-            type: 'Move layer',
+      'LAYER.MOVE': [
+        {
+          guard: {
+            type: 'canMoveLayer',
             params: ({ event }) => event,
           },
-          {
-            type: 'Emit update layer order',
+          description: 'Place the layer or group at its new place in the order and report the new order',
+          actions: [
+            {
+              type: 'Move layer',
+              params: ({ event }) => event,
+            },
+            {
+              type: 'Emit update layer order',
+            },
+          ],
+        },
+        {
+          description: 'Reject an unknown ID',
+          actions: {
+            type: 'Emit layer rejected',
+            params: ({ context, event }) => ({
+              layerId: event.layerId,
+              reason: getMoveLayerRejection(context, event) ?? '',
+            }),
           },
-        ],
-      },
+        },
+      ],
 
       'RESET': {
         description: 'Stop and remove every layer and group, and report an empty order',
