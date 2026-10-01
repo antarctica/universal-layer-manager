@@ -6,7 +6,7 @@ import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, M
 import { createActor } from 'xstate';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
 import { isLayerMachine } from './types';
-import { findLayerPlacement, findManagedLayerById, getTopLevelLayersInOrder } from './utils';
+import { findLayerPlacement, findManagedLayerById, getFlatLayerOrder, getTopLevelLayersInOrder } from './utils';
 
 // ============================================================================
 // OPTIONS
@@ -330,6 +330,14 @@ export class LayerManager<TLayer, TGroup = undefined> {
       getLayer: (id) => this.getLayer(id),
     };
     adapter.register?.(this, callbacks);
+    const layerOrder = getFlatLayerOrder(this._actor.getSnapshot().context);
+    for (const layerId of layerOrder) {
+      const info = this._toManagedLayerInfo(layerId);
+      if (info) {
+        adapter.onLayerAdded?.(info);
+      }
+    }
+    adapter.onOrderChanged?.(layerOrder);
   }
 
   /**

@@ -857,6 +857,31 @@ describe('layerManager', () => {
       expect(next.register).toHaveBeenCalledTimes(1);
     });
 
+    it('shows the layers already added on a map attached afterwards', () => {
+      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
+      manager.addGroup({ ...group('group-1'), visible: true });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), visible: true });
+      manager.addLayer(layer('layer-2'));
+      const map = createMapModel<TestLayerData>();
+
+      manager.setAdapter(map);
+
+      expect([...map.layers.keys()].sort()).toEqual(['group-1', 'layer-1', 'layer-2']);
+      expect(map.visibleLayerIds()).toEqual(['group-1', 'layer-1']);
+    });
+
+    it('stacks a map attached afterwards in the manager\'s order', () => {
+      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('layer-1', { parentId: 'group-1' }));
+      manager.addLayer({ ...layer('layer-2'), position: 'top' });
+      const map = createMapModel<TestLayerData>();
+
+      manager.setAdapter(map);
+
+      expect(map.order).toEqual(['group-1', 'layer-1', 'layer-2']);
+    });
+
     it('stops updating an adapter once it is detached', () => {
       const { manager, map } = createManager();
 
