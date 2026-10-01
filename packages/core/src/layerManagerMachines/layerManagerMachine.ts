@@ -140,7 +140,11 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           enqueue.sendTo(newParentRef, ({ context }) => getGroupChildrenChangedEvent(context, newParentRef.id));
         }
         if (movedActor && oldParentRef !== newParentRef) {
-          enqueue.sendTo(movedActor, { type: 'PARENT.CHANGED', parentRef: newParentRef });
+          enqueue.sendTo(movedActor, {
+            type: 'PARENT.CHANGED',
+            parentRef: newParentRef,
+            parentOpacity: newParentRef?.getSnapshot().context.computedOpacity ?? 1,
+          });
         }
       }),
 

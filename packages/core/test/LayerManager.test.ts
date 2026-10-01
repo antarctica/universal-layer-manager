@@ -214,6 +214,17 @@ describe('layerManager', () => {
       expect(map.layers.get('layer-1')?.parentId).toBe('group-1');
     });
 
+    it('combines a moved layer\'s opacity with its new group\'s opacity', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-2', opacity: 0.25 }) });
+      manager.addLayer(layer('c1', { parentId: 'group-1', opacity: 0.8 }));
+
+      manager.moveLayer('c1', { parentId: 'group-2' });
+
+      expect(map.layers.get('c1')).toMatchObject({ opacity: 0.8, computedOpacity: 0.2 });
+    });
+
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
