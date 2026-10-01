@@ -575,6 +575,26 @@ describe('layerManager', () => {
       expect(topLevelIds(manager)).toEqual(['layer-1', 'layer-2']);
       expect(onOrderChanged).not.toHaveBeenCalled();
     });
+
+    it('reports moving a group into itself or one of its descendants through onError and keeps the order', () => {
+      const onError = vi.fn();
+      const onOrderChanged = vi.fn();
+      const { manager } = createManager({ allowNestedGroupLayers: true, onError, onOrderChanged });
+      manager.addGroup(group('outer'));
+      manager.addGroup(group('inner', 'outer'));
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('outer', { parentId: 'outer' });
+      manager.moveLayer('outer', { parentId: 'inner' });
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Layer group outer cannot be moved into itself or one of its descendants. Layer not moved.'),
+        new Error('Layer group outer cannot be moved into itself or one of its descendants. Layer not moved.'),
+      ]);
+      expect(topLevelIds(manager)).toEqual(['outer']);
+      expect(childIdsOf(manager, 'outer')).toEqual(['inner']);
+      expect(onOrderChanged).not.toHaveBeenCalled();
+    });
   });
 
   describe('reset', () => {

@@ -189,6 +189,10 @@ export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
     return `Unable to find parent group ${move.parentId}. Layer ${move.layerId} not moved.`;
   }
 
+  if (move.parentId && isSameOrDescendant(context, move.parentId, move.layerId)) {
+    return `Layer group ${move.layerId} cannot be moved into itself or one of its descendants. Layer not moved.`;
+  }
+
   return undefined;
 }
 
@@ -371,6 +375,18 @@ export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = TLayer>(
 // INTERNAL HELPERS
 // Private implementation details for Manager Actions.
 // ============================================================================
+
+function isSameOrDescendant<TLayer, TGroup = TLayer>(
+  context: Pick<LayerManagerContext<TLayer, TGroup>, 'groupChildLayerOrder'>,
+  layerId: string,
+  ancestorId: string,
+): boolean {
+  if (layerId === ancestorId) {
+    return true;
+  }
+  const parentId = findParentGroupId(context, layerId);
+  return parentId !== undefined && isSameOrDescendant(context, parentId, ancestorId);
+}
 
 function addLayerToParent<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
