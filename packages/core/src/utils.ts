@@ -54,7 +54,6 @@ export function getLayerDataFromLayerId<TLayer, TGroup = TLayer>(
  * @param layers - The list of existing layers.
  * @param layerConfig - The configuration containing the `parentId`.
  * @returns The parent LayerGroupMachineActor if valid, otherwise null.
- * @internal
  */
 export function findParentActor<TLayer, TGroup = TLayer>(
   layers: ManagedItem<TLayer, TGroup>[],
@@ -71,7 +70,6 @@ export function findParentActor<TLayer, TGroup = TLayer>(
  * @param context - The manager's child order for each group.
  * @param layerId - The ID of the child layer.
  * @returns The parent group ID, or undefined for a top-level or unknown layer.
- * @internal
  */
 export function findParentGroupId<TLayer, TGroup = TLayer>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'groupChildLayerOrder'>,
@@ -129,7 +127,6 @@ export function findParentLayerGroupActor<TLayer, TGroup = TLayer>(
  * @param layerConfig - The proposed new layer configuration.
  * @param context - The current Layer Manager context.
  * @returns The rejection reason, or undefined if the layer can be added.
- * @internal
  */
 export function getAddLayerRejection<TLayer, TGroup = TLayer>(
   layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
@@ -156,7 +153,6 @@ export function getAddLayerRejection<TLayer, TGroup = TLayer>(
  * @param layerId - The ID of the layer to remove.
  * @param context - The current Layer Manager context.
  * @returns The rejection reason, or undefined if the layer can be removed.
- * @internal
  */
 export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
   layerId: string,
@@ -180,7 +176,6 @@ export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
  * @param context - The current Layer Manager context.
  * @param move - The layer to move and its target parent, index and position.
  * @returns The rejection reason, or undefined if the layer can be moved.
- * @internal
  */
 export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
@@ -208,7 +203,6 @@ export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
 
 /**
  * Checks if a provided index is within the bounds of the array.
- * @internal
  */
 export function isValidLayerIndex(index: number, length: number): boolean {
   return index >= 0 && index <= length;
@@ -227,7 +221,6 @@ export function isValidLayerIndex(index: number, length: number): boolean {
  * @param index - (Optional) Specific index to insert at.
  * @param position - (Optional) 'top' (end of array) or 'bottom' (start of array).
  * @returns A new array with the order updated.
- * @internal
  */
 export function updateLayerOrder(
   currentOrder: string[],
@@ -257,7 +250,6 @@ export function updateLayerOrder(
  *
  * @param context - The manager's top-level order and each group's child order.
  * @returns A flat array of all Layer IDs in depth-first order.
- * @internal
  */
 export function getFlatLayerOrder<TLayer, TGroup = TLayer>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'childLayerOrder' | 'groupChildLayerOrder'>,
@@ -286,7 +278,6 @@ export function getTopLevelLayersInOrder<TLayer, TGroup = TLayer>(
  * @param context - The current Layer Manager context.
  * @param groupId - The ID of the group whose children changed.
  * @returns A LAYERS.CHILDREN_CHANGED event for the group.
- * @internal
  */
 export function getGroupChildrenChangedEvent<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
@@ -325,7 +316,6 @@ export function getLayerGroupChildrenInOrder(
  * @param index - Optional index.
  * @param position - Optional position ('top' | 'bottom').
  * @returns A partial context update (layers list and potentially order).
- * @internal
  */
 export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
@@ -342,7 +332,6 @@ export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
 /**
  * Calculates the new state after removing a layer.
  * Removes the layer from the main list, the top-level order and every group's child order.
- * @internal
  */
 export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
@@ -366,7 +355,6 @@ export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
  * @param context - Current manager context.
  * @param move - The layer to move and its target parent, index and position.
  * @returns A partial context update with the new order.
- * @internal
  */
 export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = TLayer>(
   context: LayerManagerContext<TLayer, TGroup>,
