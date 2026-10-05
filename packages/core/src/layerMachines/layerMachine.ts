@@ -181,6 +181,10 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
           hidden: {
             description: 'The layer should appear hidden on the map as its parent is hidden',
             on: {
+              'LAYER.SHOW': {
+                description: 'Asked to show: tell the parent group so every group above switches on',
+                actions: 'Notify Parent that layer is visible',
+              },
               'PARENT.VISIBLE': {
                 target: 'visible',
                 description: 'Every group above is showing again: show',
@@ -223,6 +227,14 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
           'LAYER.ENABLED': {
             target: 'enabled.visible',
             description: 'Switched on: show, tell the parent group so every group above switches on, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: true },
+            },
+          },
+          'LAYER.SHOW': {
+            target: 'enabled.visible',
+            description: 'Asked to show: switch on, show, tell the parent group so every group above switches on, and report it to the manager',
             actions: {
               type: 'Notify Manager of enabled change',
               params: { enabled: true },

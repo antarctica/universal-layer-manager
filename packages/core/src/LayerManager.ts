@@ -211,6 +211,18 @@ export class LayerManager<TLayer, TGroup = undefined> {
     managed.layerActor.send(enabled ? { type: 'LAYER.ENABLED' } : { type: 'LAYER.DISABLED' });
   }
 
+  /**
+   * Makes the layer or group with the given `layerId` visible, switching on it and every group above it.
+   * Unlike `setEnabled`, this also shows a switched-on layer that a switched-off group is hiding.
+   */
+  showLayer(layerId: string): void {
+    const managed = this.getLayer(layerId);
+    if (!managed) {
+      return;
+    }
+    managed.layerActor.send({ type: 'LAYER.SHOW' });
+  }
+
   /** Sets the opacity (0–1) for the layer with the given `layerId`. */
   setOpacity(layerId: string, opacity: number): void {
     const managed = this.getLayer(layerId);
