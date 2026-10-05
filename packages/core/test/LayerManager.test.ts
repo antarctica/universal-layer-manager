@@ -139,6 +139,18 @@ describe('layerManager', () => {
       expect(map.order).toEqual([]);
     });
 
+    it('gives a group\'s info the IDs of its children, bottom first', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('c1', { parentId: 'group-1' }), position: 'top' });
+      manager.addLayer({ ...layer('c2', { parentId: 'group-1' }), position: 'top' });
+
+      manager.setEnabled('group-1', true);
+
+      expect(onEnabledChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'group-1', childIds: ['c1', 'c2'] }), true);
+    });
+
     it('gives a group its child actors in display order', () => {
       const { manager } = createManager();
       manager.addGroup(group('group-1'));

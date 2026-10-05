@@ -1,14 +1,39 @@
-import type { LayerContext, LayerGroupContext, LayerTimeInfo } from '../types';
+import type { LayerTimeInfo } from '../types';
 
 // ============================================================================
 // ADAPTER LAYER INFO
 // Stable, non-XState shape passed to adapter methods and consumer callbacks.
 // ============================================================================
-export type LayerInfo<TLayer = unknown, TGroup = undefined> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
+interface BaseLayerInfo<TData> {
+  layerId: string;
+  layerName: string;
+  layerData: TData;
+  /** The group the item is in, or `null` at the top level. */
+  parentId: string | null;
+  /** Whether the item is switched on. */
+  enabled: boolean;
+  /** Whether the item is showing: switched on, with every group above it showing. */
+  visible: boolean;
+  /** The item's own opacity, from 0 to 1. */
+  opacity: number;
+  /** The opacity combined with every group above it. Use this on the map. */
+  computedOpacity: number;
+  timeInfo?: LayerTimeInfo;
+}
 
-export type LayerGroupInfo<TLayer = unknown, TGroup = undefined> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
+export interface LayerInfo<TLayer = unknown> extends BaseLayerInfo<TLayer> {
+  layerType: 'layer';
+  listMode: 'show' | 'hide';
+}
 
-export type ManagedLayerInfo<TLayer = unknown, TGroup = undefined> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
+export interface LayerGroupInfo<TGroup = undefined> extends BaseLayerInfo<TGroup> {
+  layerType: 'layerGroup';
+  listMode: 'show' | 'hide' | 'hide-children';
+  /** The IDs of the group's children, bottom first. */
+  childIds: string[];
+}
+
+export type ManagedLayerInfo<TLayer = unknown, TGroup = undefined> = LayerInfo<TLayer> | LayerGroupInfo<TGroup>;
 
 // ============================================================================
 // ADAPTER CONTRACT
