@@ -1096,6 +1096,40 @@ describe('layerManager', () => {
       expect(onError).toHaveBeenCalledWith(new Error('Unable to find layer missing-layer. Layer not removed.'));
     });
 
+    it('reports changing a layer that does not exist through onError', () => {
+      const onError = vi.fn();
+      const { manager } = createManager({ onError });
+
+      manager.setEnabled('missing-layer', true);
+      manager.setEnabled('missing-layer', false);
+      manager.showLayer('missing-layer');
+      manager.setOpacity('missing-layer', 0.5);
+      manager.setTimeInfo('missing-layer', newYearsDay);
+      manager.updateLayerData('missing-layer', { test: 'updated' });
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Unable to find layer missing-layer. Layer not switched on.'),
+        new Error('Unable to find layer missing-layer. Layer not switched off.'),
+        new Error('Unable to find layer missing-layer. Layer not shown.'),
+        new Error('Unable to find layer missing-layer. Opacity not set.'),
+        new Error('Unable to find layer missing-layer. Time info not set.'),
+        new Error('Unable to find layer missing-layer. Layer data not updated.'),
+      ]);
+    });
+
+    it('reports raising or lowering a layer that does not exist through onError', () => {
+      const onError = vi.fn();
+      const { manager } = createManager({ onError });
+
+      manager.raiseLayer('missing-layer');
+      manager.lowerLayer('missing-layer');
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Unable to find layer missing-layer. Layer not moved.'),
+        new Error('Unable to find layer missing-layer. Layer not moved.'),
+      ]);
+    });
+
     it('reports removing a group that still has children through onError', () => {
       const onError = vi.fn();
       const { manager } = createManager({ onError });
