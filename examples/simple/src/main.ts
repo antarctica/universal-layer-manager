@@ -10,6 +10,7 @@ const manager = new LayerManager<undefined>({
   allowNestedGroupLayers: true,
   onLayerAdded: render,
   onVisibilityChanged: render,
+  onEnabledChanged: render,
   onOpacityChanged: render,
   onOrderChanged: render,
 });
