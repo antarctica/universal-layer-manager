@@ -421,6 +421,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
       return { ...common, layerType: 'layer', layerData, listMode };
     }
     const { layerData, listMode } = managed.layerActor.getSnapshot().context;
-    return { ...common, layerType: 'layerGroup', layerData, listMode };
+    const childIds = [...(managerContext.groupChildLayerOrder[layerId] ?? [])];
+    return { ...common, layerType: 'layerGroup', layerData, listMode, childIds };
   }
 }

@@ -98,6 +98,7 @@ Callbacks and adapters receive a `ManagedLayerInfo`:
 | `visible` | Whether it is actually showing |
 | `opacity` | Its own opacity |
 | `computedOpacity` | Its opacity combined with every group above it; use this on the map |
+| `childIds` | Groups only: the IDs of its children, bottom first |
 
 ## Adapter interface
 
