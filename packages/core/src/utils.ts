@@ -245,9 +245,8 @@ export function updateLayerOrder(
 ): string[] {
   const newOrder = [...currentOrder];
 
-  if (index !== undefined && isValidLayerIndex(index, currentOrder.length)) {
-    // Clamp index to length if it exceeds it
-    const safeIndex = index > currentOrder.length ? currentOrder.length : index;
+  if (index !== undefined) {
+    const safeIndex = Math.min(Math.max(index, 0), currentOrder.length);
     newOrder.splice(safeIndex, 0, newLayerId);
   } else if (position === 'top') {
     // 'Top' implies highest Z-index, usually end of array in rendering
