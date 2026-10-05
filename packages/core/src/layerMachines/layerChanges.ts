@@ -1,4 +1,5 @@
 import type { LayerContextBase, LayerTimeInfo, ParentLayerActor } from '../types';
+import { getOpacityRejection } from '../utils';
 
 type LayerIdentity = Pick<LayerContextBase<unknown>, 'layerId'>;
 
@@ -17,6 +18,12 @@ export function ownOpacityChange(context: LayerIdentity & Pick<LayerContextBase<
   return {
     update: { opacity, computedOpacity },
     notification: { type: 'CHILD.OPACITY_CHANGED' as const, layerId: context.layerId, opacity, computedOpacity },
+  };
+}
+
+export function opacityRejection(context: LayerIdentity, opacity: number) {
+  return {
+    notification: { type: 'CHILD.REJECTED' as const, layerId: context.layerId, reason: getOpacityRejection(context.layerId, opacity) ?? '' },
   };
 }
 
