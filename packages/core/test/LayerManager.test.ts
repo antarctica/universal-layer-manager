@@ -628,6 +628,28 @@ describe('layerManager', () => {
       expect(map.layers.get('layer-1')).toMatchObject({ enabled: false, visible: false });
     });
 
+    it('reports no enabled change when a switched-on layer and group are added', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+
+      manager.addGroup({ ...group('group-1'), enabled: true });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+
+      expect(onEnabledChanged).not.toHaveBeenCalled();
+    });
+
+    it('reports no enabled change when a switched-on or switched-off layer is removed', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+      manager.addLayer({ ...layer('on'), enabled: true });
+      manager.addLayer({ ...layer('off'), enabled: false });
+
+      manager.removeLayer('on');
+      manager.removeLayer('off');
+
+      expect(onEnabledChanged).not.toHaveBeenCalled();
+    });
+
     it('reports a layer being switched on', () => {
       const onEnabledChanged = vi.fn();
       const { manager } = createManager({ onEnabledChanged });
