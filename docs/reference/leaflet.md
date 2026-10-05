@@ -2,7 +2,7 @@
 
 ## `new LeafletLayerManagerAdapter<TLayer, TGroup>(map, options?)`
 
-A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)`. `TLayer` is your layer data type and `TGroup` your group data type. See the [Leaflet guide](../adapters/leaflet) for how it stacks and fades layers.
+A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)`. `TLayer` is your layer data type and `TGroup` your group data type, which defaults to `undefined`. See the [Leaflet guide](../adapters/leaflet) for how it stacks and fades layers.
 
 **Options** (all optional):
 

@@ -12,7 +12,7 @@ import { findLayerPlacement, findManagedLayerById, getFlatLayerOrder, getTopLeve
 // OPTIONS
 // ============================================================================
 
-export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
+export interface LayerManagerOptions<TLayer, TGroup = undefined> {
   /** Allow layer groups to be nested inside other layer groups. */
   allowNestedGroupLayers?: boolean;
   /** Receives XState inspection events, e.g. `createBrowserInspector().inspect` from `@statelyai/inspect`. */

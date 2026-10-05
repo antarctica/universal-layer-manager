@@ -28,7 +28,7 @@ interface LayerData {
 const map = L.map('map').setView([51.505, -0.09], 13);
 
 const manager = new LayerManager<LayerData>();
-manager.setAdapter(new LeafletLayerManagerAdapter<LayerData, undefined>(map));
+manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
 
 manager.addLayer({
   layerConfig: {

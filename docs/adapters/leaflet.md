@@ -18,7 +18,7 @@ interface LayerData {
 const map = L.map('map').setView([51.505, -0.09], 13);
 
 const manager = new LayerManager<LayerData>();
-manager.setAdapter(new LeafletLayerManagerAdapter<LayerData, undefined>(map));
+manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
 
 manager.addLayer({
   layerConfig: {
@@ -42,7 +42,7 @@ interface LayerData {
 }
 
 manager.setAdapter(
-  new LeafletLayerManagerAdapter<LayerData, undefined>(map, {
+  new LeafletLayerManagerAdapter<LayerData>(map, {
     layerFactory(info) {
       return L.tileLayer(info.layerData.url);
     },
@@ -56,7 +56,7 @@ To do more with a Leaflet layer after the adapter has updated it, pass `hooks`. 
 
 ```ts
 manager.setAdapter(
-  new LeafletLayerManagerAdapter<LayerData, undefined>(map, {
+  new LeafletLayerManagerAdapter<LayerData>(map, {
     hooks: {
       onLayerAdded(info, leafletLayer) {
         leafletLayer.bindTooltip(info.layerName);

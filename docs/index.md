@@ -55,7 +55,7 @@ const map = L.map('map').setView([51.505, -0.09], 13);
 
 // create the manager and connect it to the map through the Leaflet adapter
 const manager = new LayerManager<LayerData>();
-manager.setAdapter(new LeafletLayerManagerAdapter<LayerData, undefined>(map));
+manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
 
 // add a group to hold the circles; a group has no map layer of its own
 manager.addGroup({
