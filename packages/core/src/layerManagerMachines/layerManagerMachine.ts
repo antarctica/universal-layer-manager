@@ -26,6 +26,7 @@ import {
   getUpdatedLayerStructure,
   getUpdatedLayerStructureAfterMove,
   getUpdatedLayerStructureAfterRemoval,
+  isSamePlacement,
 } from '../utils';
 
 export type LayerManagerMachine<TLayer, TGroup = TLayer> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
@@ -182,7 +183,8 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     guards: {
       canAddLayer: ({ context }, params: AddManagedLayerParams<TLayer, TGroup>) => getAddLayerRejection(params.layerConfig, context) === undefined,
       canRemoveLayer: ({ context }, params: { layerId: string }) => getRemoveLayerRejection(params.layerId, context) === undefined,
-      canMoveLayer: ({ context }, params: MoveLayerParams) => getMoveLayerRejection(context, params) === undefined,
+      isRejectedMove: ({ context }, params: MoveLayerParams) => getMoveLayerRejection(context, params) !== undefined,
+      isNewPlacement: ({ context }, params: MoveLayerParams) => !isSamePlacement(context, params),
       isManagedLayer: ({ context }, params: { layerId: string }) => findManagedLayerById(context.layers, params.layerId) !== undefined,
     },
   }).createMachine({
@@ -304,10 +306,24 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       'LAYER.MOVE': [
         {
           guard: {
-            type: 'canMoveLayer',
+            type: 'isRejectedMove',
             params: ({ event }) => event,
           },
-          description: 'Place the layer or group at its new place in the order, and report the new order and the move',
+          description: 'Reject an unknown ID, a parent that is not a group, a disallowed nested group, or a group moved into itself or a descendant',
+          actions: {
+            type: 'Emit layer rejected',
+            params: ({ context, event }) => ({
+              layerId: event.layerId,
+              reason: getMoveLayerRejection(context, event) ?? '',
+            }),
+          },
+        },
+        {
+          guard: {
+            type: 'isNewPlacement',
+            params: ({ event }) => event,
+          },
+          description: 'Place the layer or group at its new place in the order, and report the new order and the move, unless the parent and order are unchanged',
           actions: [
             {
               type: 'Move layer',
@@ -321,16 +337,6 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
               params: ({ event }) => event,
             },
           ],
-        },
-        {
-          description: 'Reject an unknown ID, a parent that is not a group, a disallowed nested group, or a group moved into itself or a descendant',
-          actions: {
-            type: 'Emit layer rejected',
-            params: ({ context, event }) => ({
-              layerId: event.layerId,
-              reason: getMoveLayerRejection(context, event) ?? '',
-            }),
-          },
         },
       ],
 

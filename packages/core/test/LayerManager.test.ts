@@ -170,6 +170,48 @@ describe('layerManager', () => {
       expect(map.order).toEqual(['group-1', 'c2', 'c3', 'c1']);
     });
 
+    it('reports no order change and no move when a layer is moved to the index it already has', () => {
+      const onOrderChanged = vi.fn();
+      const onLayerMoved = vi.fn();
+      const { manager } = createManager({ onOrderChanged, onLayerMoved });
+      ['a', 'b', 'c'].forEach((layerId) => manager.addLayer({ ...layer(layerId), position: 'top' }));
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('b', { parentId: null, index: 1 });
+
+      expect(onOrderChanged).not.toHaveBeenCalled();
+      expect(onLayerMoved).not.toHaveBeenCalled();
+      expect(topLevelIds(manager)).toEqual(['a', 'b', 'c']);
+    });
+
+    it('reports no order change and no move when the top layer of a group is moved to the top of that group', () => {
+      const onOrderChanged = vi.fn();
+      const onLayerMoved = vi.fn();
+      const { manager } = createManager({ onOrderChanged, onLayerMoved });
+      manager.addGroup(group('group-1'));
+      ['c1', 'c2'].forEach((layerId) => manager.addLayer({ ...layer(layerId, { parentId: 'group-1' }), position: 'top' }));
+      onOrderChanged.mockClear();
+
+      manager.moveLayer('c2', { parentId: 'group-1', position: 'top' });
+
+      expect(onOrderChanged).not.toHaveBeenCalled();
+      expect(onLayerMoved).not.toHaveBeenCalled();
+      expect(childIdsOf(manager, 'group-1')).toEqual(['c1', 'c2']);
+    });
+
+    it('reports a move out of a group even when the map order stays the same', () => {
+      const onLayerMoved = vi.fn();
+      const { manager, map } = createManager({ onLayerMoved });
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+
+      manager.moveLayer('c1', { parentId: null, position: 'top' });
+
+      expect(onLayerMoved).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'c1', parentId: null }));
+      expect(map.order).toEqual(['group-1', 'c1']);
+      expect(topLevelIds(manager)).toEqual(['group-1', 'c1']);
+    });
+
     it('moves a layer to the top or the bottom of its parent, and to the bottom by default', () => {
       const { manager } = managerWithTopLevel('a', 'b', 'c', 'd');
 
