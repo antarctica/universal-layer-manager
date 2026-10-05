@@ -33,7 +33,9 @@ manager.addLayer({
 });
 ```
 
-`visible: true` switches the layer on so it shows straight away. Leave it out to add the layer switched off. See [Visibility and opacity](./visibility-and-opacity) for the difference between switching a layer on and it being visible.
+`visible: true` switches on the layer and every group above it, so it shows straight away. Leave it out to add the layer switched off.
+
+`enabled: true` switches on the layer but leaves the groups above it as they are. Use it to restore a saved layer list: a layer that was switched on inside a switched-off group comes back switched on but hidden. See [Visibility and opacity](./visibility-and-opacity) for the difference between switching a layer on and it being visible.
 
 ### Adding a group
 
@@ -99,7 +101,7 @@ manager.addLayer({
 });
 ```
 
-If you give both, `index` wins. An `index` outside the current order is ignored and `position` is used instead. See [Ordering and moving](./ordering) for moving layers once they are added.
+If you give both, `index` wins. An `index` above the number of layers in the parent adds the layer at the top, and a negative `index` adds it at the bottom. See [Ordering and moving](./ordering) for moving layers once they are added.
 
 ### Removing a layer or group
 
@@ -230,7 +232,7 @@ removed sea-ice
 
 ## Rejections and errors
 
-If a change can't be made, the manager leaves the layer structure as it was and reports why through the `onError` callback:
+The manager ignores any change it can't make, such as adding a layer with an ID that is already in use, changing a layer that doesn't exist, or setting an opacity outside 0 to 1. The layers stay as they were, and the manager reports why through the `onError` callback:
 
 ```ts
 const manager = new LayerManager<LayerData>({
@@ -240,7 +242,7 @@ const manager = new LayerManager<LayerData>({
 });
 ```
 
-An add is rejected when the `layerId` is already in use, the parent group doesn't exist, or a group is added inside a group without `allowNestedGroupLayers`. A remove is rejected when the layer doesn't exist or the group still has layers in it. For example, removing the `ocean` group above while it still holds `sea-ice` logs:
+For example, removing the `ocean` group above while it still holds `sea-ice` logs:
 
 ::: danger Error
 Layer group ocean has children. Layer not removed.

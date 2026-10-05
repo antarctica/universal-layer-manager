@@ -13,12 +13,13 @@
 | `onLayerAdded` | `(info) => void` | A layer or group was added |
 | `onLayerRemoved` | `(layerId) => void` | A layer or group was removed, including by `reset()` |
 | `onVisibilityChanged` | `(info, visible) => void` | A layer or group started or stopped showing |
+| `onEnabledChanged` | `(info, enabled) => void` | A layer or group was switched on or off, including while a group above hides it |
 | `onOpacityChanged` | `(info, computedOpacity) => void` | A layer's computed opacity changed |
 | `onTimeInfoChanged` | `(info, timeInfo) => void` | A layer's time info changed |
 | `onLayerDataChanged` | `(info) => void` | A layer's `layerData` was replaced |
 | `onOrderChanged` | `(layerOrder) => void` | The order changed; receives every layer ID, bottom to top, with each group followed by its children |
 | `onLayerMoved` | `(info) => void` | A layer or group was moved, raised or lowered; `info.parentId` is its new parent |
-| `onError` | `(error) => void` | An add, remove or move was rejected; `error.message` says why |
+| `onError` | `(error) => void` | A change was rejected, such as an unknown layer ID or an opacity outside 0 to 1; `error.message` says why |
 
 ## Methods
 
@@ -31,6 +32,7 @@
 | `raiseLayer(layerId)` | Move a layer or group one step towards the top of its parent |
 | `lowerLayer(layerId)` | Move a layer or group one step towards the bottom of its parent |
 | `setEnabled(layerId, enabled)` | Switch a layer or group on or off. Switching a layer on also switches on the groups above it |
+| `showLayer(layerId)` | Make a layer or group visible by switching on it and every group above it, even if it is already switched on. See [Showing a layer](../visibility-and-opacity#showing-a-layer) |
 | `setOpacity(layerId, opacity)` | Set a layer's or group's own opacity, from 0 to 1 |
 | `setTimeInfo(layerId, timeInfo)` | Set a layer's or group's time info |
 | `updateLayerData(layerId, layerData)` | Replace a layer's or group's `layerData` |
@@ -38,6 +40,7 @@
 | `setAdapter(adapter \| null)` | Attach an adapter, replacing any existing one, or detach it with `null` |
 | `reset()` | Remove every layer and group, reporting each removal and the empty order |
 | `destroy()` | Detach the adapter and stop the manager, without reporting the removals. The instance can't be used again |
+
 ## Properties
 
 | Property | Description |
@@ -57,7 +60,7 @@
 | `visible` | `boolean` | Switch it on and switch on every group above it, so it shows straight away |
 | `enabled` | `boolean` | Switch it on, without switching on the groups above it |
 | `position` | `'top' \| 'bottom'` | Place it at the top or bottom of its parent (default `'bottom'`) |
-| `index` | `number` | Place it at this index in its parent's order, 0 being the bottom. Takes precedence over `position` |
+| `index` | `number` | Place it at this index in its parent's order, 0 being the bottom. An index past either end places it at the top or bottom. Takes precedence over `position` |
 
 With neither `visible` nor `enabled`, it is added switched off.
 
@@ -81,7 +84,7 @@ With neither `visible` nor `enabled`, it is added switched off.
 | Field | Type | Description |
 |-------|------|-------------|
 | `parentId` | `string \| null` | The group to move into, or `null` for the top level. It can be the layer's current parent |
-| `index` | `number` | Where the layer ends up in its parent's order, 0 being the bottom, counted once the layer has left its old place. Takes precedence over `position` |
+| `index` | `number` | Where the layer ends up in its parent's order, 0 being the bottom, counted once the layer has left its old place. An index past either end places it at the top or bottom. Takes precedence over `position` |
 | `position` | `'top' \| 'bottom'` | The top or bottom of the parent (default `'bottom'`) |
 
 ## Layer info
@@ -108,6 +111,7 @@ Implement `LayerManagerAdapter` and attach it with `manager.setAdapter()`. Every
 | `onLayerAdded(info)` | A layer or group was added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group was removed |
 | `onVisibilityChanged(info, visible)` | A layer or group started or stopped showing |
+| `onEnabledChanged(info, enabled)` | A layer or group was switched on or off, including while a group above hides it |
 | `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changed |
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time info changed |
 | `onLayerDataChanged(info)` | A layer's `layerData` was replaced |
@@ -123,6 +127,7 @@ For [working with XState](../xstate) directly. The manager actor emits these eve
 | `LAYER.ADDED` | `layerId`, `visible` |
 | `LAYER.REMOVED` | `layerId` |
 | `LAYER.VISIBILITY_CHANGED` | `layerId`, `visible` |
+| `LAYER.ENABLED_CHANGED` | `layerId`, `enabled` |
 | `LAYER.OPACITY_CHANGED` | `layerId`, `opacity`, `computedOpacity` |
 | `LAYER.TIME_INFO_CHANGED` | `layerId`, `timeInfo` |
 | `LAYER.LAYER_DATA_CHANGED` | `layerId`, `layerData` |

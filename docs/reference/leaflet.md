@@ -18,6 +18,7 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 | `onLayerAdded(info, leafletLayer)` | A layer is created, and added to the map if it is visible |
 | `onLayerRemoved(layerId, leafletLayer)` | A layer is removed from the map |
 | `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
+| `onEnabledChanged(info, enabled, leafletLayer)` | A layer is switched on or off. The map doesn't change, because visibility decides what is drawn |
 | `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes and its pane has been faded |
 | `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced |
 
