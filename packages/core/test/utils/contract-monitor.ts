@@ -2,14 +2,7 @@ import type { LayerManagerAdapter } from '../../src/adapters/types';
 import type { LayerTimeInfo } from '../../src/types';
 import { isSameTimeInfo } from '../../src/utils';
 
-export interface ContractMonitor<TLayer, TGroup> {
-  /** Pass this to `setAdapter` in place of the adapter it wraps. */
-  adapter: LayerManagerAdapter<TLayer, TGroup>;
-  /** Throws a descriptive error if the manager broke a guarantee of the adapter contract. */
-  assertMet: () => void;
-}
-
-/** What the adapter was last told about a layer. */
+/** What the adapter was told about a layer. */
 interface ReportedState {
   parentId: string | null;
   visible: boolean;
@@ -19,142 +12,79 @@ interface ReportedState {
   timeInfo?: LayerTimeInfo;
 }
 
+/** One call the manager made on an adapter, with the values the contract checks read. */
+export type AdapterCall
+  = | { hook: 'register' }
+    | { hook: 'unregister' }
+    | { hook: 'onLayerAdded'; layerId: string; state: ReportedState }
+    | { hook: 'onLayerRemoved'; layerId: string }
+    | { hook: 'onVisibilityChanged'; layerId: string; visible: boolean }
+    | { hook: 'onEnabledChanged'; layerId: string; enabled: boolean }
+    | { hook: 'onOpacityChanged'; layerId: string; opacity: number; computedOpacity: number }
+    | { hook: 'onTimeInfoChanged'; layerId: string; timeInfo: LayerTimeInfo }
+    | { hook: 'onLayerDataChanged'; layerId: string }
+    | { hook: 'onOrderChanged'; layerOrder: string[] }
+    | { hook: 'onLayerMoved'; layerId: string; parentId: string | null };
+
+export interface ContractMonitor<TLayer, TGroup> {
+  /** Pass this to `setAdapter` in place of the adapter it wraps. */
+  adapter: LayerManagerAdapter<TLayer, TGroup>;
+  /** Throws a descriptive error if the manager broke a guarantee of the adapter contract. */
+  assertMet: () => void;
+}
+
 /**
- * Wraps an adapter, forwards every call to it, and records each call that breaks
- * the adapter contract in docs/adapters/writing-an-adapter.md. Free of any test runner.
+ * Wraps an adapter, records every call the manager makes on it and forwards the call.
+ * `assertMet` checks the recorded calls against the adapter contract in
+ * docs/adapters/writing-an-adapter.md. Free of any test runner.
  */
 export function monitorContract<TLayer, TGroup>(inner: LayerManagerAdapter<TLayer, TGroup>): ContractMonitor<TLayer, TGroup> {
-  const violations: string[] = [];
-  const known = new Map<string, ReportedState>();
-  let unregistered = false;
-  let orderPending = false;
-  let previousOrder: string[] = [];
-  let currentOrder: string[] = [];
-
-  function expectAttached(hook: string): boolean {
-    if (unregistered) {
-      violations.push(`${hook} after unregister`);
-    }
-    return !unregistered;
-  }
-
-  function expectKnown(hook: string, layerId: string): ReportedState | undefined {
-    if (!expectAttached(hook)) {
-      return undefined;
-    }
-    const state = known.get(layerId);
-    if (!state) {
-      violations.push(`${hook} for layer ${layerId}, which the adapter was not told about or was told was removed`);
-    }
-    return state;
-  }
-
-  function expectChange(hook: string, layerId: string): ReportedState | undefined {
-    const state = expectKnown(hook, layerId);
-    if (orderPending) {
-      violations.push(`${hook} for layer ${layerId} before onOrderChanged reported the last add or remove`);
-    }
-    return state;
-  }
+  const calls: AdapterCall[] = [];
 
   const adapter: LayerManagerAdapter<TLayer, TGroup> = {
     register: () => {
-      unregistered = false;
+      calls.push({ hook: 'register' });
       inner.register?.();
     },
     unregister: () => {
-      unregistered = true;
-      known.clear();
-      orderPending = false;
+      calls.push({ hook: 'unregister' });
       inner.unregister?.();
     },
     onLayerAdded: (info) => {
-      if (expectAttached('onLayerAdded') && known.has(info.layerId)) {
-        violations.push(`onLayerAdded for layer ${info.layerId}, which was already added`);
-      }
-      known.set(info.layerId, {
-        parentId: info.parentId,
-        visible: info.visible,
-        enabled: info.enabled,
-        opacity: info.opacity,
-        computedOpacity: info.computedOpacity,
-        timeInfo: info.timeInfo,
-      });
-      orderPending = true;
+      const { layerId, parentId, visible, enabled, opacity, computedOpacity, timeInfo } = info;
+      calls.push({ hook: 'onLayerAdded', layerId, state: { parentId, visible, enabled, opacity, computedOpacity, timeInfo } });
       inner.onLayerAdded?.(info);
     },
     onLayerRemoved: (layerId) => {
-      expectKnown('onLayerRemoved', layerId);
-      known.delete(layerId);
-      orderPending = true;
+      calls.push({ hook: 'onLayerRemoved', layerId });
       inner.onLayerRemoved?.(layerId);
     },
     onVisibilityChanged: (info, visible) => {
-      const state = expectChange('onVisibilityChanged', info.layerId);
-      if (state) {
-        if (state.visible === visible) {
-          violations.push(`onVisibilityChanged for layer ${info.layerId} repeated visible ${visible}`);
-        }
-        state.visible = visible;
-      }
+      calls.push({ hook: 'onVisibilityChanged', layerId: info.layerId, visible });
       inner.onVisibilityChanged?.(info, visible);
     },
     onEnabledChanged: (info, enabled) => {
-      const state = expectChange('onEnabledChanged', info.layerId);
-      if (state) {
-        if (state.enabled === enabled) {
-          violations.push(`onEnabledChanged for layer ${info.layerId} repeated enabled ${enabled}`);
-        }
-        state.enabled = enabled;
-      }
+      calls.push({ hook: 'onEnabledChanged', layerId: info.layerId, enabled });
       inner.onEnabledChanged?.(info, enabled);
     },
     onOpacityChanged: (info, computedOpacity) => {
-      const state = expectChange('onOpacityChanged', info.layerId);
-      if (state) {
-        if (state.opacity === info.opacity && state.computedOpacity === computedOpacity) {
-          violations.push(`onOpacityChanged for layer ${info.layerId} repeated opacity ${info.opacity} and computed opacity ${computedOpacity}`);
-        }
-        state.opacity = info.opacity;
-        state.computedOpacity = computedOpacity;
-      }
+      calls.push({ hook: 'onOpacityChanged', layerId: info.layerId, opacity: info.opacity, computedOpacity });
       inner.onOpacityChanged?.(info, computedOpacity);
     },
     onTimeInfoChanged: (info, timeInfo) => {
-      const state = expectChange('onTimeInfoChanged', info.layerId);
-      if (state) {
-        if (isSameTimeInfo(state.timeInfo, timeInfo)) {
-          violations.push(`onTimeInfoChanged for layer ${info.layerId} repeated the same time info`);
-        }
-        state.timeInfo = timeInfo;
-      }
+      calls.push({ hook: 'onTimeInfoChanged', layerId: info.layerId, timeInfo });
       inner.onTimeInfoChanged?.(info, timeInfo);
     },
     onLayerDataChanged: (info) => {
-      expectChange('onLayerDataChanged', info.layerId);
+      calls.push({ hook: 'onLayerDataChanged', layerId: info.layerId });
       inner.onLayerDataChanged?.(info);
     },
     onOrderChanged: (layerOrder) => {
-      if (expectAttached('onOrderChanged')) {
-        const listed = [...layerOrder].sort();
-        const current = [...known.keys()].sort();
-        if (listed.join() !== current.join() || new Set(layerOrder).size !== layerOrder.length) {
-          violations.push(`onOrderChanged listed [${layerOrder.join(', ')}], but the current layers are [${[...known.keys()].join(', ')}]`);
-        }
-      }
-      orderPending = false;
-      previousOrder = currentOrder;
-      currentOrder = [...layerOrder];
+      calls.push({ hook: 'onOrderChanged', layerOrder: [...layerOrder] });
       inner.onOrderChanged?.(layerOrder);
     },
     onLayerMoved: (info) => {
-      const state = expectChange('onLayerMoved', info.layerId);
-      if (state) {
-        if (state.parentId === info.parentId && previousOrder.join() === currentOrder.join()) {
-          violations.push(`onLayerMoved for layer ${info.layerId} changed neither its parent nor the order`);
-        }
-        state.parentId = info.parentId;
-      }
+      calls.push({ hook: 'onLayerMoved', layerId: info.layerId, parentId: info.parentId });
       inner.onLayerMoved?.(info);
     },
   };
@@ -162,10 +92,158 @@ export function monitorContract<TLayer, TGroup>(inner: LayerManagerAdapter<TLaye
   return {
     adapter,
     assertMet: () => {
-      const unmet = orderPending ? [...violations, 'the last add or remove was never followed by onOrderChanged'] : violations;
-      if (unmet.length > 0) {
-        throw new Error(unmet.join('\n'));
+      const broken = checkContract(calls);
+      if (broken.length > 0) {
+        throw new Error(broken.join('\n'));
       }
     },
   };
+}
+
+/** Describes each guarantee of the adapter contract that the recorded calls break. */
+export function checkContract(calls: AdapterCall[]): string[] {
+  return [...checkAddedFirst(calls), ...checkOrderFollowsChanges(calls), ...checkNoRepeats(calls)];
+}
+
+/** `onLayerAdded` comes first for any layer, and nothing arrives after `onLayerRemoved` or `unregister`. */
+function checkAddedFirst(calls: AdapterCall[]): string[] {
+  const broken: string[] = [];
+  const known = new Set<string>();
+  let detached = false;
+  for (const call of calls) {
+    if (call.hook === 'register' || call.hook === 'unregister') {
+      detached = call.hook === 'unregister';
+      known.clear();
+      continue;
+    }
+    if (detached) {
+      broken.push(`${call.hook} after unregister`);
+      continue;
+    }
+    switch (call.hook) {
+      case 'onLayerAdded':
+        if (known.has(call.layerId)) {
+          broken.push(`onLayerAdded for layer ${call.layerId}, which was already added`);
+        }
+        known.add(call.layerId);
+        break;
+      case 'onOrderChanged':
+        break;
+      default:
+        if (!known.has(call.layerId)) {
+          broken.push(`${call.hook} for layer ${call.layerId}, which the adapter was not told about or was told was removed`);
+        }
+        if (call.hook === 'onLayerRemoved') {
+          known.delete(call.layerId);
+        }
+    }
+  }
+  return broken;
+}
+
+/** After every add or remove, `onOrderChanged` comes next and lists exactly the current layers. */
+function checkOrderFollowsChanges(calls: AdapterCall[]): string[] {
+  const broken: string[] = [];
+  const current = new Set<string>();
+  let pending = false;
+  for (const call of attachedCalls(calls)) {
+    switch (call.hook) {
+      case 'register':
+        break;
+      case 'unregister':
+        current.clear();
+        pending = false;
+        break;
+      case 'onLayerAdded':
+        current.add(call.layerId);
+        pending = true;
+        break;
+      case 'onLayerRemoved':
+        current.delete(call.layerId);
+        pending = true;
+        break;
+      case 'onOrderChanged':
+        if (!listsExactly(call.layerOrder, current)) {
+          broken.push(`onOrderChanged listed [${call.layerOrder.join(', ')}], but the current layers are [${[...current].join(', ')}]`);
+        }
+        pending = false;
+        break;
+      default:
+        if (pending) {
+          broken.push(`${call.hook} for layer ${call.layerId} before onOrderChanged reported the last add or remove`);
+        }
+    }
+  }
+  if (pending) {
+    broken.push('the last add or remove was never followed by onOrderChanged');
+  }
+  return broken;
+}
+
+/** No call repeats a value the adapter already has. New layer data is the exception. */
+function checkNoRepeats(calls: AdapterCall[]): string[] {
+  const broken: string[] = [];
+  const reported = new Map<string, ReportedState>();
+  let previousOrder = '';
+  let currentOrder = '';
+
+  function report(layerId: string, isRepeat: (state: ReportedState) => boolean, update: Partial<ReportedState>, repeat: string): void {
+    const state = reported.get(layerId);
+    if (state && isRepeat(state)) {
+      broken.push(repeat);
+    }
+    if (state) {
+      Object.assign(state, update);
+    }
+  }
+
+  for (const call of attachedCalls(calls)) {
+    switch (call.hook) {
+      case 'unregister':
+        reported.clear();
+        break;
+      case 'onLayerAdded':
+        reported.set(call.layerId, { ...call.state });
+        break;
+      case 'onLayerRemoved':
+        reported.delete(call.layerId);
+        break;
+      case 'onOrderChanged':
+        previousOrder = currentOrder;
+        currentOrder = call.layerOrder.join();
+        break;
+      case 'onVisibilityChanged':
+        report(call.layerId, (state) => state.visible === call.visible, { visible: call.visible }, `onVisibilityChanged for layer ${call.layerId} repeated visible ${call.visible}`);
+        break;
+      case 'onEnabledChanged':
+        report(call.layerId, (state) => state.enabled === call.enabled, { enabled: call.enabled }, `onEnabledChanged for layer ${call.layerId} repeated enabled ${call.enabled}`);
+        break;
+      case 'onOpacityChanged':
+        report(call.layerId, (state) => state.opacity === call.opacity && state.computedOpacity === call.computedOpacity, { opacity: call.opacity, computedOpacity: call.computedOpacity }, `onOpacityChanged for layer ${call.layerId} repeated opacity ${call.opacity} and computed opacity ${call.computedOpacity}`);
+        break;
+      case 'onTimeInfoChanged':
+        report(call.layerId, (state) => isSameTimeInfo(state.timeInfo, call.timeInfo), { timeInfo: call.timeInfo }, `onTimeInfoChanged for layer ${call.layerId} repeated the same time info`);
+        break;
+      case 'onLayerMoved':
+        report(call.layerId, (state) => state.parentId === call.parentId && previousOrder === currentOrder, { parentId: call.parentId }, `onLayerMoved for layer ${call.layerId} changed neither its parent nor the order`);
+        break;
+    }
+  }
+  return broken;
+}
+
+/** The calls made while the adapter was attached. `register` and `unregister` stay in, so a check can start again. */
+function attachedCalls(calls: AdapterCall[]): AdapterCall[] {
+  let detached = false;
+  return calls.filter((call) => {
+    if (call.hook === 'register' || call.hook === 'unregister') {
+      detached = call.hook === 'unregister';
+      return true;
+    }
+    return !detached;
+  });
+}
+
+function listsExactly(layerOrder: string[], layerIds: Set<string>): boolean {
+  return layerOrder.length === layerIds.size && layerOrder.every((layerId) => layerIds.has(layerId));
 }
