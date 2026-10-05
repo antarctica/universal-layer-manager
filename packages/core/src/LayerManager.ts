@@ -81,11 +81,6 @@ export class LayerManager<TLayer, TGroup = undefined> {
     return this._actor;
   }
 
-  /** `true` while the underlying XState actor is running (i.e. not yet stopped). */
-  get isReady(): boolean {
-    return this._actor.getSnapshot().status === 'active';
-  }
-
   /** `true` after {@link destroy} has been called. The instance cannot be reused once destroyed. */
   get destroyed(): boolean {
     return this._destroyed;
@@ -113,16 +108,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
     this._wireSubscriptions();
   }
 
-  /**
-   * Alias for {@link destroy}.
-   * @internal
-   */
-  stop(): void {
-    this.destroy();
-  }
-
   /** Resets layer state, unregisters the adapter, cancels all subscriptions, and stops the actor. */
   destroy(): void {
+    if (this._destroyed) {
+      return;
+    }
     this._cleanupSubscriptions();
     this._adapter?.unregister?.();
     this.reset();
@@ -144,9 +134,15 @@ export class LayerManager<TLayer, TGroup = undefined> {
    * Pass `null` to detach the current adapter.
    */
   setAdapter(adapter: LayerManagerAdapter<TLayer, TGroup> | null): void {
+    if (this._destroyed) {
+      if (adapter) {
+        this._options.onError?.(new Error('The manager is destroyed. Adapter not attached.'));
+      }
+      return;
+    }
     this._adapter?.unregister?.();
     this._adapter = adapter;
-    if (adapter && this.isReady) {
+    if (adapter) {
       this._registerAdapter(adapter);
     }
   }

@@ -39,7 +39,7 @@
 | `getLayer(layerId)` | Return the managed item, `{ type, layerActor }`, or `undefined` |
 | `setAdapter(adapter \| null)` | Attach an adapter, replacing any existing one, or detach it with `null` |
 | `reset()` | Remove every layer and group, reporting each removal and the empty order |
-| `destroy()` | Detach the adapter and stop the manager, without reporting the removals. The instance can't be used again |
+| `destroy()` | Detach the adapter and stop the manager, without reporting the removals. The instance can't be used again, and calling `destroy()` again does nothing |
 
 ## Properties
 
@@ -47,7 +47,6 @@
 |----------|-------------|
 | `layers` | The top-level items in order, bottom first |
 | `actor` | The manager's XState actor. See [Working with XState](../xstate) |
-| `isReady` | `true` while the manager is running |
 | `destroyed` | `true` after `destroy()` |
 
 ## Add parameters
