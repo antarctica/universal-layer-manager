@@ -669,6 +669,77 @@ describe('layerManager', () => {
     });
   });
 
+  describe('showing a layer', () => {
+    it('shows a switched-on layer hidden by a switched-off group by switching the group on', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+
+      manager.showLayer('layer-1');
+
+      expect(map.layers.get('group-1')).toMatchObject({ enabled: true, visible: true });
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('reports only the group as switched on when showing a switched-on layer it hides', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+
+      manager.showLayer('layer-1');
+
+      expect(onEnabledChanged.mock.calls.map(([info, enabled]) => [info.layerId, enabled])).toEqual([['group-1', true]]);
+    });
+
+    it('reports nothing when showing a layer that is already showing', () => {
+      const onEnabledChanged = vi.fn();
+      const onVisibilityChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged, onVisibilityChanged });
+      manager.addGroup({ ...group('group-1'), enabled: true });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+      onVisibilityChanged.mockClear();
+
+      manager.showLayer('layer-1');
+
+      expect(onEnabledChanged).not.toHaveBeenCalled();
+      expect(onVisibilityChanged).not.toHaveBeenCalled();
+    });
+
+    it('shows a switched-on group hidden by a switched-off outer group by switching the outer group on', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup({ ...group('outer'), enabled: false });
+      manager.addGroup({ ...group('inner', 'outer'), enabled: true });
+
+      manager.showLayer('inner');
+
+      expect(map.layers.get('outer')).toMatchObject({ enabled: true, visible: true });
+      expect(map.layers.get('inner')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('shows a switched-off group by switching it and its outer group on', () => {
+      const { manager, map } = createManager({ allowNestedGroupLayers: true });
+      manager.addGroup({ ...group('outer'), enabled: false });
+      manager.addGroup({ ...group('inner', 'outer'), enabled: false });
+
+      manager.showLayer('inner');
+
+      expect(map.layers.get('outer')).toMatchObject({ enabled: true, visible: true });
+      expect(map.layers.get('inner')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('shows a switched-off layer by switching it and its group on', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: false });
+
+      manager.showLayer('layer-1');
+
+      expect(map.layers.get('group-1')).toMatchObject({ enabled: true, visible: true });
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: true, visible: true });
+    });
+  });
+
   describe('opacity', () => {
     it('reports a top-level layer\'s opacity as its computed opacity', () => {
       const { manager, map } = createManager();

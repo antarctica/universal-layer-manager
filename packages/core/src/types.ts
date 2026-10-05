@@ -109,6 +109,7 @@ export type LayerEventBase<T>
 export type ChildEvent
   = | { type: 'LAYER.ENABLED' }
     | { type: 'LAYER.DISABLED' }
+    | { type: 'LAYER.SHOW' }
     | { type: 'PARENT.VISIBLE' }
     | { type: 'PARENT.HIDDEN' }
     | { type: 'PARENT.OPACITY_CHANGED'; opacity: number }
