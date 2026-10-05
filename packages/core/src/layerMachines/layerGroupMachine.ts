@@ -9,11 +9,12 @@ import type {
   ParentLayerActor,
 } from '../types';
 
-import { assign, enqueueActions, sendTo, setup } from 'xstate';
-import { getOpacityRejection, isOpacityInRange } from '../utils';
+import { assign, enqueueActions, setup } from 'xstate';
+import { isOpacityInRange } from '../utils';
 import {
   childVisibleNotice,
   layerDataChange,
+  opacityRejection,
   ownOpacityChange,
   parentChange,
   parentOpacityChange,
@@ -45,9 +46,9 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         isOpacityInRange(params.opacity),
     },
     actions: {
-      'Notify Manager of rejection': sendTo(
-        ({ context }) => context.layerManagerRef,
-        (_, params: { layerId: string; reason: string }) => ({ type: 'CHILD.REJECTED', ...params }),
+      'Notify Manager of opacity rejection': enqueueActions(
+        ({ context, enqueue }, params: { opacity: number }) =>
+          enqueue.sendTo(context.layerManagerRef, opacityRejection(context, params.opacity).notification),
       ),
       'Notify children of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) => {
@@ -293,11 +294,8 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       {
         description: 'Reject an opacity outside 0 to 1 and report it to the manager',
         actions: {
-          type: 'Notify Manager of rejection',
-          params: ({ context, event }) => ({
-            layerId: context.layerId,
-            reason: getOpacityRejection(context.layerId, event.opacity) ?? '',
-          }),
+          type: 'Notify Manager of opacity rejection',
+          params: ({ event }) => event,
         },
       }],
       'LAYER.SET_TIME_INFO': {
