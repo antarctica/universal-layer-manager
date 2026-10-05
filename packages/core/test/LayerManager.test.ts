@@ -576,6 +576,50 @@ describe('layerManager', () => {
       expect(map.layers.get('inner')).toMatchObject({ computedOpacity: 0.4 });
       expect(map.layers.get('layer-1')).toMatchObject({ computedOpacity: 0.2 });
     });
+
+    it('accepts an opacity of 0 and of 1', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+      manager.addLayer(layer('layer-0', { opacity: 0.5 }));
+      manager.addLayer(layer('layer-1', { opacity: 0.5 }));
+
+      manager.setOpacity('layer-0', 0);
+      manager.setOpacity('layer-1', 1);
+
+      expect(onError).not.toHaveBeenCalled();
+      expect(map.layers.get('layer-0')).toMatchObject({ opacity: 0, computedOpacity: 0 });
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 1, computedOpacity: 1 });
+    });
+
+    it('reports a layer opacity outside 0 to 1 through onError and keeps the current opacity', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+      manager.addLayer(layer('layer-1', { opacity: 0.5 }));
+
+      manager.setOpacity('layer-1', 5);
+      manager.setOpacity('layer-1', -1);
+      manager.setOpacity('layer-1', Number.NaN);
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Opacity 5 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
+        new Error('Opacity -1 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
+        new Error('Opacity NaN for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
+      ]);
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.5, computedOpacity: 0.5 });
+    });
+
+    it('reports a group opacity outside 0 to 1 through onError and keeps the opacity of the group and its layers', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addLayer(layer('layer-1', { parentId: 'group-1', opacity: 0.8 }));
+
+      manager.setOpacity('group-1', 1.5);
+
+      expect(onError).toHaveBeenCalledWith(new Error('Opacity 1.5 for layer group-1 must be a number between 0 and 1. Opacity not set.'));
+      expect(map.layers.get('group-1')).toMatchObject({ opacity: 0.5, computedOpacity: 0.5 });
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.8, computedOpacity: 0.4 });
+    });
   });
 
   describe('time info and layer data', () => {

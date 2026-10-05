@@ -147,6 +147,17 @@ export function getAddLayerRejection<TLayer, TGroup = TLayer>(
   return undefined;
 }
 
+export function isOpacityInRange(opacity: number): boolean {
+  return Number.isFinite(opacity) && opacity >= 0 && opacity <= 1;
+}
+
+export function getOpacityRejection(layerId: string, opacity: number): string | undefined {
+  if (!isOpacityInRange(opacity)) {
+    return `Opacity ${opacity} for layer ${layerId} must be a number between 0 and 1. Opacity not set.`;
+  }
+  return undefined;
+}
+
 /**
  * Explains why a layer cannot be removed from the current context.
  *

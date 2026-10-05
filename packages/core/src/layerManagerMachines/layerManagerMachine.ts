@@ -104,7 +104,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         }
 
         enqueue.emit(({ context }) => ({
-          type: 'LAYER.ADDED' as const,
+          type: 'LAYER.ADDED',
           layerId: layerConfig.layerId,
           visible: findManagedLayerById(context.layers, layerConfig.layerId)?.layerActor.getSnapshot().hasTag('visible') ?? false,
         }));
@@ -150,19 +150,19 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       }),
 
       'Emit layer rejected': emit((_, params: { layerId: string; reason: string }) => ({
-        type: 'LAYER.REJECTED' as const,
+        type: 'LAYER.REJECTED',
         layerId: params.layerId,
         reason: params.reason,
       })),
 
       'Emit layer moved': emit((_, params: MoveLayerParams) => ({
-        type: 'LAYER.MOVED' as const,
+        type: 'LAYER.MOVED',
         layerId: params.layerId,
         parentId: params.parentId,
       })),
 
       'Emit update layer order': emit(({ context }) => ({
-        type: 'LAYER.ORDER_CHANGED' as const,
+        type: 'LAYER.ORDER_CHANGED',
         layerOrder: getFlatLayerOrder(context),
       })),
 
@@ -215,6 +215,15 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             computedOpacity: event.computedOpacity,
           })),
         ],
+      },
+      'CHILD.REJECTED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'An action on a layer or group was rejected: report it',
+        actions: emit(({ event }) => ({
+          type: 'LAYER.REJECTED',
+          layerId: event.layerId,
+          reason: event.reason,
+        })),
       },
       'CHILD.TIME_INFO_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
