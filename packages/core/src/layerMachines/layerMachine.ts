@@ -12,6 +12,7 @@ import { enqueueActions, setup } from 'xstate';
 import { isOpacityInRange, isSameTimeInfo } from '../utils';
 import {
   childVisibleNotice,
+  enabledChange,
   layerDataChange,
   opacityRejection,
   ownOpacityChange,
@@ -57,6 +58,10 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       'Notify Manager of opacity rejection': enqueueActions(
         ({ context, enqueue }, params: { opacity: number }) =>
           enqueue.sendTo(context.layerManagerRef, opacityRejection(context, params.opacity).notification),
+      ),
+      'Notify Manager of enabled change': enqueueActions(
+        ({ context, enqueue }, params: { enabled: boolean }) =>
+          enqueue.sendTo(context.layerManagerRef, enabledChange(context, params.enabled).notification),
       ),
       'Notify Manager of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) =>
@@ -204,7 +209,11 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.DISABLED': {
             target: 'disabled',
-            description: 'Switched off: hide whatever the groups above are doing',
+            description: 'Switched off: hide whatever the groups above are doing, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: false },
+            },
           },
         },
       },
@@ -213,7 +222,11 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.ENABLED': {
             target: 'enabled.visible',
-            description: 'Switched on: show, and tell the parent group so every group above switches on',
+            description: 'Switched on: show, tell the parent group so every group above switches on, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: true },
+            },
           },
           'PARENT.CHANGED': {
             description: 'Moved while switched off: stay off',

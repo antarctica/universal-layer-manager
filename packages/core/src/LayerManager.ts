@@ -23,6 +23,8 @@ export interface LayerManagerOptions<TLayer, TGroup = TLayer> {
   onLayerRemoved?: (layerId: string) => void;
   /** Called whenever a layer's visibility changes. */
   onVisibilityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean) => void;
+  /** Called whenever a layer or group is switched on or off, even while a group above hides it. */
+  onEnabledChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean) => void;
   /** Called whenever a layer's computed opacity changes. */
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
   /** Called whenever a layer's time info changes. */
@@ -267,6 +269,16 @@ export class LayerManager<TLayer, TGroup = undefined> {
       this._options.onVisibilityChanged?.(info, event.visible);
     });
     this._subscriptions.push(() => visibilitySub.unsubscribe());
+
+    const enabledSub = this._actor.on('LAYER.ENABLED_CHANGED', (event) => {
+      const info = this._toManagedLayerInfo(event.layerId);
+      if (!info) {
+        return;
+      }
+      this._adapter?.onEnabledChanged?.(info, event.enabled);
+      this._options.onEnabledChanged?.(info, event.enabled);
+    });
+    this._subscriptions.push(() => enabledSub.unsubscribe());
 
     const opacitySub = this._actor.on('LAYER.OPACITY_CHANGED', (event) => {
       const info = this._toManagedLayerInfo(event.layerId);

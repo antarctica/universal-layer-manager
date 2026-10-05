@@ -9,6 +9,12 @@ export function visibilityChange(context: LayerIdentity, visible: boolean) {
   };
 }
 
+export function enabledChange(context: LayerIdentity, enabled: boolean) {
+  return {
+    notification: { type: 'CHILD.ENABLED_CHANGED' as const, layerId: context.layerId, enabled },
+  };
+}
+
 export function childVisibleNotice(context: LayerIdentity) {
   return { type: 'CHILD.VISIBLE' as const, layerId: context.layerId };
 }

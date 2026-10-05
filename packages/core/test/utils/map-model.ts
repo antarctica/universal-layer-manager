@@ -60,6 +60,7 @@ export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGro
       layers.delete(layerId);
     },
     onVisibilityChanged: record,
+    onEnabledChanged: record,
     onOpacityChanged: record,
     onTimeInfoChanged: record,
     onLayerDataChanged: record,
