@@ -371,6 +371,26 @@ export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
 }
 
 /**
+ * Checks whether a move would leave the layer under the same parent at the same index.
+ *
+ * @param context - Current manager context.
+ * @param move - The layer to move and its target parent, index and position.
+ * @returns True when the move changes neither the layer's parent nor its order.
+ */
+export function isSamePlacement<TLayer, TGroup = TLayer>(
+  context: LayerManagerContext<TLayer, TGroup>,
+  move: MoveLayerParams,
+): boolean {
+  const placement = findLayerPlacement(context, move.layerId);
+  if (!placement || placement.parentId !== move.parentId) {
+    return false;
+  }
+  const after = getUpdatedLayerStructureAfterMove(context, move);
+  const siblings = move.parentId ? after.groupChildLayerOrder?.[move.parentId] : after.childLayerOrder;
+  return siblings?.indexOf(move.layerId) === placement.index;
+}
+
+/**
  * Calculates the new state after moving a layer to a new place in the tree.
  *
  * @param context - Current manager context.
