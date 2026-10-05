@@ -622,6 +622,27 @@ describe('layerManager', () => {
       expect(map.layers.get('layer-1')).toMatchObject({ opacity: 1, computedOpacity: 1 });
     });
 
+    it('reports no change when a layer is set to the opacity it already has', () => {
+      const onOpacityChanged = vi.fn();
+      const { manager } = createManager({ onOpacityChanged });
+      manager.addLayer(layer('layer-1', { opacity: 0.5 }));
+
+      manager.setOpacity('layer-1', 0.5);
+
+      expect(onOpacityChanged).not.toHaveBeenCalled();
+    });
+
+    it('reports no change when a group is set to the opacity it already has', () => {
+      const onOpacityChanged = vi.fn();
+      const { manager } = createManager({ onOpacityChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addLayer(layer('layer-1', { parentId: 'group-1', opacity: 0.8 }));
+
+      manager.setOpacity('group-1', 0.5);
+
+      expect(onOpacityChanged).not.toHaveBeenCalled();
+    });
+
     it('reports a layer opacity outside 0 to 1 through onError and keeps the current opacity', () => {
       const onError = vi.fn();
       const { manager, map } = createManager({ onError });
