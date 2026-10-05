@@ -5,8 +5,7 @@ import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachi
 import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
 import { createActor } from 'xstate';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
-import { isLayerMachine } from './types';
-import { findLayerPlacement, findManagedLayerById, getFlatLayerOrder, getTopLevelLayersInOrder } from './utils';
+import { findLayerPlacement, findManagedLayerById, findParentGroupId, getFlatLayerOrder, getTopLevelLayersInOrder } from './utils';
 
 // ============================================================================
 // OPTIONS
@@ -396,53 +395,32 @@ export class LayerManager<TLayer, TGroup = undefined> {
     adapter.onOrderChanged?.(layerOrder);
   }
 
-  /**
-   * Converts an internal XState actor context into the stable
-   * {@link ManagedLayerInfo} shape exposed to adapters and option callbacks.
-   * The `isLayerMachine` branch is required for TypeScript to narrow `ctx`
-   * to the correct discriminated union member.
-   */
+  /** Builds the {@link ManagedLayerInfo} that adapters and option callbacks receive for one layer or group. */
   private _toManagedLayerInfo(layerId: string, visible?: boolean): ManagedLayerInfo<TLayer, TGroup> | null {
-    const { layers } = this._actor.getSnapshot().context;
-    const managed = findManagedLayerById(layers, layerId);
+    const managerContext = this._actor.getSnapshot().context;
+    const managed = findManagedLayerById(managerContext.layers, layerId);
     if (!managed) {
       return null;
     }
 
     const snapshot = managed.layerActor.getSnapshot();
-    const isEnabled = snapshot.hasTag('enabled');
-    const isVisible = visible ?? snapshot.hasTag('visible');
+    const { layerName, opacity, computedOpacity, timeInfo } = snapshot.context;
+    const common = {
+      layerId,
+      layerName,
+      opacity,
+      computedOpacity,
+      timeInfo,
+      enabled: snapshot.hasTag('enabled'),
+      visible: visible ?? snapshot.hasTag('visible'),
+      parentId: findParentGroupId(managerContext, layerId) ?? null,
+    };
 
-    if (isLayerMachine(managed.layerActor)) {
-      const ctx = managed.layerActor.getSnapshot().context;
-      return {
-        layerId: ctx.layerId,
-        layerName: ctx.layerName,
-        layerType: 'layer',
-        layerData: ctx.layerData,
-        opacity: ctx.opacity,
-        computedOpacity: ctx.computedOpacity,
-        enabled: isEnabled,
-        visible: isVisible,
-        timeInfo: ctx.timeInfo,
-        listMode: ctx.listMode,
-        parentId: ctx.parentRef?.getSnapshot().context.layerId ?? null,
-      };
-    } else {
-      const ctx = managed.layerActor.getSnapshot().context;
-      return {
-        layerId: ctx.layerId,
-        layerName: ctx.layerName,
-        layerType: 'layerGroup',
-        layerData: ctx.layerData,
-        opacity: ctx.opacity,
-        computedOpacity: ctx.computedOpacity,
-        enabled: isEnabled,
-        visible: isVisible,
-        timeInfo: ctx.timeInfo,
-        listMode: ctx.listMode,
-        parentId: ctx.parentRef?.getSnapshot().context.layerId ?? null,
-      };
+    if (managed.type === 'layer') {
+      const { layerData, listMode } = managed.layerActor.getSnapshot().context;
+      return { ...common, layerType: 'layer', layerData, listMode };
     }
+    const { layerData, listMode } = managed.layerActor.getSnapshot().context;
+    return { ...common, layerType: 'layerGroup', layerData, listMode };
   }
 }

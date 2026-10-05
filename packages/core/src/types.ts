@@ -208,6 +208,7 @@ export interface LayerGroupContext<TLayer, TGroup = TLayer> extends LayerContext
   layerType: 'layerGroup';
   layerData: TGroup;
   children: ChildLayerActor[];
+  /** The manager's order of this group's children, bottom first. Set only by the manager. */
   childLayerOrder: string[];
   listMode: 'show' | 'hide' | 'hide-children';
 }
