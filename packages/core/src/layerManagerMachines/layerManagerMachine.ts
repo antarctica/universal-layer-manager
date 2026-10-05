@@ -189,7 +189,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     },
   }).createMachine({
     id: 'layerManager',
-    description: 'Owns the layer tree and its order, spawns layer and group actors, and reports their changes',
+    description: 'This machine keeps the layer tree and the layer order. This machine starts each layer actor and each group actor. This machine sends the changes from those actors to its listeners.',
     context: ({ input }) => ({
       layers: [],
       childLayerOrder: [],
@@ -199,7 +199,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
     on: {
       'CHILD.VISIBILITY_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'A layer or group started or stopped showing: report it, if the manager holds that layer',
+        description: 'A layer or a group becomes visible or hidden. If the manager still has that layer or group, the manager sends the change.',
         actions: emit(({ event }) => ({
           type: 'LAYER.VISIBILITY_CHANGED',
           layerId: event.layerId,
@@ -208,7 +208,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.ENABLED_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'A layer or group was switched on or off: report it, if the manager holds that layer',
+        description: 'A layer or a group switches on or off. If the manager still has that layer or group, the manager sends the change.',
         actions: emit(({ event }) => ({
           type: 'LAYER.ENABLED_CHANGED',
           layerId: event.layerId,
@@ -217,7 +217,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.OPACITY_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'A layer or group changed opacity: report it, if the manager holds that layer',
+        description: 'A layer or a group changes its opacity. If the manager still has that layer or group, the manager sends the change.',
         actions: [
           emit(({ event }) => ({
             type: 'LAYER.OPACITY_CHANGED',
@@ -229,7 +229,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.REJECTED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'An action on a layer or group was rejected: report it',
+        description: 'A layer or a group rejects an action. If the manager still has that layer or group, the manager sends the rejection.',
         actions: emit(({ event }) => ({
           type: 'LAYER.REJECTED',
           layerId: event.layerId,
@@ -238,7 +238,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.TIME_INFO_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'A layer or group changed time info: report it, if the manager holds that layer',
+        description: 'A layer or a group changes its time info. If the manager still has that layer or group, the manager sends the change.',
         actions: emit(({ event }) => {
           return {
             type: 'LAYER.TIME_INFO_CHANGED',
@@ -249,7 +249,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       },
       'CHILD.LAYER_DATA_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
-        description: 'A layer or group changed data: report it, if the manager holds that layer',
+        description: 'A layer or a group changes its data. If the manager still has that layer or group, the manager sends the change.',
         actions: emit(({ event }) => ({
           type: 'LAYER.LAYER_DATA_CHANGED',
           layerId: event.layerId,
@@ -262,7 +262,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'canAddLayer',
             params: ({ event }) => event.params,
           },
-          description: 'Spawn the layer or group, place it in its parent\'s order and report the new order',
+          description: 'The manager starts the new layer or group. The manager puts that layer or group in the order of its parent. The manager sends the new order.',
           actions: [
             {
               type: 'Add new layer',
@@ -274,7 +274,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           ],
         },
         {
-          description: 'Reject a duplicate ID, a missing parent group or a disallowed nested group',
+          description: 'The manager rejects an add request if the ID is already in use. The manager rejects an add request if the parent group does not exist. The manager rejects a nested group if nested groups are not permitted. The manager rejects an opacity that is not a number from 0 to 1. The manager sends the rejection.',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
@@ -290,7 +290,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'canRemoveLayer',
             params: ({ event }) => ({ layerId: event.layerId }),
           },
-          description: 'Stop the layer or empty group, take it out of the order and report the new order',
+          description: 'The manager stops the layer or the empty group. The manager removes that layer or group from the order. The manager sends the new order.',
           actions: [
             {
               type: 'Remove layer',
@@ -302,7 +302,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           ],
         },
         {
-          description: 'Reject an unknown ID or a group that still has children',
+          description: 'The manager rejects a remove request for an unknown ID. The manager rejects a remove request for a group that still has child layers. The manager sends the rejection.',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
@@ -318,7 +318,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'isRejectedMove',
             params: ({ event }) => event,
           },
-          description: 'Reject an unknown ID, a parent that is not a group, a disallowed nested group, or a group moved into itself or a descendant',
+          description: 'The manager rejects a move for an unknown ID. The manager rejects a move if the new parent is not a group. The manager rejects a move of a group into a group if nested groups are not permitted. The manager rejects a move of a group into itself or into a group inside it. The manager sends the rejection.',
           actions: {
             type: 'Emit layer rejected',
             params: ({ context, event }) => ({
@@ -332,7 +332,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
             type: 'isNewPlacement',
             params: ({ event }) => event,
           },
-          description: 'Place the layer or group at its new place in the order, and report the new order and the move, unless the parent and order are unchanged',
+          description: 'If the move changes the parent or the order, the manager puts the layer or group in its new place. The manager sends the new order. The manager sends the move.',
           actions: [
             {
               type: 'Move layer',
@@ -350,7 +350,7 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
       ],
 
       'RESET': {
-        description: 'Stop and remove every layer and group, and report an empty order',
+        description: 'The manager stops each layer and each group. The manager removes each layer and each group. The manager sends an empty order.',
         actions: ['Reset layer manager', 'Emit update layer order'],
       },
     },

@@ -119,7 +119,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     },
   }).createMachine({
     id: 'layerGroup',
-    description: 'A machine that represents a collection of layers that can be toggled as a group',
+    description: 'This machine is one group of layers on the map. When this group hides, its child layers hide.',
     initial: 'starting',
     context: ({ input }) => {
       const opacity = input.opacity ?? 1;
@@ -143,16 +143,16 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     },
     states: {
       starting: {
-        description: 'Resolves the state the layer group starts in from its input',
+        description: 'This group goes to its start state. The input sets the start state.',
         always: [
-          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible', description: 'Added switched on, with every group above showing' },
-          { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden', description: 'Added switched on under a group that is not showing' },
-          { target: 'disabled', description: 'Added switched off' },
+          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible', description: 'This group starts switched on. Each group above this group is visible.' },
+          { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden', description: 'This group starts switched on. A group above this group is hidden.' },
+          { target: 'disabled', description: 'This group starts switched off.' },
         ],
       },
       enabled: {
         initial: 'visible',
-        description: 'The layer group is enabled. Leaving reports the group switched off to the manager',
+        description: 'This group is switched on. When this group switches off, this group sends the change to the manager.',
         tags: ['enabled'],
         exit: {
           type: 'Notify Manager of enabled change',
@@ -160,7 +160,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         },
         states: {
           visible: {
-            description: 'The layer group should appear visible on the map',
+            description: 'This group is visible on the map.',
             tags: ['visible'],
             entry: [
               {
@@ -188,12 +188,12 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
             on: {
               'PARENT.HIDDEN': {
                 target: 'hidden',
-                description: 'A group above stopped showing: hide this group and its children without switching them off',
+                description: 'A group above this group becomes hidden. This group hides. Its child layers hide. This group and its child layers stay switched on.',
               },
               'PARENT.CHANGED': [
                 {
                   guard: ({ event }) => event.parentVisible,
-                  description: 'Moved under a showing group: stay shown',
+                  description: 'This group moves under a visible group. This group stays visible.',
                   actions: {
                     type: 'Change Parent',
                     params: ({ event }) => event,
@@ -201,7 +201,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
                 },
                 {
                   target: 'hidden',
-                  description: 'Moved under a group that is not showing: hide this group and its children without switching them off',
+                  description: 'This group moves under a hidden group. This group hides. Its child layers hide. This group and its child layers stay switched on.',
                   actions: {
                     type: 'Change Parent',
                     params: ({ event }) => event,
@@ -211,28 +211,28 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
             },
           },
           hidden: {
-            description: 'The layer group appears hidden on the map because its parent is hidden',
+            description: 'This group is hidden on the map because its parent group is hidden.',
             on: {
               'LAYER.SHOW': {
-                description: 'Asked to show: tell the parent group so every group above switches on',
+                description: 'This group receives a show request. This group sends a notice to its parent group. Each group above this group switches on.',
                 actions: 'Notify Parent that layer is visible',
               },
               'PARENT.VISIBLE': {
                 target: 'visible',
-                description: 'Every group above is showing again: show, and show the children that are switched on',
+                description: 'Each group above this group is visible again. This group shows. Each child layer that is switched on shows.',
               },
               'PARENT.CHANGED': [
                 {
                   guard: ({ event }) => event.parentVisible,
                   target: 'visible',
-                  description: 'Moved under a showing group: show, and show the children that are switched on',
+                  description: 'This group moves under a visible group. This group shows. Each child layer that is switched on shows.',
                   actions: {
                     type: 'Change Parent',
                     params: ({ event }) => event,
                   },
                 },
                 {
-                  description: 'Moved under a group that is not showing: stay hidden, stay switched on',
+                  description: 'This group moves under a hidden group. This group stays hidden. This group stays switched on.',
                   actions: {
                     type: 'Change Parent',
                     params: ({ event }) => event,
@@ -245,12 +245,12 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.DISABLED': {
             target: 'disabled',
-            description: 'Switched off: hide this group and its children. The children stay switched on',
+            description: 'This group switches off. This group hides. Its child layers hide. Each child layer that is switched on stays switched on.',
           },
         },
       },
       disabled: {
-        description: 'The layer group is disabled, so it and its children always appear hidden on the map. Leaving reports the group switched on to the manager',
+        description: 'This group is switched off. This group and its child layers are always hidden on the map. When this group switches on, this group sends the change to the manager.',
         exit: {
           type: 'Notify Manager of enabled change',
           params: { enabled: true },
@@ -258,18 +258,18 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.ENABLED': {
             target: 'enabled',
-            description: 'Switched on: show, tell the parent group, and show the children that are switched on',
+            description: 'This group switches on. This group shows. This group sends a notice to its parent group. Each child layer that is switched on shows.',
           },
           'LAYER.SHOW': {
             target: 'enabled',
-            description: 'Asked to show: switch on, show, tell the parent group, and show the children that are switched on',
+            description: 'This group receives a show request. This group switches on. This group shows. This group sends a notice to its parent group. Each child layer that is switched on shows.',
           },
           'CHILD.VISIBLE': {
             target: 'enabled',
-            description: 'A child was switched on: switch this group on so the child can show',
+            description: 'A child layer switches on. This group switches on. Then the child layer can show.',
           },
           'PARENT.CHANGED': {
-            description: 'Moved while switched off: stay off',
+            description: 'This group moves while this group is switched off. This group stays switched off.',
             actions: {
               type: 'Change Parent',
               params: ({ event }) => event,
@@ -280,25 +280,25 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
     },
     on: {
       'PARENT.OPACITY_CHANGED': {
-        description: 'A group above changed opacity: recompute, and send the new computed opacity to the children',
+        description: 'A group above this group sends a new opacity. This group calculates its computed opacity from that opacity. This group sends the change to the manager. This group sends the new computed opacity to its child layers.',
         actions: {
           type: 'Update Computed Opacity',
           params: ({ event }) => event,
         },
       },
       'CHILD.VISIBLE': {
-        description: 'A child was switched on while this group is switched on: tell the parent group so every group above switches on. If this group is hidden, it shows when those groups show',
+        description: 'A child layer switches on while this group is switched on. This group sends a notice to its parent group. Each group above this group switches on. If this group is hidden, this group shows when each group above it is visible.',
         actions: 'Notify Parent that layer is visible',
       },
       'LAYERS.CHILDREN_CHANGED': {
-        description: 'The manager changed this group\'s children: store them in the manager\'s order',
+        description: 'The manager sends new child layers for this group. This group stores the child layers in the order from the manager.',
         actions: {
           type: 'Set Children',
           params: ({ event }) => event,
         },
       },
       'LAYER.SET_LAYER_DATA': {
-        description: 'Store new group data and report it to the manager',
+        description: 'This group stores the new group data. This group sends the change to the manager.',
         actions: [
           {
             type: 'Change Layer Data',
@@ -309,7 +309,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       'LAYER.SET_OPACITY': [
         {
           guard: { type: 'isInvalidOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
-          description: 'Reject an opacity outside 0 to 1 and report it to the manager',
+          description: 'This group rejects an opacity that is not a number from 0 to 1. This group sends the rejection to the manager.',
           actions: {
             type: 'Notify Manager of opacity rejection',
             params: ({ event }) => event,
@@ -317,7 +317,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         },
         {
           guard: { type: 'isNewOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
-          description: 'Store a changed opacity, recompute, and send the new computed opacity to the children',
+          description: 'If the opacity is different from the current opacity, this group stores the new opacity. The computed opacity is the group opacity times the parent opacity. This group sends the change to the manager. This group sends the new computed opacity to its child layers.',
           actions: [
             {
               type: 'Change Layer Opacity',
@@ -328,7 +328,7 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       ],
       'LAYER.SET_TIME_INFO': {
         guard: { type: 'isNewTimeInfo', params: ({ event }) => ({ timeInfo: event.timeInfo }) },
-        description: 'Store new time info and report it to the manager, unless it is unchanged',
+        description: 'If the time info is different from the current time info, this group stores the new time info. This group sends the change to the manager.',
         actions: [
           {
             type: 'Change Layer Time Info',
