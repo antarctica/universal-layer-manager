@@ -84,6 +84,9 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       'Update Computed Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
         const { update, notification } = parentOpacityChange(context, params.opacity);
         enqueue.assign(update);
+        if (update.computedOpacity === context.computedOpacity) {
+          return;
+        }
         context.children.forEach((child) => {
           enqueue.sendTo(child, { type: 'PARENT.OPACITY_CHANGED', opacity: update.computedOpacity });
         });

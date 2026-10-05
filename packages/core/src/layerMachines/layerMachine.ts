@@ -70,7 +70,9 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
       'Update Computed Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
         const { update, notification } = parentOpacityChange(context, params.opacity);
         enqueue.assign(update);
-        enqueue.sendTo(context.layerManagerRef, notification);
+        if (update.computedOpacity !== context.computedOpacity) {
+          enqueue.sendTo(context.layerManagerRef, notification);
+        }
       }),
       'Change Layer Opacity': enqueueActions(({ context, enqueue }, params: { opacity: number }) => {
         const { update, notification } = ownOpacityChange(context, params.opacity);
