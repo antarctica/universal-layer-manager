@@ -1,6 +1,7 @@
 import type L from 'leaflet';
+import type { LeafletAdapterOptions } from '../src/types';
 import { LayerManager } from '@ulm/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 
 interface StubLayerOptions {
@@ -76,9 +77,9 @@ function createStubLayerGroup(id: string, children: StubLayer[]): StubLayer {
   return group;
 }
 
-function setup() {
+function setup(options: LeafletAdapterOptions<StubLayerData> = {}) {
   const map = createFakeMap();
-  const adapter = new LeafletLayerManagerAdapter<StubLayerData, undefined>(map as unknown as L.Map);
+  const adapter = new LeafletLayerManagerAdapter<StubLayerData, undefined>(map as unknown as L.Map, options);
   const manager = new LayerManager<StubLayerData>({ allowNestedGroupLayers: true });
   manager.setAdapter(adapter);
   return { map, adapter, manager };
@@ -231,6 +232,19 @@ describe('leafletLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('geojson', geoJson), visible: true });
 
     expect([polygon.options.pane, point.options.pane, point.options.shadowPane]).toEqual([geoJson.options.pane, geoJson.options.pane, geoJson.options.pane]);
+  });
+
+  it('tells the onEnabledChanged hook when a layer hidden by its group is switched off', () => {
+    const onEnabledChanged = vi.fn();
+    const { map, manager } = setup({ hooks: { onEnabledChanged } });
+    const leafletLayer = createStubLayer('child-1');
+    manager.addGroup({ ...groupParams('group-1'), enabled: false });
+    manager.addLayer({ ...layerParams('child-1', leafletLayer, 'group-1'), enabled: true });
+
+    manager.setEnabled('child-1', false);
+
+    expect(onEnabledChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'child-1', enabled: false }), false, leafletLayer);
+    expect(map.hasLayer(leafletLayer)).toBe(false);
   });
 
   it('exposes the map it draws on', () => {

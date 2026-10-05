@@ -25,6 +25,11 @@ export interface LeafletAdapterHooks<TLayer> {
     visible: boolean,
     leafletLayer: L.Layer,
   ) => void;
+  onEnabledChanged?: (
+    info: LayerInfo<TLayer>,
+    enabled: boolean,
+    leafletLayer: L.Layer,
+  ) => void;
   onOpacityChanged?: (
     info: LayerInfo<TLayer>,
     opacity: number,
