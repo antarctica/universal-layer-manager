@@ -216,13 +216,6 @@ export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
   return undefined;
 }
 
-/**
- * Checks if a provided index is within the bounds of the array.
- */
-export function isValidLayerIndex(index: number, length: number): boolean {
-  return index >= 0 && index <= length;
-}
-
 // ============================================================================
 // SECTION STRUCTURE & TRAVERSAL
 // Functions involved in ordering, flattening, and sorting lists.
