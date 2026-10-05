@@ -18,7 +18,7 @@ const manager = new LayerManager<LayerData>();
 
 ### Adding a layer
 
-Add a layer with `addLayer`, giving it a unique `layerId`, a display name and your own `layerData`. A `parentId` of `null` places it at the top level.
+Add a layer with `addLayer`, giving it a unique `layerId`, a display name and your own `layerData`. Leave out `parentId`, or set it to `null`, to place it at the top level.
 
 ```ts
 manager.addLayer({
