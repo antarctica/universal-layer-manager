@@ -1,5 +1,5 @@
 import type { InspectionEvent, Observer } from 'xstate';
-import type { LayerManagerAdapter, LayerManagerCallbacks, ManagedLayerInfo } from './adapters/types';
+import type { LayerManagerAdapter, ManagedLayerInfo } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
 import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
@@ -107,13 +107,10 @@ export class LayerManager<TLayer, TGroup = undefined> {
   // Lifecycle
   // --------------------------------------------------------------------------
 
-  /** Starts the XState actor, wires event subscriptions, and registers any pending adapter. */
+  /** Starts the XState actor and wires event subscriptions. */
   private start(): void {
     this._actor.start();
     this._wireSubscriptions();
-    if (this._adapter) {
-      this._registerAdapter(this._adapter);
-    }
   }
 
   /**
@@ -365,11 +362,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   }
 
   private _registerAdapter(adapter: LayerManagerAdapter<TLayer, TGroup>): void {
-    const callbacks: LayerManagerCallbacks<TLayer, TGroup> = {
-      getSnapshot: () => this.layers,
-      getLayer: (id) => this.getLayer(id),
-    };
-    adapter.register?.(this, callbacks);
+    adapter.register?.();
     const layerOrder = getFlatLayerOrder(this._actor.getSnapshot().context);
     for (const layerId of layerOrder) {
       const info = this._toManagedLayerInfo(layerId);

@@ -1,4 +1,4 @@
-import type { LayerManagerAdapter, LayerManagerCallbacks } from '../src/adapters/types';
+import type { LayerManagerAdapter } from '../src/adapters/types';
 import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
@@ -1251,20 +1251,6 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
-    it('registers an adapter with callbacks that read the manager\'s layers', () => {
-      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
-      let callbacks: LayerManagerCallbacks<TestLayerData, TestLayerData> | undefined;
-      const register = vi.fn((_manager: TestManager, registered: LayerManagerCallbacks<TestLayerData, TestLayerData>) => {
-        callbacks = registered;
-      });
-      manager.setAdapter({ register });
-      manager.addLayer(layer('layer-1'));
-
-      expect(register).toHaveBeenCalledWith(manager, expect.anything());
-      expect(callbacks?.getSnapshot().map((item) => item.layerActor.id)).toEqual(['layer-1']);
-      expect(callbacks?.getLayer('layer-1')?.layerActor.id).toBe('layer-1');
-    });
-
     it('unregisters the previous adapter when a new one is attached', () => {
       const { manager, map } = createManager();
       const next: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
