@@ -124,7 +124,7 @@ For [working with XState](../xstate) directly. The manager actor emits these eve
 
 | Event | Payload |
 |-------|---------|
-| `LAYER.ADDED` | `layerId`, `visible` |
+| `LAYER.ADDED` | `layerId`. A layer that starts visible follows with `LAYER.VISIBILITY_CHANGED` |
 | `LAYER.REMOVED` | `layerId` |
 | `LAYER.VISIBILITY_CHANGED` | `layerId`, `visible` |
 | `LAYER.ENABLED_CHANGED` | `layerId`, `enabled` |

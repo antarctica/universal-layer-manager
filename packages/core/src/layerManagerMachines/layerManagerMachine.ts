@@ -53,14 +53,10 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
         const parentRef = findParentActor(context.layers, layerConfig);
         const parentOpacity = parentRef?.getSnapshot().context.computedOpacity ?? 1;
 
+        const startsShowing = (visible ?? false) || ((enabled ?? false) && (!parentRef || parentRef.getSnapshot().hasTag('visible')));
+
         function getStartState(enabled: boolean, visible: boolean): LayerStartState {
-          if (visible || (enabled && (!parentRef || parentRef.getSnapshot().hasTag('visible')))) {
-            return 'enabled.visible';
-          }
-          if (enabled) {
-            return 'enabled.hidden';
-          }
-          return 'disabled';
+          return enabled || visible ? 'enabled.hidden' : 'disabled';
         }
 
         enqueue.assign(({ spawn }) => {
@@ -104,11 +100,10 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           enqueue.sendTo(parentRef, ({ context }) => getGroupChildrenChangedEvent(context, parentRef.id));
         }
 
-        enqueue.emit(({ context }) => ({
-          type: 'LAYER.ADDED',
-          layerId: layerConfig.layerId,
-          visible: findManagedLayerById(context.layers, layerConfig.layerId)?.layerActor.getSnapshot().hasTag('visible') ?? false,
-        }));
+        enqueue.emit({ type: 'LAYER.ADDED', layerId: layerConfig.layerId });
+        if (startsShowing) {
+          enqueue.sendTo(layerConfig.layerId, { type: 'LAYER.START_SHOWING' });
+        }
       }),
 
       'Remove layer': enqueueActions(({ enqueue, context }, params: { layerId: string }) => {

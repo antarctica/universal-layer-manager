@@ -47,7 +47,7 @@ export type LayerType = 'layer' | 'layerGroup';
 
 export type LayerStateTag = 'enabled' | 'visible';
 
-export type LayerStartState = 'enabled.visible' | 'enabled.hidden' | 'disabled';
+export type LayerStartState = 'enabled.hidden' | 'disabled';
 
 export interface BaseLayerConfig<T> {
   layerId: string;
@@ -110,6 +110,7 @@ export type ChildEvent
   = | { type: 'LAYER.ENABLED' }
     | { type: 'LAYER.DISABLED' }
     | { type: 'LAYER.SHOW' }
+    | { type: 'LAYER.START_SHOWING' }
     | { type: 'PARENT.VISIBLE' }
     | { type: 'PARENT.HIDDEN' }
     | { type: 'PARENT.OPACITY_CHANGED'; opacity: number }
@@ -143,7 +144,7 @@ export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
     | { type: 'CHILD.REJECTED'; layerId: string; reason: string };
 
 export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
-  = | { type: 'LAYER.ADDED'; layerId: string; visible: boolean }
+  = | { type: 'LAYER.ADDED'; layerId: string }
     | { type: 'LAYER.REMOVED'; layerId: string }
     | { type: 'LAYER.ORDER_CHANGED'; layerOrder: string[] }
     | { type: 'LAYER.MOVED'; layerId: string; parentId: string | null }

@@ -267,7 +267,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   /** Subscribes to machine-emitted events and forwards them to the adapter and options callbacks. */
   private _wireSubscriptions(): void {
     const addedSub = this._actor.on('LAYER.ADDED', (event) => {
-      const info = this._toManagedLayerInfo(event.layerId, event.visible);
+      const info = this._toManagedLayerInfo(event.layerId);
       if (!info) {
         return;
       }
