@@ -8,7 +8,8 @@ import type {
   ParentLayerActor,
 } from '../types';
 
-import { enqueueActions, setup } from 'xstate';
+import { enqueueActions, sendTo, setup } from 'xstate';
+import { getOpacityRejection, isOpacityInRange } from '../utils';
 import {
   childVisibleNotice,
   layerDataChange,
@@ -38,12 +39,20 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         parentOpacity?: number;
       },
     },
+    guards: {
+      isValidOpacity: (_, params: { opacity: number }) =>
+        isOpacityInRange(params.opacity),
+    },
     actions: {
       'Notify Parent that layer is visible': enqueueActions(({ context, enqueue }) => {
         if (context.parentRef) {
           enqueue.sendTo(context.parentRef, childVisibleNotice(context));
         }
       }),
+      'Notify Manager of rejection': sendTo(
+        ({ context }) => context.layerManagerRef,
+        (_, params: { layerId: string; reason: string }) => ({ type: 'CHILD.REJECTED', ...params }),
+      ),
       'Notify Manager of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) =>
           enqueue.sendTo(context.layerManagerRef, visibilityChange(context, params.visible).notification),
@@ -221,7 +230,8 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
           },
         ],
       },
-      'LAYER.SET_OPACITY': {
+      'LAYER.SET_OPACITY': [{
+        guard: { type: 'isValidOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
         description: 'Set own opacity: computed opacity combines it with the last opacity the parent sent',
         actions: [
           {
@@ -230,6 +240,17 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
           },
         ],
       },
+      {
+        description: 'Reject an opacity outside 0 to 1 and report it to the manager',
+        actions: {
+          type: 'Notify Manager of rejection',
+          params: ({ context, event }) => ({
+            layerId: context.layerId,
+            reason: getOpacityRejection(context.layerId, event.opacity) ?? '',
+          }),
+        },
+      },
+      ],
       'LAYER.SET_TIME_INFO': {
         description: 'Store new time info and report it to the manager',
         actions: [

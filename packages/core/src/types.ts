@@ -137,7 +137,8 @@ export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
   = | { type: 'CHILD.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
     | { type: 'CHILD.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
     | { type: 'CHILD.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }
-    | { type: 'CHILD.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup };
+    | { type: 'CHILD.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup }
+    | { type: 'CHILD.REJECTED'; layerId: string; reason: string };
 
 export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
   = | { type: 'LAYER.ADDED'; layerId: string; visible: boolean }
