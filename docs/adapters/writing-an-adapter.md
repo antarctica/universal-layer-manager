@@ -29,7 +29,7 @@ To draw a map, `onVisibilityChanged` is enough: it says what should be showing. 
 
 The manager calls an adapter in a predictable order, so your adapter doesn't need to guard against these cases:
 
-+ **Added first, nothing after removal.** `onLayerAdded` is the first call for any layer or group. An adapter attached to a manager that already has layers receives `onLayerAdded` for each of them, then `onOrderChanged`. After `onLayerRemoved` for an ID, or after `unregister`, nothing more arrives for it.
++ **Added first, nothing after removal.** `onLayerAdded` is the first call for any layer or group. A newly added layer always arrives hidden, and a layer added as visible is shown by `onVisibilityChanged` straight after. An adapter attached to a manager that already has layers receives `onLayerAdded` for each of them in its current state, which may be visible, then `onOrderChanged`. After `onLayerRemoved` for an ID, or after `unregister`, nothing more arrives for it.
 + **The order follows every structural change.** After every add, remove, move and reset, `onOrderChanged` receives every current layer ID, bottom to top. For a move, `onLayerMoved` comes after `onOrderChanged`.
 + **Only real changes are reported.** A change that leaves a value as it was, such as setting the current opacity or moving a layer to where it already is, sends nothing. The one exception is `updateLayerData`, which always reports, because the manager can't compare your data.
 + **Adapter first.** Each hook runs on the adapter before the matching options callback, so by the time your UI hears about a change, the map already shows it.

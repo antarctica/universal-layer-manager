@@ -148,7 +148,6 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       starting: {
         description: 'This group goes to its start state. The input sets the start state.',
         always: [
-          { guard: ({ context }) => context.startState === 'enabled.visible', target: 'enabled.visible', description: 'This group starts switched on. Each group above this group is visible.' },
           { guard: ({ context }) => context.startState === 'enabled.hidden', target: 'enabled.hidden', description: 'This group starts switched on. A group above this group is hidden.' },
           { target: 'disabled', description: 'This group starts switched off.' },
         ],
@@ -219,6 +218,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
               'LAYER.SHOW': {
                 description: 'This group receives a show request. This group sends a notice to its parent group. Each group above this group switches on.',
                 actions: 'Notify Parent that layer is visible',
+              },
+              'LAYER.START_SHOWING': {
+                target: 'visible',
+                description: 'The manager added this group as visible. This group shows. Each child layer that is switched on shows.',
               },
               'PARENT.VISIBLE': {
                 target: 'visible',

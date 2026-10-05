@@ -18,17 +18,18 @@ import {
 // Behaviour reachable through LayerManager is specified in LayerManager.test.ts.
 describe('layerManagerMachine', () => {
   describe('emitted events', () => {
-    it('emits LAYER.ADDED with the visibility the layer has once added', () => {
+    it('emits LAYER.ADDED, and leaves a layer that starts visible to report its own visibility', () => {
       const layerManager = createTestLayerManager();
-      const addedWatcher = vi.fn();
-      layerManager.on('LAYER.ADDED', addedWatcher);
+      const watcher = vi.fn();
+      layerManager.on('*', watcher);
 
       layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'hidden-layer' }) } });
       layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'shown-layer' }), enabled: true } });
 
-      expect(addedWatcher.mock.calls.map(([event]) => event)).toEqual([
-        { type: 'LAYER.ADDED', layerId: 'hidden-layer', visible: false },
-        { type: 'LAYER.ADDED', layerId: 'shown-layer', visible: true },
+      expect(watcher.mock.calls.map(([event]) => event).filter((event) => event.type !== 'LAYER.ORDER_CHANGED')).toEqual([
+        { type: 'LAYER.ADDED', layerId: 'hidden-layer' },
+        { type: 'LAYER.ADDED', layerId: 'shown-layer' },
+        { type: 'LAYER.VISIBILITY_CHANGED', layerId: 'shown-layer', visible: true },
       ]);
     });
 

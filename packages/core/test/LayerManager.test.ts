@@ -5,6 +5,7 @@ import type { TestLayerData } from './utils/layer-manager-helpers';
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { LayerManager } from '../src/LayerManager';
+import { monitorContract } from './utils/contract-monitor';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
 import { createMapModel } from './utils/map-model';
 
@@ -13,7 +14,9 @@ type TestManager = LayerManager<TestLayerData, TestLayerData>;
 function createManager(options: LayerManagerOptions<TestLayerData, TestLayerData> = {}) {
   const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>(options);
   const map = createMapModel<TestLayerData>();
-  manager.setAdapter(map);
+  const monitor = monitorContract(map);
+  manager.setAdapter(monitor.adapter);
+  onTestFinished(() => monitor.assertMet());
   return { manager, map };
 }
 
@@ -544,6 +547,31 @@ describe('layerManager', () => {
       manager.setEnabled('layer-1', true);
 
       expect(map.layers.get('layer-1')).toMatchObject({ enabled: true, visible: true });
+    });
+
+    it('reports a layer added as visible as not yet visible in onLayerAdded, then reports it visible once', () => {
+      const onLayerAdded = vi.fn();
+      const onVisibilityChanged = vi.fn();
+      const { manager } = createManager({ onLayerAdded, onVisibilityChanged });
+
+      manager.addLayer({ ...layer('layer-1'), visible: true });
+
+      expect(onLayerAdded).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', visible: false }));
+      expect(onVisibilityChanged.mock.calls).toEqual([[expect.objectContaining({ layerId: 'layer-1', visible: true }), true]]);
+    });
+
+    it('adds a layer added as visible hidden, so onLayerAdded reports the state the layer is in', () => {
+      const shownWhenAdded: boolean[] = [];
+      const { manager } = createManager({
+        onLayerAdded: (info) => {
+          shownWhenAdded.push(manager.getLayer(info.layerId)?.layerActor.getSnapshot().hasTag('visible') ?? true);
+        },
+      });
+
+      manager.addLayer({ ...layer('layer-1'), visible: true });
+
+      expect(shownWhenAdded).toEqual([false]);
+      expect(manager.getLayer('layer-1')?.layerActor.getSnapshot().hasTag('visible')).toBe(true);
     });
 
     it('reports visibility only when it changes', () => {
