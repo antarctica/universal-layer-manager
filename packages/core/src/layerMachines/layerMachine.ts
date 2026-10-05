@@ -9,7 +9,7 @@ import type {
 } from '../types';
 
 import { enqueueActions, setup } from 'xstate';
-import { isOpacityInRange } from '../utils';
+import { isOpacityInRange, isSameTimeInfo } from '../utils';
 import {
   childVisibleNotice,
   layerDataChange,
@@ -45,6 +45,8 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         !isOpacityInRange(params.opacity),
       isNewOpacity: ({ context }, params: { opacity: number }) =>
         context.opacity !== params.opacity,
+      isNewTimeInfo: ({ context }, params: { timeInfo: LayerTimeInfo }) =>
+        !isSameTimeInfo(context.timeInfo, params.timeInfo),
     },
     actions: {
       'Notify Parent that layer is visible': enqueueActions(({ context, enqueue }) => {
@@ -254,7 +256,8 @@ export function layerMachine<TLayer, TGroup = TLayer>() {
         },
       ],
       'LAYER.SET_TIME_INFO': {
-        description: 'Store new time info and report it to the manager',
+        guard: { type: 'isNewTimeInfo', params: ({ event }) => ({ timeInfo: event.timeInfo }) },
+        description: 'Store new time info and report it to the manager, unless it is unchanged',
         actions: [
           {
             type: 'Change Layer Time Info',

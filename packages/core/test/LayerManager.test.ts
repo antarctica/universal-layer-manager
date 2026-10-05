@@ -686,6 +686,49 @@ describe('layerManager', () => {
       expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay);
     });
 
+    it('reports no change when a layer is set to an equal single time', () => {
+      const onTimeInfoChanged = vi.fn();
+      const { manager } = createManager({ onTimeInfoChanged });
+      manager.addLayer(layer('layer-1', { timeInfo: newYearsDay }));
+
+      manager.setTimeInfo('layer-1', { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') });
+
+      expect(onTimeInfoChanged).not.toHaveBeenCalled();
+    });
+
+    it('reports no change when a layer is set to an equal date range', () => {
+      const onTimeInfoChanged = vi.fn();
+      const { manager } = createManager({ onTimeInfoChanged });
+      manager.addLayer(layer('layer-1', {
+        timeInfo: { type: 'range', precision: 'date', start: Temporal.PlainDate.from('2026-06-01'), end: Temporal.PlainDate.from('2026-08-31') },
+      }));
+
+      manager.setTimeInfo('layer-1', { type: 'range', precision: 'date', start: Temporal.PlainDate.from('2026-06-01'), end: Temporal.PlainDate.from('2026-08-31') });
+
+      expect(onTimeInfoChanged).not.toHaveBeenCalled();
+    });
+
+    it('reports a layer\'s time info when the same day changes from a zoned date-time to a plain date', () => {
+      const onTimeInfoChanged = vi.fn();
+      const { manager } = createManager({ onTimeInfoChanged });
+      manager.addLayer(layer('layer-1', { timeInfo: newYearsDay }));
+      const plainNewYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2024-01-01') };
+
+      manager.setTimeInfo('layer-1', plainNewYearsDay);
+
+      expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), plainNewYearsDay);
+    });
+
+    it('reports no change when a group is set to equal time info', () => {
+      const onTimeInfoChanged = vi.fn();
+      const { manager } = createManager({ onTimeInfoChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', timeInfo: newYearsDay }) });
+
+      manager.setTimeInfo('group-1', { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') });
+
+      expect(onTimeInfoChanged).not.toHaveBeenCalled();
+    });
+
     it('gives the map a layer\'s Temporal date range', () => {
       const { manager, map } = createManager();
 

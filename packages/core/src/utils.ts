@@ -5,11 +5,12 @@ import type {
   LayerGroupConfig,
   LayerGroupMachineActor,
   LayerManagerContext,
+  LayerTimeInfo,
   ManagedItem,
   MoveLayerParams,
   ParentEvent,
 } from './types';
-import { isLayerGroupMachine } from './types';
+import { isLayerGroupMachine, isRangeTimeInfo, isSingleTimeInfo } from './types';
 
 // ============================================================================
 // SEARCH & RETRIEVAL (QUERIES)
@@ -153,6 +154,19 @@ export function getAddLayerRejection<TLayer, TGroup = TLayer>(
 
 export function isOpacityInRange(opacity: number): boolean {
   return Number.isFinite(opacity) && opacity >= 0 && opacity <= 1;
+}
+
+export function isSameTimeInfo(current: LayerTimeInfo | undefined, next: LayerTimeInfo): boolean {
+  if (current?.precision !== next.precision) {
+    return false;
+  }
+  if (isSingleTimeInfo(current) && isSingleTimeInfo(next)) {
+    return current.value.toString() === next.value.toString();
+  }
+  if (isRangeTimeInfo(current) && isRangeTimeInfo(next)) {
+    return current.start.toString() === next.start.toString() && current.end.toString() === next.end.toString();
+  }
+  return false;
 }
 
 export function getOpacityRejection(layerId: string, opacity: number): string | undefined {
