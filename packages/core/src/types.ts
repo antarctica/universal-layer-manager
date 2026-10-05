@@ -52,7 +52,7 @@ export type LayerStartState = 'enabled.hidden' | 'disabled';
 export interface BaseLayerConfig<T> {
   layerId: string;
   layerName: string;
-  parentId: string | null;
+  parentId?: string | null;
   layerData: T;
   timeInfo?: LayerTimeInfo;
   opacity?: number;
@@ -60,6 +60,7 @@ export interface BaseLayerConfig<T> {
 
 export interface LayerConfig<TLayer> extends BaseLayerConfig<TLayer> {
   layerType: 'layer';
+  listMode?: 'show' | 'hide';
 }
 
 export interface LayerGroupConfig<TLayer, TGroup = TLayer> extends BaseLayerConfig<TGroup> {

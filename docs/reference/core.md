@@ -70,7 +70,7 @@ With neither `visible` nor `enabled`, it is added switched off.
 | `layerId` | `string` | Unique ID |
 | `layerName` | `string` | Display name |
 | `layerType` | `'layer' \| 'layerGroup'` | Which kind of item this is |
-| `parentId` | `string \| null` | The ID of the group it belongs to, or `null` for the top level |
+| `parentId` | `string \| null` | The ID of the group it belongs to. Leave it out, or use `null`, for the top level |
 | `layerData` | `TLayer` / `TGroup` | Your data for this layer or group |
 | `opacity` | `number` | Its own opacity, from 0 to 1 (default `1`) |
 | `timeInfo` | `LayerTimeInfo` | Optional single date or date range |

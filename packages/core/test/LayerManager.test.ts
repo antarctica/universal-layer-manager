@@ -51,6 +51,23 @@ describe('layerManager', () => {
       expect(topLevelIds(manager)).toEqual(['c', 'b', 'a']);
     });
 
+    it('adds a layer without a parentId at the top level', () => {
+      const { manager, map } = createManager();
+
+      manager.addLayer({ layerConfig: { layerId: 'a', layerName: 'A', layerType: 'layer', layerData: { test: 'a' } } });
+
+      expect(topLevelIds(manager)).toEqual(['a']);
+      expect(map.layers.get('a')).toMatchObject({ parentId: null });
+    });
+
+    it('gives a layer the list mode set in its config', () => {
+      const { manager, map } = createManager();
+
+      manager.addLayer({ layerConfig: { layerId: 'a', layerName: 'A', layerType: 'layer', layerData: { test: 'a' }, listMode: 'hide' } });
+
+      expect(map.layers.get('a')).toMatchObject({ listMode: 'hide' });
+    });
+
     it('adds a top-level layer at the top or at an index when asked', () => {
       const { manager } = createManager();
       manager.addLayer(layer('a'));
@@ -903,6 +920,19 @@ describe('layerManager', () => {
         new Error('Opacity 5 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
         new Error('Opacity -1 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
         new Error('Opacity NaN for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
+      ]);
+      expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.5, computedOpacity: 0.5 });
+    });
+
+    it('reports an opacity outside 0 to 1 sent straight to a layer\'s actor through onError once and keeps the current opacity', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+      manager.addLayer(layer('layer-1', { opacity: 0.5 }));
+
+      manager.getLayer('layer-1')?.layerActor.send({ type: 'LAYER.SET_OPACITY', opacity: 5 });
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Opacity 5 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
       ]);
       expect(map.layers.get('layer-1')).toMatchObject({ opacity: 0.5, computedOpacity: 0.5 });
     });
