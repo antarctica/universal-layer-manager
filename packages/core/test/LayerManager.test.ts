@@ -767,6 +767,34 @@ describe('layerManager', () => {
       expect(manager.getLayer('child-1')).toBeUndefined();
     });
 
+    it('reports adding a layer with an opacity outside 0 to 1 through onError', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+
+      manager.addLayer(layer('too-high', { opacity: 5 }));
+      manager.addLayer(layer('too-low', { opacity: -1 }));
+      manager.addLayer(layer('not-a-number', { opacity: Number.NaN }));
+
+      expect(onError.mock.calls.map(([error]) => error)).toEqual([
+        new Error('Opacity 5 for layer too-high must be a number between 0 and 1. Layer not added.'),
+        new Error('Opacity -1 for layer too-low must be a number between 0 and 1. Layer not added.'),
+        new Error('Opacity NaN for layer not-a-number must be a number between 0 and 1. Layer not added.'),
+      ]);
+      expect(manager.layers).toEqual([]);
+      expect(map.layers.size).toBe(0);
+    });
+
+    it('reports adding a group with an opacity outside 0 to 1 through onError', () => {
+      const onError = vi.fn();
+      const { manager, map } = createManager({ onError });
+
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 1.5 }) });
+
+      expect(onError).toHaveBeenCalledWith(new Error('Opacity 1.5 for layer group-1 must be a number between 0 and 1. Layer not added.'));
+      expect(manager.layers).toEqual([]);
+      expect(map.layers.size).toBe(0);
+    });
+
     it('reports removing a layer that does not exist through onError', () => {
       const onError = vi.fn();
       const { manager } = createManager({ onError });

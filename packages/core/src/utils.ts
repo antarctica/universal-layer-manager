@@ -144,6 +144,10 @@ export function getAddLayerRejection<TLayer, TGroup = TLayer>(
     return `Unable to find parent group ${layerConfig.parentId}. Layer ${layerConfig.layerId} not added.`;
   }
 
+  if (layerConfig.opacity !== undefined && !isOpacityInRange(layerConfig.opacity)) {
+    return `Opacity ${layerConfig.opacity} for layer ${layerConfig.layerId} must be a number between 0 and 1. Layer not added.`;
+  }
+
   return undefined;
 }
 
