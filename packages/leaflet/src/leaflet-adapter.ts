@@ -108,6 +108,14 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.options.hooks?.onVisibilityChanged?.(info as LayerInfo<TLayer>, visible, leafletLayer);
   }
 
+  onEnabledChanged(info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean): void {
+    const leafletLayer = this.leafletLayers.get(info.layerId);
+    if (!leafletLayer) {
+      return;
+    }
+    this.options.hooks?.onEnabledChanged?.(info as LayerInfo<TLayer>, enabled, leafletLayer);
+  }
+
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
     const leafletLayer = this.leafletLayers.get(info.layerId);
     if (!leafletLayer) {
