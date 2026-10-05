@@ -16,11 +16,14 @@ An adapter is any object that implements `LayerManagerAdapter` from `@ulm/core`.
 | `onLayerAdded(info)` | A layer or group is added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group is removed |
 | `onVisibilityChanged(info, visible)` | A layer or group starts or stops showing |
+| `onEnabledChanged(info, enabled)` | A layer or group is switched on or off, including while a group above hides it |
 | `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changes |
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time information changes |
 | `onLayerDataChanged(info)` | A layer's `layerData` is replaced |
 | `onOrderChanged(layerOrder)` | The order changes, or the adapter is attached, with every layer ID from bottom to top |
 | `onLayerMoved(info)` | A layer or group is moved, raised or lowered, with `info.parentId` set to its new parent |
+
+To draw a map, `onVisibilityChanged` is enough: it says what should be showing. Use `onEnabledChanged` only if your adapter also needs to know about switches that don't change what is drawn, for example to keep a map library's own layer control in step.
 
 ## A minimal adapter
 
