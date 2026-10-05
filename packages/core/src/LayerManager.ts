@@ -271,14 +271,20 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onLayerAdded?.(info);
-      this._options.onLayerAdded?.(info);
+      try {
+        this._adapter?.onLayerAdded?.(info);
+      } finally {
+        this._options.onLayerAdded?.(info);
+      }
     });
     this._subscriptions.push(() => addedSub.unsubscribe());
 
     const removedSub = this._actor.on('LAYER.REMOVED', (event) => {
-      this._adapter?.onLayerRemoved?.(event.layerId);
-      this._options.onLayerRemoved?.(event.layerId);
+      try {
+        this._adapter?.onLayerRemoved?.(event.layerId);
+      } finally {
+        this._options.onLayerRemoved?.(event.layerId);
+      }
     });
     this._subscriptions.push(() => removedSub.unsubscribe());
 
@@ -287,8 +293,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onVisibilityChanged?.(info, event.visible);
-      this._options.onVisibilityChanged?.(info, event.visible);
+      try {
+        this._adapter?.onVisibilityChanged?.(info, event.visible);
+      } finally {
+        this._options.onVisibilityChanged?.(info, event.visible);
+      }
     });
     this._subscriptions.push(() => visibilitySub.unsubscribe());
 
@@ -297,8 +306,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onEnabledChanged?.(info, event.enabled);
-      this._options.onEnabledChanged?.(info, event.enabled);
+      try {
+        this._adapter?.onEnabledChanged?.(info, event.enabled);
+      } finally {
+        this._options.onEnabledChanged?.(info, event.enabled);
+      }
     });
     this._subscriptions.push(() => enabledSub.unsubscribe());
 
@@ -307,8 +319,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onOpacityChanged?.(info, event.computedOpacity);
-      this._options.onOpacityChanged?.(info, event.computedOpacity);
+      try {
+        this._adapter?.onOpacityChanged?.(info, event.computedOpacity);
+      } finally {
+        this._options.onOpacityChanged?.(info, event.computedOpacity);
+      }
     });
     this._subscriptions.push(() => opacitySub.unsubscribe());
 
@@ -317,8 +332,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onTimeInfoChanged?.(info, event.timeInfo);
-      this._options.onTimeInfoChanged?.(info, event.timeInfo);
+      try {
+        this._adapter?.onTimeInfoChanged?.(info, event.timeInfo);
+      } finally {
+        this._options.onTimeInfoChanged?.(info, event.timeInfo);
+      }
     });
     this._subscriptions.push(() => timeInfoSub.unsubscribe());
 
@@ -327,14 +345,20 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onLayerDataChanged?.(info);
-      this._options.onLayerDataChanged?.(info);
+      try {
+        this._adapter?.onLayerDataChanged?.(info);
+      } finally {
+        this._options.onLayerDataChanged?.(info);
+      }
     });
     this._subscriptions.push(() => layerDataSub.unsubscribe());
 
     const orderSub = this._actor.on('LAYER.ORDER_CHANGED', (event) => {
-      this._adapter?.onOrderChanged?.(event.layerOrder);
-      this._options.onOrderChanged?.(event.layerOrder);
+      try {
+        this._adapter?.onOrderChanged?.(event.layerOrder);
+      } finally {
+        this._options.onOrderChanged?.(event.layerOrder);
+      }
     });
     this._subscriptions.push(() => orderSub.unsubscribe());
 
@@ -343,8 +367,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
       if (!info) {
         return;
       }
-      this._adapter?.onLayerMoved?.(info);
-      this._options.onLayerMoved?.(info);
+      try {
+        this._adapter?.onLayerMoved?.(info);
+      } finally {
+        this._options.onLayerMoved?.(info);
+      }
     });
     this._subscriptions.push(() => movedSub.unsubscribe());
 

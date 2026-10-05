@@ -3,7 +3,7 @@ import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
 import { Temporal } from 'temporal-polyfill';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { LayerManager } from '../src/LayerManager';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
 import { createMapModel } from './utils/map-model';
@@ -1251,6 +1251,26 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
+    it('still calls the options callback when an adapter hook throws, and still reports the error', () => {
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
+      const onVisibilityChanged = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onVisibilityChanged });
+      manager.setAdapter({
+        onVisibilityChanged: () => {
+          throw new Error('adapter failed');
+        },
+      });
+      manager.addLayer(layer('layer-1'));
+
+      manager.setEnabled('layer-1', true);
+
+      expect(onVisibilityChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), true);
+      expect(() => vi.runAllTimers()).toThrow('adapter failed');
+    });
+
     it('unregisters the previous adapter when a new one is attached', () => {
       const { manager, map } = createManager();
       const next: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
