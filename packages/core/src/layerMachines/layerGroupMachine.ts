@@ -42,8 +42,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
       },
     },
     guards: {
-      isValidOpacity: (_, params: { opacity: number }) =>
-        isOpacityInRange(params.opacity),
+      isInvalidOpacity: (_, params: { opacity: number }) =>
+        !isOpacityInRange(params.opacity),
+      isNewOpacity: ({ context }, params: { opacity: number }) =>
+        context.opacity !== params.opacity,
     },
     actions: {
       'Notify Manager of opacity rejection': enqueueActions(
@@ -281,23 +283,26 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           },
         ],
       },
-      'LAYER.SET_OPACITY': [{
-        guard: { type: 'isValidOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
-        description: 'Set own opacity: recompute, and send the new computed opacity to the children',
-        actions: [
-          {
-            type: 'Change Layer Opacity',
+      'LAYER.SET_OPACITY': [
+        {
+          guard: { type: 'isInvalidOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
+          description: 'Reject an opacity outside 0 to 1 and report it to the manager',
+          actions: {
+            type: 'Notify Manager of opacity rejection',
             params: ({ event }) => event,
           },
-        ],
-      },
-      {
-        description: 'Reject an opacity outside 0 to 1 and report it to the manager',
-        actions: {
-          type: 'Notify Manager of opacity rejection',
-          params: ({ event }) => event,
         },
-      }],
+        {
+          guard: { type: 'isNewOpacity', params: ({ event }) => ({ opacity: event.opacity }) },
+          description: 'Set own opacity, unless it is unchanged: recompute, and send the new computed opacity to the children',
+          actions: [
+            {
+              type: 'Change Layer Opacity',
+              params: ({ event }) => event,
+            },
+          ],
+        },
+      ],
       'LAYER.SET_TIME_INFO': {
         description: 'Store new time info and report it to the manager',
         actions: [
