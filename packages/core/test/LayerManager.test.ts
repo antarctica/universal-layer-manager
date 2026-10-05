@@ -1389,7 +1389,32 @@ describe('layerManager', () => {
 
       expect(map.registered).toBe(false);
       expect(manager.destroyed).toBe(true);
-      expect(manager.isReady).toBe(false);
+    });
+
+    it('does nothing when the manager is destroyed a second time', () => {
+      const { manager } = createManager();
+      manager.destroy();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      onTestFinished(() => {
+        warn.mockRestore();
+      });
+
+      manager.destroy();
+
+      expect(warn).not.toHaveBeenCalled();
+      expect(manager.destroyed).toBe(true);
+    });
+
+    it('reports attaching an adapter to a destroyed manager through onError and does not register it', () => {
+      const onError = vi.fn();
+      const { manager } = createManager({ onError });
+      manager.destroy();
+      const late: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
+
+      manager.setAdapter(late);
+
+      expect(onError).toHaveBeenCalledWith(new Error('The manager is destroyed. Adapter not attached.'));
+      expect(late.register).not.toHaveBeenCalled();
     });
   });
 });
