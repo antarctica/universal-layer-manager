@@ -829,6 +829,28 @@ describe('layerManager', () => {
       expect(onOpacityChanged).not.toHaveBeenCalled();
     });
 
+    it('reports no opacity change for a layer whose computed opacity stays the same when its group fades', () => {
+      const onOpacityChanged = vi.fn();
+      const { manager } = createManager({ onOpacityChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 1 }) });
+      manager.addLayer(layer('transparent', { parentId: 'group-1', opacity: 0 }));
+
+      manager.setOpacity('group-1', 0.5);
+
+      expect(onOpacityChanged.mock.calls.map(([info]) => info.layerId)).toEqual(['group-1']);
+    });
+
+    it('reports no opacity change for a group whose computed opacity stays the same when its outer group fades', () => {
+      const onOpacityChanged = vi.fn();
+      const { manager } = createManager({ allowNestedGroupLayers: true, onOpacityChanged });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'outer', opacity: 1 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'inner', parentId: 'outer', opacity: 0 }) });
+
+      manager.setOpacity('outer', 0.5);
+
+      expect(onOpacityChanged.mock.calls.map(([info]) => info.layerId)).toEqual(['outer']);
+    });
+
     it('reports no change when a group is set to the opacity it already has', () => {
       const onOpacityChanged = vi.fn();
       const { manager } = createManager({ onOpacityChanged });

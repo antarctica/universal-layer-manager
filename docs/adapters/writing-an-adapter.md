@@ -25,6 +25,15 @@ An adapter is any object that implements `LayerManagerAdapter` from `@ulm/core`.
 
 To draw a map, `onVisibilityChanged` is enough: it says what should be showing. Use `onEnabledChanged` only if your adapter also needs to know about switches that don't change what is drawn, for example to keep a map library's own layer control in step.
 
+### Guarantees
+
+The manager calls an adapter in a predictable order, so your adapter doesn't need to guard against these cases:
+
++ **Added first, nothing after removal.** `onLayerAdded` is the first call for any layer or group. An adapter attached to a manager that already has layers receives `onLayerAdded` for each of them, then `onOrderChanged`. After `onLayerRemoved` for an ID, or after `unregister`, nothing more arrives for it.
++ **The order follows every structural change.** After every add, remove, move and reset, `onOrderChanged` receives every current layer ID, bottom to top. For a move, `onLayerMoved` comes after `onOrderChanged`.
++ **Only real changes are reported.** A change that leaves a value as it was, such as setting the current opacity or moving a layer to where it already is, sends nothing. The one exception is `updateLayerData`, which always reports, because the manager can't compare your data.
++ **Adapter first.** Each hook runs on the adapter before the matching options callback, so by the time your UI hears about a change, the map already shows it.
+
 ## A minimal adapter
 
 This adapter logs each call instead of changing a map. Copy it as a starting point, then replace each `console.log` with the matching call in your map library.
