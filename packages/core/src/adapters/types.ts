@@ -1,5 +1,4 @@
-import type { LayerManager } from '../LayerManager';
-import type { LayerContext, LayerGroupContext, LayerTimeInfo, ManagedItem } from '../types';
+import type { LayerContext, LayerGroupContext, LayerTimeInfo } from '../types';
 
 // ============================================================================
 // ADAPTER LAYER INFO
@@ -12,31 +11,16 @@ export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupC
 export type ManagedLayerInfo<TLayer = unknown, TGroup = TLayer> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
 
 // ============================================================================
-// ADAPTER CALLBACKS
-// Functions the adapter can call back into the LayerManager.
-// ============================================================================
-
-export interface LayerManagerCallbacks<TLayer, TGroup> {
-  /** Returns the current ordered top-level layer snapshot. */
-  getSnapshot: () => ManagedItem<TLayer, TGroup>[];
-  /** Returns a single managed item by ID, or undefined if not found. */
-  getLayer: (id: string) => ManagedItem<TLayer, TGroup> | undefined;
-}
-
-// ============================================================================
 // ADAPTER CONTRACT
 // Terra-draw-style interface: LayerManager calls adapter methods directly.
 // Adapters no longer subscribe to events; they receive them as method calls.
 // ============================================================================
 
 export interface LayerManagerAdapter<TLayer = unknown, TGroup = unknown> {
-  /**
-   * Called by LayerManager.start() (or setAdapter()) to give the adapter
-   * a reference back into the manager for querying state.
-   */
-  register?: (layerManager: LayerManager<TLayer, TGroup>, callbacks: LayerManagerCallbacks<TLayer, TGroup>) => void;
+  /** Called by setAdapter() when the adapter is attached, before it is told about existing layers. */
+  register?: () => void;
 
-  /** Called by LayerManager.dispose() or setAdapter(null) to clean up. */
+  /** Called by LayerManager.destroy() or setAdapter() when the adapter is detached or replaced, to clean up. */
   unregister?: () => void;
 
   /** Called when a new layer is added and ready. */

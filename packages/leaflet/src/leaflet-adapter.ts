@@ -1,8 +1,6 @@
 import type {
   LayerInfo,
-  LayerManager,
   LayerManagerAdapter,
-  LayerManagerCallbacks,
   ManagedLayerInfo,
 } from '@ulm/core';
 
@@ -45,10 +43,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // --------------------------------------------------------------------------
   // Lifecycle — called by LayerManager
   // --------------------------------------------------------------------------
-
-  register(_layerManager: LayerManager<TLayer, TGroup>, _callbacks: LayerManagerCallbacks<TLayer, TGroup>): void {
-    // Callbacks available for subclasses that need to query manager state.
-  }
 
   unregister(): void {
     for (const layer of this.leafletLayers.values()) {

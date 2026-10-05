@@ -106,7 +106,7 @@ Implement `LayerManagerAdapter` and attach it with `manager.setAdapter()`. Every
 
 | Method | Called when |
 |--------|-------------|
-| `register(manager, callbacks)` | The adapter is attached. `callbacks.getSnapshot()` returns the top-level items and `callbacks.getLayer(id)` returns one item |
+| `register()` | The adapter is attached, before it is told about existing layers |
 | `unregister()` | The adapter is detached, replaced, or the manager is destroyed |
 | `onLayerAdded(info)` | A layer or group was added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group was removed |
