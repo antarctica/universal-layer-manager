@@ -48,6 +48,9 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = unknown> {
   /** Called when a layer's visibility changes. */
   onVisibilityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean) => void;
 
+  /** Called when a layer or group is switched on or off, even while a group above hides it. */
+  onEnabledChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean) => void;
+
   /** Called when a layer's computed opacity changes. */
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
 

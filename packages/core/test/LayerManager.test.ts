@@ -605,6 +605,68 @@ describe('layerManager', () => {
 
       expect(map.visibleLayerIds()).toEqual(['inner', 'layer-1', 'outer']);
     });
+
+    it('reports a layer hidden by a switched-off group being switched off', () => {
+      const onEnabledChanged = vi.fn();
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onEnabledChanged });
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+
+      manager.setEnabled('layer-1', false);
+
+      expect(onEnabledChanged).toHaveBeenCalledTimes(1);
+      expect(onEnabledChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1', enabled: false, visible: false }), false);
+    });
+
+    it('tells the map that a layer hidden by a switched-off group is switched off', () => {
+      const { manager, map } = createManager();
+      manager.addGroup({ ...group('group-1'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
+
+      manager.setEnabled('layer-1', false);
+
+      expect(map.layers.get('layer-1')).toMatchObject({ enabled: false, visible: false });
+    });
+
+    it('reports a layer being switched on', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+      manager.addLayer({ ...layer('layer-1'), enabled: false });
+
+      manager.setEnabled('layer-1', true);
+
+      expect(onEnabledChanged.mock.calls).toEqual([[expect.objectContaining({ layerId: 'layer-1', enabled: true }), true]]);
+    });
+
+    it('reports a group being switched off and back on', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ onEnabledChanged });
+      manager.addGroup({ ...group('group-1'), enabled: true });
+
+      manager.setEnabled('group-1', false);
+      manager.setEnabled('group-1', true);
+
+      expect(onEnabledChanged.mock.calls).toEqual([
+        [expect.objectContaining({ layerId: 'group-1' }), false],
+        [expect.objectContaining({ layerId: 'group-1' }), true],
+      ]);
+    });
+
+    it('reports each switched-off group above a layer that is switched on', () => {
+      const onEnabledChanged = vi.fn();
+      const { manager } = createManager({ allowNestedGroupLayers: true, onEnabledChanged });
+      manager.addGroup({ ...group('outer'), enabled: false });
+      manager.addGroup({ ...group('inner', 'outer'), enabled: false });
+      manager.addLayer({ ...layer('layer-1', { parentId: 'inner' }), enabled: false });
+
+      manager.setEnabled('layer-1', true);
+
+      expect(onEnabledChanged.mock.calls.map(([info, enabled]) => [info.layerId, enabled])).toEqual([
+        ['layer-1', true],
+        ['inner', true],
+        ['outer', true],
+      ]);
+    });
   });
 
   describe('opacity', () => {

@@ -206,6 +206,15 @@ export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
           visible: event.visible,
         })),
       },
+      'CHILD.ENABLED_CHANGED': {
+        guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
+        description: 'A layer or group was switched on or off: report it, if the manager holds that layer',
+        actions: emit(({ event }) => ({
+          type: 'LAYER.ENABLED_CHANGED',
+          layerId: event.layerId,
+          enabled: event.enabled,
+        })),
+      },
       'CHILD.OPACITY_CHANGED': {
         guard: { type: 'isManagedLayer', params: ({ event }) => ({ layerId: event.layerId }) },
         description: 'A layer or group changed opacity: report it, if the manager holds that layer',

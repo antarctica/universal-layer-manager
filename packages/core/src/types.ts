@@ -135,6 +135,7 @@ export type LayerManagerEvent<TLayer, TGroup = TLayer>
 /** Notifications that layer and group actors send to their manager. Not for callers. */
 export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
   = | { type: 'CHILD.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
+    | { type: 'CHILD.ENABLED_CHANGED'; layerId: string; enabled: boolean }
     | { type: 'CHILD.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
     | { type: 'CHILD.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }
     | { type: 'CHILD.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup }
@@ -146,6 +147,7 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
     | { type: 'LAYER.ORDER_CHANGED'; layerOrder: string[] }
     | { type: 'LAYER.MOVED'; layerId: string; parentId: string | null }
     | { type: 'LAYER.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
+    | { type: 'LAYER.ENABLED_CHANGED'; layerId: string; enabled: boolean }
     | { type: 'LAYER.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
     | { type: 'LAYER.TIME_INFO_CHANGED'; layerId: string; timeInfo: LayerTimeInfo }
     | { type: 'LAYER.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup }

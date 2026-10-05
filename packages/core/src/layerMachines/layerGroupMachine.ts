@@ -13,6 +13,7 @@ import { assign, enqueueActions, setup } from 'xstate';
 import { isOpacityInRange, isSameTimeInfo } from '../utils';
 import {
   childVisibleNotice,
+  enabledChange,
   layerDataChange,
   opacityRejection,
   ownOpacityChange,
@@ -66,6 +67,10 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
           enqueue.sendTo(context.parentRef, childVisibleNotice(context));
         }
       }),
+      'Notify Manager of enabled change': enqueueActions(
+        ({ context, enqueue }, params: { enabled: boolean }) =>
+          enqueue.sendTo(context.layerManagerRef, enabledChange(context, params.enabled).notification),
+      ),
       'Notify Manager of visibility change': enqueueActions(
         ({ context, enqueue }, params: { visible: boolean }) => {
           enqueue.sendTo(context.layerManagerRef, visibilityChange(context, params.visible).notification);
@@ -232,7 +237,11 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.DISABLED': {
             target: 'disabled',
-            description: 'Switched off: hide this group and its children, which stay switched on',
+            description: 'Switched off: hide this group and its children, which stay switched on, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: false },
+            },
           },
         },
       },
@@ -241,11 +250,19 @@ export function layerGroupMachine<TLayer, TGroup = TLayer>() {
         on: {
           'LAYER.ENABLED': {
             target: 'enabled',
-            description: 'Switched on: show, tell the parent group, and show the children that are switched on',
+            description: 'Switched on: show, tell the parent group, show the children that are switched on, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: true },
+            },
           },
           'CHILD.VISIBLE': {
             target: 'enabled',
-            description: 'A child was switched on: switch this group on so the child can show',
+            description: 'A child was switched on: switch this group on so the child can show, and report it to the manager',
+            actions: {
+              type: 'Notify Manager of enabled change',
+              params: { enabled: true },
+            },
           },
           'PARENT.CHANGED': {
             description: 'Moved while switched off: stay off',
