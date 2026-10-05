@@ -184,7 +184,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
   /** Moves the layer or group with the given `layerId` one step towards the top of its parent. Does nothing at the top. */
   raiseLayer(layerId: string): void {
     const placement = findLayerPlacement(this._actor.getSnapshot().context, layerId);
-    if (!placement || placement.index === placement.siblingCount - 1) {
+    if (!placement) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Layer not moved.`));
+      return;
+    }
+    if (placement.index === placement.siblingCount - 1) {
       return;
     }
     this.moveLayer(layerId, { parentId: placement.parentId, index: placement.index + 1 });
@@ -193,7 +197,11 @@ export class LayerManager<TLayer, TGroup = undefined> {
   /** Moves the layer or group with the given `layerId` one step towards the bottom of its parent. Does nothing at the bottom. */
   lowerLayer(layerId: string): void {
     const placement = findLayerPlacement(this._actor.getSnapshot().context, layerId);
-    if (!placement || placement.index === 0) {
+    if (!placement) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Layer not moved.`));
+      return;
+    }
+    if (placement.index === 0) {
       return;
     }
     this.moveLayer(layerId, { parentId: placement.parentId, index: placement.index - 1 });
@@ -206,6 +214,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   setEnabled(layerId: string, enabled: boolean): void {
     const managed = this.getLayer(layerId);
     if (!managed) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Layer not switched ${enabled ? 'on' : 'off'}.`));
       return;
     }
     managed.layerActor.send(enabled ? { type: 'LAYER.ENABLED' } : { type: 'LAYER.DISABLED' });
@@ -218,6 +227,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   showLayer(layerId: string): void {
     const managed = this.getLayer(layerId);
     if (!managed) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Layer not shown.`));
       return;
     }
     managed.layerActor.send({ type: 'LAYER.SHOW' });
@@ -227,6 +237,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   setOpacity(layerId: string, opacity: number): void {
     const managed = this.getLayer(layerId);
     if (!managed) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Opacity not set.`));
       return;
     }
     managed.layerActor.send({ type: 'LAYER.SET_OPACITY', opacity });
@@ -236,6 +247,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   setTimeInfo(layerId: string, timeInfo: LayerTimeInfo): void {
     const managed = this.getLayer(layerId);
     if (!managed) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Time info not set.`));
       return;
     }
     managed.layerActor.send({ type: 'LAYER.SET_TIME_INFO', timeInfo });
@@ -245,6 +257,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   updateLayerData(layerId: string, layerData: TLayer | TGroup): void {
     const managed = this.getLayer(layerId);
     if (!managed) {
+      this._options.onError?.(new Error(`Unable to find layer ${layerId}. Layer data not updated.`));
       return;
     }
     managed.layerActor.send({ type: 'LAYER.SET_LAYER_DATA', layerData: layerData as TLayer & TGroup });
