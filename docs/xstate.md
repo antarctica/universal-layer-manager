@@ -35,7 +35,7 @@ import type { LayerMachineActor } from '@ulm/core';
 import { useSelector } from '@xstate/react';
 import * as React from 'react';
 
-function LayerRow({ layerActor }: { layerActor: LayerMachineActor<LayerData, undefined> }) {
+function LayerRow({ layerActor }: { layerActor: LayerMachineActor<LayerData> }) {
   // each selector re-renders this row only when that value changes on this layer
   const layerName = useSelector(layerActor, (state) => state.context.layerName);
   const isEnabled = useSelector(layerActor, (state) => state.hasTag('enabled'));
@@ -63,7 +63,7 @@ A group row works the same way, using the group's actor. It also subscribes to t
 ```tsx
 import type { LayerGroupMachineActor } from '@ulm/core';
 
-function GroupRow({ groupActor }: { groupActor: LayerGroupMachineActor<LayerData, undefined> }) {
+function GroupRow({ groupActor }: { groupActor: LayerGroupMachineActor<LayerData> }) {
   const layerName = useSelector(groupActor, (state) => state.context.layerName);
   const isEnabled = useSelector(groupActor, (state) => state.hasTag('enabled'));
   // re-renders only when this group's own order changes

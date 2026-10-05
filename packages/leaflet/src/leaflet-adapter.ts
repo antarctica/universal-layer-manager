@@ -27,7 +27,7 @@ function placeInPane(layer: L.Layer, pane: string): void {
   }
 }
 
-export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = TLayer>
+export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: L.Map;
   private readonly options: LeafletAdapterOptions<TLayer>;

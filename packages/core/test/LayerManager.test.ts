@@ -1301,6 +1301,18 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
+    it('accepts options and an adapter typed with only the layer data type', () => {
+      const options: LayerManagerOptions<TestLayerData> = { onLayerAdded: vi.fn() };
+      const adapter: LayerManagerAdapter<TestLayerData> = { onLayerAdded: vi.fn() };
+      const manager = new LayerManager<TestLayerData>(options);
+
+      manager.setAdapter(adapter);
+      manager.addLayer(layer('layer-1'));
+
+      expect(options.onLayerAdded).toHaveBeenCalledTimes(1);
+      expect(adapter.onLayerAdded).toHaveBeenCalledTimes(1);
+    });
+
     it('still calls the options callback when an adapter hook throws, and still reports the error', () => {
       vi.useFakeTimers();
       onTestFinished(() => {

@@ -4,11 +4,11 @@ import type { LayerContext, LayerGroupContext, LayerTimeInfo } from '../types';
 // ADAPTER LAYER INFO
 // Stable, non-XState shape passed to adapter methods and consumer callbacks.
 // ============================================================================
-export type LayerInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
+export type LayerInfo<TLayer = unknown, TGroup = undefined> = Omit<LayerContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
-export type LayerGroupInfo<TLayer = unknown, TGroup = TLayer> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
+export type LayerGroupInfo<TLayer = unknown, TGroup = undefined> = Omit<LayerGroupContext<TLayer, TGroup>, 'layerManagerRef' | 'parentRef' | 'children' | 'childLayerOrder' | 'startState' | 'parentOpacity'> & { enabled: boolean; visible: boolean; parentId: string | null };
 
-export type ManagedLayerInfo<TLayer = unknown, TGroup = TLayer> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
+export type ManagedLayerInfo<TLayer = unknown, TGroup = undefined> = LayerInfo<TLayer, TGroup> | LayerGroupInfo<TLayer, TGroup>;
 
 // ============================================================================
 // ADAPTER CONTRACT
@@ -16,7 +16,7 @@ export type ManagedLayerInfo<TLayer = unknown, TGroup = TLayer> = LayerInfo<TLay
 // Adapters no longer subscribe to events; they receive them as method calls.
 // ============================================================================
 
-export interface LayerManagerAdapter<TLayer = unknown, TGroup = unknown> {
+export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> {
   /** Called by setAdapter() when the adapter is attached, before it is told about existing layers. */
   register?: () => void;
 

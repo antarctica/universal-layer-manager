@@ -46,7 +46,7 @@ interface LayerData {
   url: string;
 }
 
-export function createMyAdapter(): LayerManagerAdapter<LayerData, undefined> {
+export function createMyAdapter(): LayerManagerAdapter<LayerData> {
   // the layers this adapter has created on the map
   const mapLayers = new Set<string>();
 
@@ -148,7 +148,7 @@ interface RoadData {
 // the road types that are switched on
 const visibleRoadTypes = new Set<string>();
 
-const roadsAdapter: LayerManagerAdapter<RoadData, undefined> = {
+const roadsAdapter: LayerManagerAdapter<RoadData> = {
   onVisibilityChanged(info, visible) {
     if (info.layerType !== 'layer') {
       return;
