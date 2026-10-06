@@ -1,0 +1,22 @@
+.page {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.panel {
+  width: 420px;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+}
+
+.title,
+.intro {
+  margin-top: 0;
+}
+
+.map {
+  flex: 1;
+  position: relative;
+}

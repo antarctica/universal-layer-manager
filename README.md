@@ -78,7 +78,8 @@ Next, read [Getting started](https://antarctica.github.io/universal-layer-manage
 | Example | Description |
 |---------|-------------|
 | [`examples/simple`](./examples/simple/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/simple/)) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
-| [`examples/leaflet`](./examples/leaflet/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet/)) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering |
+| [`examples/leaflet`](./examples/leaflet/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet/)) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering, read from the layer tree |
+| [`examples/leaflet-xstate`](./examples/leaflet-xstate/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/)) | Advanced: the same example built on the layer actors with `@xstate/react` |
 
 To run them locally:
 
@@ -97,8 +98,9 @@ packages/
   core/       @ulm/core — state machine library
   leaflet/    @ulm/leaflet — Leaflet adapter
 examples/
-  simple/     vanilla TypeScript example
-  leaflet/    React + Leaflet example
+  simple/          vanilla TypeScript example
+  leaflet/         React + Leaflet example
+  leaflet-xstate/  the same example built on the actors (advanced)
 docs/         documentation site (VitePress)
 ```
 

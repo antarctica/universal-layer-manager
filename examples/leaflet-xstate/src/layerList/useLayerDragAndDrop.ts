@@ -1,8 +1,8 @@
-import type { LayerManagerContext, MoveLayerTarget } from '@ulm/core';
-import type { LayerData } from '../../layerManager/LayerManagerProvider';
+import type { MoveLayerTarget } from '@ulm/core';
+import type { ManagerRef } from '../layers/LayerManagerContext';
 import { findLayerPlacement } from '@ulm/core';
 import * as React from 'react';
-import { useLayerManager } from '../../layerManager/LayerManagerProvider';
+import { LayerManagerContext } from '../layers/LayerManagerContext';
 
 export type DropZone = 'above' | 'below' | 'into';
 
@@ -21,7 +21,7 @@ function getDropZone(event: React.DragEvent<HTMLElement>, isGroup: boolean): Dro
 // The panel lists layers top first, but moveLayer counts from the bottom, and its index is
 // where the layer ends up once it has left its old place.
 function getMoveTarget(
-  context: LayerManagerContext<LayerData, undefined>,
+  managerRef: ManagerRef,
   draggedId: string,
   targetId: string,
   zone: DropZone,
@@ -29,6 +29,7 @@ function getMoveTarget(
   if (zone === 'into') {
     return { parentId: targetId, position: 'top' };
   }
+  const { context } = managerRef.getSnapshot();
   const dragged = findLayerPlacement(context, draggedId);
   const target = findLayerPlacement(context, targetId);
   if (!dragged || !target) {
@@ -41,7 +42,7 @@ function getMoveTarget(
 
 // Drag a row by its handle and drop it above, below or into another row.
 export function useLayerDragAndDrop(layerId: string, isGroup: boolean) {
-  const manager = useLayerManager();
+  const managerRef = LayerManagerContext.useActorRef();
   const [dropZone, setDropZone] = React.useState<DropZone | null>(null);
 
   const handleProps = {
@@ -76,9 +77,9 @@ export function useLayerDragAndDrop(layerId: string, isGroup: boolean) {
       if (!draggedId || draggedId === layerId) {
         return;
       }
-      const target = getMoveTarget(manager.actor.getSnapshot().context, draggedId, layerId, getDropZone(event, isGroup));
+      const target = getMoveTarget(managerRef, draggedId, layerId, getDropZone(event, isGroup));
       if (target) {
-        manager.moveLayer(draggedId, target);
+        managerRef.send({ type: 'LAYER.MOVE', layerId: draggedId, ...target });
       }
     },
   };
