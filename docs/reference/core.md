@@ -155,6 +155,8 @@ For [working with XState](../xstate) directly. The manager actor emits these eve
 | Function | Description |
 |----------|-------------|
 | `createLayerManagerMachine()` | Create the manager machine yourself, without the `LayerManager` class |
+| `connectAdapter(managerActor, adapter)` | Attach an adapter to a manager actor: replay its layers, then report every change. Returns a function that disconnects it |
+| `createLayerTreeReader(managerActor)` | Return a function that reads a manager actor's [layer tree](#layer-tree), with the same caching as `getTree()` |
 | `findManagedLayerById(layers, layerId)` | Find a managed item in the manager's `layers`, for example inside a selector |
 | `getLayerDataFromLayerId(layers, layerId)` | Read an item's `layerData` from the manager's `layers` |
 | `getTopLevelLayersInOrder(childLayerOrder, layers)` | Turn the manager's top-level order into a list of managed items |

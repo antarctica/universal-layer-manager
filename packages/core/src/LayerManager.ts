@@ -1,10 +1,13 @@
-import type { InspectionEvent, Observer, SnapshotFrom } from 'xstate';
-import type { LayerManagerAdapter, LayerManagerHooks, ManagedLayerInfo } from './adapters/types';
+import type { InspectionEvent, Observer } from 'xstate';
+import type { LayerManagerAdapter, LayerManagerHooks } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
-import type { AddGroupLayerParams, AddLayerParams, LayerActor, LayerManagerContext, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
+import type { LayerTree } from './layerTree';
+import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
 import { createActor } from 'xstate';
+import { connectAdapter, connectHooks } from './connectAdapter';
 import { createLayerManagerMachine } from './layerManagerMachines/layerManagerMachine';
+import { createLayerTreeReader } from './layerTree';
 import { findLayerPlacement, findManagedLayerById } from './utils';
 
 // ============================================================================
@@ -18,14 +21,6 @@ export interface LayerManagerOptions<TLayer, TGroup = undefined> extends LayerMa
   inspect?: Observer<InspectionEvent> | ((inspectionEvent: InspectionEvent) => void);
   /** Called when a change is rejected, such as an unknown layer ID or an opacity outside 0 to 1. `error.message` says why. */
   onError?: (error: Error) => void;
-}
-
-/** The layer tree: every layer and group as plain data. Treat it as read-only: the manager replaces it on each change. */
-export interface LayerTree<TLayer, TGroup = undefined> {
-  /** The IDs of the top-level layers and groups, bottom first. */
-  readonly rootIds: readonly string[];
-  /** Every layer and group by ID. */
-  readonly layers: Readonly<Record<string, ManagedLayerInfo<TLayer, TGroup>>>;
 }
 
 // ============================================================================
@@ -43,19 +38,10 @@ export interface LayerTree<TLayer, TGroup = undefined> {
 export class LayerManager<TLayer, TGroup = undefined> {
   private readonly _actor: LayerManagerActor<TLayer, TGroup>;
   private readonly _options: LayerManagerOptions<TLayer, TGroup>;
-  private _adapter: LayerManagerAdapter<TLayer, TGroup> | null = null;
-  /** Cleanup functions for each active XState actor event subscription. */
-  private readonly _subscriptions: Array<() => void> = [];
+  private _disconnectAdapter: (() => void) | null = null;
+  private _disconnectCallbacks: () => void = () => {};
   private _destroyed = false;
-  /** The last tree, with the XState snapshots it was built from. */
-  private _cache: {
-    managerSnapshot: SnapshotFrom<LayerManagerActor<TLayer, TGroup>>;
-    layerSnapshots: SnapshotFrom<LayerActor<TLayer, TGroup>>[];
-    tree: LayerTree<TLayer, TGroup>;
-  } | null = null;
-
-  /** Each layer's info, keyed by the XState snapshot it was built from. */
-  private readonly _infos = new WeakMap<SnapshotFrom<LayerActor<TLayer, TGroup>>, ManagedLayerInfo<TLayer, TGroup>>();
+  private readonly _readTree: () => LayerTree<TLayer, TGroup>;
 
   constructor(options: LayerManagerOptions<TLayer, TGroup> = {}) {
     this._options = options;
@@ -63,6 +49,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
       input: { allowNestedGroupLayers: this._options.allowNestedGroupLayers ?? false },
       inspect: this._options.inspect,
     });
+    this._readTree = createLayerTreeReader(this._actor);
     this.start();
   }
 
@@ -88,18 +75,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
    * The same object is returned until something changes, and a layer that did not change keeps the
    * same info object, so it suits `useSyncExternalStore`.
    */
-  getTree = (): LayerTree<TLayer, TGroup> => {
-    const managerSnapshot = this._actor.getSnapshot();
-    const { layers } = managerSnapshot.context;
-    const cache = this._cache;
-    // The same manager snapshot holds the same layers, so only each layer's own snapshot can differ.
-    if (cache?.managerSnapshot === managerSnapshot && layers.every((managed, index) => managed.layerActor.getSnapshot() === cache.layerSnapshots[index])) {
-      return cache.tree;
-    }
-    const tree = this._selectTree(managerSnapshot.context);
-    this._cache = { managerSnapshot, layerSnapshots: layers.map((managed) => managed.layerActor.getSnapshot()), tree };
-    return tree;
-  };
+  getTree = (): LayerTree<TLayer, TGroup> => this._readTree();
 
   /**
    * Calls `listener` whenever the manager handles an event, so a reader can call `getTree()` again.
@@ -115,10 +91,10 @@ export class LayerManager<TLayer, TGroup = undefined> {
   // Lifecycle
   // --------------------------------------------------------------------------
 
-  /** Starts the XState actor and wires event subscriptions. */
+  /** Starts the XState actor, and connects the options callbacks to it. */
   private start(): void {
     this._actor.start();
-    this._wireSubscriptions();
+    this._connectCallbacks();
   }
 
   /** Resets layer state, unregisters the adapter, cancels all subscriptions, and stops the actor. */
@@ -126,8 +102,8 @@ export class LayerManager<TLayer, TGroup = undefined> {
     if (this._destroyed) {
       return;
     }
-    this._cleanupSubscriptions();
-    this._adapter?.unregister?.();
+    this._disconnectCallbacks();
+    this._disconnectAdapter?.();
     this.reset();
     this._actor.stop();
     this._destroyed = true;
@@ -153,11 +129,10 @@ export class LayerManager<TLayer, TGroup = undefined> {
       }
       return;
     }
-    this._adapter?.unregister?.();
-    this._adapter = adapter;
-    if (adapter) {
-      this._registerAdapter(adapter);
-    }
+    this._disconnectAdapter?.();
+    this._disconnectAdapter = adapter ? connectAdapter(this._actor, adapter) : null;
+    // Connected again after the adapter, so the adapter hears about each change first.
+    this._connectCallbacks();
   }
 
   // --------------------------------------------------------------------------
@@ -273,196 +248,19 @@ export class LayerManager<TLayer, TGroup = undefined> {
   // Private helpers
   // --------------------------------------------------------------------------
 
-  /** Subscribes to machine-emitted events and forwards them to the adapter and options callbacks. */
-  private _wireSubscriptions(): void {
-    const addedSub = this._actor.on('LAYER.ADDED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onLayerAdded?.(info);
-      } finally {
-        this._options.onLayerAdded?.(info);
-      }
-    });
-    this._subscriptions.push(() => addedSub.unsubscribe());
-
-    const removedSub = this._actor.on('LAYER.REMOVED', (event) => {
-      try {
-        this._adapter?.onLayerRemoved?.(event.layerId);
-      } finally {
-        this._options.onLayerRemoved?.(event.layerId);
-      }
-    });
-    this._subscriptions.push(() => removedSub.unsubscribe());
-
-    const visibilitySub = this._actor.on('LAYER.VISIBILITY_CHANGED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onVisibilityChanged?.(info, event.visible);
-      } finally {
-        this._options.onVisibilityChanged?.(info, event.visible);
-      }
-    });
-    this._subscriptions.push(() => visibilitySub.unsubscribe());
-
-    const enabledSub = this._actor.on('LAYER.ENABLED_CHANGED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onEnabledChanged?.(info, event.enabled);
-      } finally {
-        this._options.onEnabledChanged?.(info, event.enabled);
-      }
-    });
-    this._subscriptions.push(() => enabledSub.unsubscribe());
-
-    const opacitySub = this._actor.on('LAYER.OPACITY_CHANGED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onOpacityChanged?.(info, event.computedOpacity);
-      } finally {
-        this._options.onOpacityChanged?.(info, event.computedOpacity);
-      }
-    });
-    this._subscriptions.push(() => opacitySub.unsubscribe());
-
-    const timeInfoSub = this._actor.on('LAYER.TIME_INFO_CHANGED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onTimeInfoChanged?.(info, event.timeInfo);
-      } finally {
-        this._options.onTimeInfoChanged?.(info, event.timeInfo);
-      }
-    });
-    this._subscriptions.push(() => timeInfoSub.unsubscribe());
-
-    const layerDataSub = this._actor.on('LAYER.LAYER_DATA_CHANGED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onLayerDataChanged?.(info);
-      } finally {
-        this._options.onLayerDataChanged?.(info);
-      }
-    });
-    this._subscriptions.push(() => layerDataSub.unsubscribe());
-
-    const orderSub = this._actor.on('LAYER.ORDER_CHANGED', (event) => {
-      try {
-        this._adapter?.onOrderChanged?.(event.layerOrder);
-      } finally {
-        this._options.onOrderChanged?.(event.layerOrder);
-      }
-    });
-    this._subscriptions.push(() => orderSub.unsubscribe());
-
-    const movedSub = this._actor.on('LAYER.MOVED', (event) => {
-      const info = this.getTree().layers[event.layerId];
-      if (!info) {
-        return;
-      }
-      try {
-        this._adapter?.onLayerMoved?.(info);
-      } finally {
-        this._options.onLayerMoved?.(info);
-      }
-    });
-    this._subscriptions.push(() => movedSub.unsubscribe());
-
-    const rejectedSub = this._actor.on('LAYER.REJECTED', (event) => {
-      this._options.onError?.(new Error(event.reason));
-    });
-    this._subscriptions.push(() => rejectedSub.unsubscribe());
-  }
-
-  /** Builds the tree from the manager context, reusing each layer's info while its XState snapshot is unchanged. */
-  private _selectTree(context: LayerManagerContext<TLayer, TGroup>): LayerTree<TLayer, TGroup> {
-    const layers: Record<string, ManagedLayerInfo<TLayer, TGroup>> = {};
-    for (const managed of context.layers) {
-      const layerSnapshot = managed.layerActor.getSnapshot();
-      const info = this._infos.get(layerSnapshot) ?? toInfo(managed);
-      this._infos.set(layerSnapshot, info);
-      layers[info.layerId] = info;
-    }
-    const previous = this._cache?.tree;
-    const rootIds = previous && sameItems(previous.rootIds, context.childLayerOrder) ? previous.rootIds : [...context.childLayerOrder];
-    return { rootIds, layers };
+  /** Connects the options callbacks, `onError` included, to the manager, replacing any earlier connection. */
+  private _connectCallbacks(): void {
+    this._disconnectCallbacks();
+    const disconnectHooks = connectHooks(this._actor, this._options, this.getTree);
+    const rejections = this._actor.on('LAYER.REJECTED', ({ reason }) => this._options.onError?.(new Error(reason)));
+    this._disconnectCallbacks = () => {
+      disconnectHooks();
+      rejections.unsubscribe();
+    };
   }
 
   /** The layer's or group's actor, to send it a command. */
   private _find(layerId: string): ManagedItem<TLayer, TGroup> | undefined {
     return findManagedLayerById(this._actor.getSnapshot().context.layers, layerId);
   }
-
-  private _cleanupSubscriptions(): void {
-    for (const unsub of this._subscriptions) {
-      unsub();
-    }
-    this._subscriptions.length = 0;
-  }
-
-  private _registerAdapter(adapter: LayerManagerAdapter<TLayer, TGroup>): void {
-    adapter.register?.();
-    const { rootIds, layers } = this.getTree();
-    const layerOrder = flattenIds(rootIds, layers);
-    for (const layerId of layerOrder) {
-      const info = layers[layerId];
-      if (info) {
-        adapter.onLayerAdded?.(info);
-      }
-    }
-    adapter.onOrderChanged?.(layerOrder);
-  }
-}
-
-/**
- * Builds one layer's or group's info from its actor's snapshot alone. The manager sets the parent ref
- * and a group's child order, so they already hold the layer's place in the tree.
- */
-function toInfo<TLayer, TGroup>(managed: ManagedItem<TLayer, TGroup>): ManagedLayerInfo<TLayer, TGroup> {
-  const snapshot = managed.layerActor.getSnapshot();
-  const { layerId, layerName, opacity, computedOpacity, timeInfo, parentRef } = snapshot.context;
-  const common = {
-    layerId,
-    layerName,
-    opacity,
-    computedOpacity,
-    timeInfo,
-    enabled: snapshot.hasTag('enabled'),
-    visible: snapshot.hasTag('visible'),
-    parentId: parentRef?.id ?? null,
-  };
-  if (managed.type === 'layer') {
-    const { layerData, listMode } = managed.layerActor.getSnapshot().context;
-    return { ...common, layerType: 'layer', layerData, listMode };
-  }
-  const { layerData, listMode, childLayerOrder } = managed.layerActor.getSnapshot().context;
-  return { ...common, layerType: 'layerGroup', layerData, listMode, childIds: [...childLayerOrder] };
-}
-
-function sameItems(a: readonly unknown[], b: readonly unknown[]): boolean {
-  return a.length === b.length && a.every((item, index) => item === b[index]);
-}
-
-/** Every ID from the given ones down, each group followed by its children, bottom first. */
-function flattenIds<TLayer, TGroup>(ids: readonly string[], layers: LayerTree<TLayer, TGroup>['layers']): string[] {
-  return ids.flatMap((id) => {
-    const info = layers[id];
-    return [id, ...(info?.layerType === 'layerGroup' ? flattenIds(info.childIds, layers) : [])];
-  });
 }

@@ -1413,6 +1413,16 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
+    it('tells the adapter about a change before the options callback', () => {
+      const calls: string[] = [];
+      const manager = new LayerManager<TestLayerData, TestLayerData>({ onVisibilityChanged: () => calls.push('options') });
+      manager.setAdapter({ onVisibilityChanged: () => calls.push('adapter') });
+
+      manager.addLayer({ ...layer('layer-1'), visible: true });
+
+      expect(calls).toEqual(['adapter', 'options']);
+    });
+
     it('accepts options and an adapter typed with only the layer data type', () => {
       const options: LayerManagerOptions<TestLayerData> = { onLayerAdded: vi.fn() };
       const adapter: LayerManagerAdapter<TestLayerData> = { onLayerAdded: vi.fn() };
