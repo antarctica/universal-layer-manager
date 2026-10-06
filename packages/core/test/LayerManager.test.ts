@@ -10,10 +10,10 @@ import { monitorContract } from './utils/contract-monitor';
 import { createTestLayerConfig, createTestLayerGroupConfig } from './utils/layer-manager-helpers';
 import { createMapModel } from './utils/map-model';
 
-type TestManager = LayerManager<TestLayerData, TestLayerData>;
+type TestManager = LayerManager<TestLayerData>;
 
-function createManager(options: LayerManagerOptions<TestLayerData, TestLayerData> = {}) {
-  const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>(options);
+function createManager(options: LayerManagerOptions<TestLayerData> = {}) {
+  const manager: TestManager = new LayerManager<TestLayerData>(options);
   const map = createMapModel<TestLayerData>();
   const monitor = monitorContract(map);
   manager.setAdapter(monitor.adapter);
@@ -44,7 +44,7 @@ function layer(layerId: string, overrides: Partial<LayerConfig<TestLayerData>> =
 }
 
 function group(layerId: string, parentId: string | null = null) {
-  return { layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId, parentId }) };
+  return { layerConfig: createTestLayerGroupConfig({ layerId, parentId }) };
 }
 
 function topLevelIds(manager: TestManager): string[] {
@@ -344,8 +344,8 @@ describe('layerManager', () => {
 
     it('combines a moved layer\'s opacity with its new group\'s opacity', () => {
       const { manager, map } = createManager();
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-2', opacity: 0.25 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-2', opacity: 0.25 }) });
       manager.addLayer(layer('c1', { parentId: 'group-1', opacity: 0.8 }));
 
       manager.moveLayer('c1', { parentId: 'group-2' });
@@ -355,9 +355,9 @@ describe('layerManager', () => {
 
     it('updates the computed opacity of a moved group\'s layers', () => {
       const { manager, map } = createManager({ allowNestedGroupLayers: true });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-2', opacity: 0.25 }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'inner', parentId: 'group-1', opacity: 0.8 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-2', opacity: 0.25 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'group-1', opacity: 0.8 }) });
       manager.addLayer(layer('c1', { parentId: 'inner', opacity: 0.5 }));
 
       manager.moveLayer('inner', { parentId: 'group-2' });
@@ -369,8 +369,8 @@ describe('layerManager', () => {
     it('reports opacity after a move only when the computed opacity changes', () => {
       const onOpacityChanged = vi.fn();
       const { manager } = createManager({ onOpacityChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-2', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-2', opacity: 0.5 }) });
       manager.addLayer(layer('c1', { parentId: 'group-1' }));
 
       manager.moveLayer('c1', { parentId: 'group-2' });
@@ -467,7 +467,7 @@ describe('layerManager', () => {
     it('reports a moved layer with its parent to onLayerMoved and the adapter', () => {
       const onLayerMoved = vi.fn();
       const adapterOnLayerMoved = vi.fn();
-      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>({ onLayerMoved });
+      const manager: TestManager = new LayerManager<TestLayerData>({ onLayerMoved });
       manager.setAdapter({ onLayerMoved: adapterOnLayerMoved });
       manager.addGroup(group('group-1'));
       manager.addLayer({ ...layer('c1', { parentId: 'group-1' }), position: 'top' });
@@ -496,7 +496,7 @@ describe('layerManager', () => {
   describe('adding layers', () => {
     it('reports each added layer with its configuration', () => {
       const { manager, map } = createManager();
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
 
       manager.addLayer(layer('layer-1', {
         parentId: 'group-1',
@@ -688,7 +688,7 @@ describe('layerManager', () => {
 
     it('reports a layer hidden by a switched-off group being switched off', () => {
       const onEnabledChanged = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onEnabledChanged });
+      const manager = new LayerManager<TestLayerData>({ onEnabledChanged });
       manager.addGroup({ ...group('group-1'), enabled: false });
       manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), enabled: true });
 
@@ -865,7 +865,7 @@ describe('layerManager', () => {
 
     it('combines a layer\'s new opacity with its group\'s current opacity', () => {
       const { manager, map } = createManager();
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
       manager.addLayer(layer('layer-1', { parentId: 'group-1' }));
 
       manager.setOpacity('layer-1', 0.8);
@@ -876,7 +876,7 @@ describe('layerManager', () => {
     it('updates the computed opacity through nested groups', () => {
       const { manager, map } = createManager({ allowNestedGroupLayers: true });
       manager.addGroup(group('outer'));
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'inner', parentId: 'outer', opacity: 0.8 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer', opacity: 0.8 }) });
       manager.addLayer(layer('layer-1', { parentId: 'inner', opacity: 0.5 }));
 
       manager.setOpacity('outer', 0.5);
@@ -912,7 +912,7 @@ describe('layerManager', () => {
     it('reports no opacity change for a layer whose computed opacity stays the same when its group fades', () => {
       const onOpacityChanged = vi.fn();
       const { manager } = createManager({ onOpacityChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 1 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 1 }) });
       manager.addLayer(layer('transparent', { parentId: 'group-1', opacity: 0 }));
 
       manager.setOpacity('group-1', 0.5);
@@ -923,8 +923,8 @@ describe('layerManager', () => {
     it('reports no opacity change for a group whose computed opacity stays the same when its outer group fades', () => {
       const onOpacityChanged = vi.fn();
       const { manager } = createManager({ allowNestedGroupLayers: true, onOpacityChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'outer', opacity: 1 }) });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'inner', parentId: 'outer', opacity: 0 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'outer', opacity: 1 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'inner', parentId: 'outer', opacity: 0 }) });
 
       manager.setOpacity('outer', 0.5);
 
@@ -934,7 +934,7 @@ describe('layerManager', () => {
     it('reports no change when a group is set to the opacity it already has', () => {
       const onOpacityChanged = vi.fn();
       const { manager } = createManager({ onOpacityChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
       manager.addLayer(layer('layer-1', { parentId: 'group-1', opacity: 0.8 }));
 
       manager.setOpacity('group-1', 0.5);
@@ -975,7 +975,7 @@ describe('layerManager', () => {
     it('reports a group opacity outside 0 to 1 through onError and keeps the opacity of the group and its layers', () => {
       const onError = vi.fn();
       const { manager, map } = createManager({ onError });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 0.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 0.5 }) });
       manager.addLayer(layer('layer-1', { parentId: 'group-1', opacity: 0.8 }));
 
       manager.setOpacity('group-1', 1.5);
@@ -1034,7 +1034,7 @@ describe('layerManager', () => {
     it('reports no change when a group is set to equal time info', () => {
       const onTimeInfoChanged = vi.fn();
       const { manager } = createManager({ onTimeInfoChanged });
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', timeInfo: newYearsDay }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', timeInfo: newYearsDay }) });
 
       manager.setTimeInfo('group-1', { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') });
 
@@ -1081,12 +1081,14 @@ describe('layerManager', () => {
     });
 
     it('passes a group\'s new data to the adapter', () => {
-      const { manager, map } = createManager();
-      manager.addGroup(group('group-1'));
+      const manager = new LayerManager<TestLayerData, { legend: string }>();
+      const map = createMapModel<TestLayerData, { legend: string }>();
+      manager.setAdapter(map);
+      manager.addGroup({ layerConfig: { ...createTestLayerGroupConfig({ layerId: 'group-1' }), layerData: { legend: 'old' } } });
 
-      manager.updateLayerData('group-1', { test: 'group-updated' });
+      manager.updateLayerData('group-1', { legend: 'new' });
 
-      expect(map.layers.get('group-1')?.layerData).toEqual({ test: 'group-updated' });
+      expect(map.layers.get('group-1')?.layerData).toEqual({ legend: 'new' });
     });
   });
 
@@ -1195,7 +1197,7 @@ describe('layerManager', () => {
       const onError = vi.fn();
       const { manager, map } = createManager({ onError });
 
-      manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 1.5 }) });
+      manager.addGroup({ layerConfig: createTestLayerGroupConfig({ layerId: 'group-1', opacity: 1.5 }) });
 
       expect(onError).toHaveBeenCalledWith(new Error('Opacity 1.5 for layer group-1 must be a number between 0 and 1. Layer not added.'));
       expect(manager.getTree().rootIds).toEqual([]);
@@ -1415,7 +1417,7 @@ describe('layerManager', () => {
   describe('adapter', () => {
     it('tells the adapter about a change before the options callback', () => {
       const calls: string[] = [];
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onVisibilityChanged: () => calls.push('options') });
+      const manager = new LayerManager<TestLayerData>({ onVisibilityChanged: () => calls.push('options') });
       manager.setAdapter({ onVisibilityChanged: () => calls.push('adapter') });
 
       manager.addLayer({ ...layer('layer-1'), visible: true });
@@ -1441,7 +1443,7 @@ describe('layerManager', () => {
         vi.useRealTimers();
       });
       const onVisibilityChanged = vi.fn();
-      const manager = new LayerManager<TestLayerData, TestLayerData>({ onVisibilityChanged });
+      const manager = new LayerManager<TestLayerData>({ onVisibilityChanged });
       manager.setAdapter({
         onVisibilityChanged: () => {
           throw new Error('adapter failed');
@@ -1457,7 +1459,7 @@ describe('layerManager', () => {
 
     it('unregisters the previous adapter when a new one is attached', () => {
       const { manager, map } = createManager();
-      const next: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
+      const next: LayerManagerAdapter<TestLayerData> = { register: vi.fn() };
 
       manager.setAdapter(next);
 
@@ -1466,7 +1468,7 @@ describe('layerManager', () => {
     });
 
     it('shows the layers already added on a map attached afterwards', () => {
-      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
+      const manager: TestManager = new LayerManager<TestLayerData>();
       manager.addGroup({ ...group('group-1'), visible: true });
       manager.addLayer({ ...layer('layer-1', { parentId: 'group-1' }), visible: true });
       manager.addLayer(layer('layer-2'));
@@ -1479,7 +1481,7 @@ describe('layerManager', () => {
     });
 
     it('stacks a map attached afterwards in the manager\'s order', () => {
-      const manager: TestManager = new LayerManager<TestLayerData, TestLayerData>();
+      const manager: TestManager = new LayerManager<TestLayerData>();
       manager.addGroup(group('group-1'));
       manager.addLayer(layer('layer-1', { parentId: 'group-1' }));
       manager.addLayer({ ...layer('layer-2'), position: 'top' });
@@ -1543,7 +1545,7 @@ describe('layerManager', () => {
       const onError = vi.fn();
       const { manager } = createManager({ onError });
       manager.destroy();
-      const late: LayerManagerAdapter<TestLayerData, TestLayerData> = { register: vi.fn() };
+      const late: LayerManagerAdapter<TestLayerData> = { register: vi.fn() };
 
       manager.setAdapter(late);
 

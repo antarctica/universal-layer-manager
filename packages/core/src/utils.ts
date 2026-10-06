@@ -24,7 +24,7 @@ import { isLayerGroupMachine, isRangeTimeInfo, isSingleTimeInfo } from './types'
  * @param layerId - The unique ID of the layer to find.
  * @returns The ManagedItem if found, otherwise undefined.
  */
-export function findManagedLayerById<TLayer, TGroup = TLayer>(
+export function findManagedLayerById<TLayer, TGroup = undefined>(
   layers: ManagedItem<TLayer, TGroup>[],
   layerId: string,
 ): ManagedItem<TLayer, TGroup> | undefined {
@@ -38,7 +38,7 @@ export function findManagedLayerById<TLayer, TGroup = TLayer>(
  * @param layerId - The ID of the target layer.
  * @returns The layer data (TLayer or TGroup) if found, otherwise undefined.
  */
-export function getLayerDataFromLayerId<TLayer, TGroup = TLayer>(
+export function getLayerDataFromLayerId<TLayer, TGroup = undefined>(
   layers: ManagedItem<TLayer, TGroup>[],
   layerId: string,
 ): TLayer | TGroup | undefined {
@@ -56,9 +56,9 @@ export function getLayerDataFromLayerId<TLayer, TGroup = TLayer>(
  * @param layerConfig - The configuration containing the `parentId`.
  * @returns The parent LayerGroupMachineActor if valid, otherwise null.
  */
-export function findParentActor<TLayer, TGroup = TLayer>(
+export function findParentActor<TLayer, TGroup = undefined>(
   layers: ManagedItem<TLayer, TGroup>[],
-  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
+  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TGroup>,
 ): LayerGroupMachineActor<TLayer, TGroup> | null {
   return layerConfig.parentId
     ? findParentLayerGroupActor(layers, layerConfig.parentId)
@@ -72,7 +72,7 @@ export function findParentActor<TLayer, TGroup = TLayer>(
  * @param layerId - The ID of the child layer.
  * @returns The parent group ID, or undefined for a top-level or unknown layer.
  */
-export function findParentGroupId<TLayer, TGroup = TLayer>(
+export function findParentGroupId<TLayer, TGroup = undefined>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'groupChildLayerOrder'>,
   layerId: string,
 ): string | undefined {
@@ -87,7 +87,7 @@ export function findParentGroupId<TLayer, TGroup = TLayer>(
  * @returns The parent group ID (null at the top level), the layer's index from the bottom
  * and the number of layers in that parent, or undefined for an unknown layer.
  */
-export function findLayerPlacement<TLayer, TGroup = TLayer>(
+export function findLayerPlacement<TLayer, TGroup = undefined>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'childLayerOrder' | 'groupChildLayerOrder'>,
   layerId: string,
 ): { parentId: string | null; index: number; siblingCount: number } | undefined {
@@ -104,7 +104,7 @@ export function findLayerPlacement<TLayer, TGroup = TLayer>(
  * @param parentId - The ID of the potential parent.
  * @returns The LayerGroup actor if found and is a group, otherwise null.
  */
-export function findParentLayerGroupActor<TLayer, TGroup = TLayer>(
+export function findParentLayerGroupActor<TLayer, TGroup = undefined>(
   layers: ManagedItem<TLayer, TGroup>[],
   parentId: string,
 ): LayerGroupMachineActor<TLayer, TGroup> | null {
@@ -129,8 +129,8 @@ export function findParentLayerGroupActor<TLayer, TGroup = TLayer>(
  * @param context - The current Layer Manager context.
  * @returns The rejection reason, or undefined if the layer can be added.
  */
-export function getAddLayerRejection<TLayer, TGroup = TLayer>(
-  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TLayer, TGroup>,
+export function getAddLayerRejection<TLayer, TGroup = undefined>(
+  layerConfig: LayerConfig<TLayer> | LayerGroupConfig<TGroup>,
   context: LayerManagerContext<TLayer, TGroup>,
 ): string | undefined {
   if (layerConfig.layerType === 'layerGroup' && layerConfig.parentId && !context.allowNestedGroupLayers) {
@@ -183,7 +183,7 @@ export function getOpacityRejection(layerId: string, opacity: number): string | 
  * @param context - The current Layer Manager context.
  * @returns The rejection reason, or undefined if the layer can be removed.
  */
-export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
+export function getRemoveLayerRejection<TLayer, TGroup = undefined>(
   layerId: string,
   context: LayerManagerContext<TLayer, TGroup>,
 ): string | undefined {
@@ -206,7 +206,7 @@ export function getRemoveLayerRejection<TLayer, TGroup = TLayer>(
  * @param move - The layer to move and its target parent, index and position.
  * @returns The rejection reason, or undefined if the layer can be moved.
  */
-export function getMoveLayerRejection<TLayer, TGroup = TLayer>(
+export function getMoveLayerRejection<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   move: MoveLayerParams,
 ): string | undefined {
@@ -272,7 +272,7 @@ export function updateLayerOrder(
  * @param context - The manager's top-level order and each group's child order.
  * @returns A flat array of all Layer IDs in depth-first order.
  */
-export function getFlatLayerOrder<TLayer, TGroup = TLayer>(
+export function getFlatLayerOrder<TLayer, TGroup = undefined>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'childLayerOrder' | 'groupChildLayerOrder'>,
 ): string[] {
   const traverseLayers = (layerIds: string[]): string[] =>
@@ -284,7 +284,7 @@ export function getFlatLayerOrder<TLayer, TGroup = TLayer>(
 /**
  * Maps the top-level order array of strings to actual ManagedItem objects.
  */
-export function getTopLevelLayersInOrder<TLayer, TGroup = TLayer>(
+export function getTopLevelLayersInOrder<TLayer, TGroup = undefined>(
   layerOrder: string[],
   layers: ManagedItem<TLayer, TGroup>[],
 ): ManagedItem<TLayer, TGroup>[] {
@@ -300,7 +300,7 @@ export function getTopLevelLayersInOrder<TLayer, TGroup = TLayer>(
  * @param groupId - The ID of the group whose children changed.
  * @returns A LAYERS.CHILDREN_CHANGED event for the group.
  */
-export function getGroupChildrenChangedEvent<TLayer, TGroup = TLayer>(
+export function getGroupChildrenChangedEvent<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   groupId: string,
 ): Extract<ParentEvent, { type: 'LAYERS.CHILDREN_CHANGED' }> {
@@ -338,7 +338,7 @@ export function getLayerGroupChildrenInOrder(
  * @param position - Optional position ('top' | 'bottom').
  * @returns A partial context update (layers list and potentially order).
  */
-export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
+export function getUpdatedLayerStructure<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   newManagedLayer: ManagedItem<TLayer, TGroup>,
   parentRef: LayerGroupMachineActor<TLayer, TGroup> | null,
@@ -354,7 +354,7 @@ export function getUpdatedLayerStructure<TLayer, TGroup = TLayer>(
  * Calculates the new state after removing a layer.
  * Removes the layer from the main list, the top-level order and every group's child order.
  */
-export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
+export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   layerId: string,
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
@@ -377,7 +377,7 @@ export function getUpdatedLayerStructureAfterRemoval<TLayer, TGroup = TLayer>(
  * @param move - The layer to move and its target parent, index and position.
  * @returns True when the move changes neither the layer's parent nor its order.
  */
-export function isSamePlacement<TLayer, TGroup = TLayer>(
+export function isSamePlacement<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   move: MoveLayerParams,
 ): boolean {
@@ -397,7 +397,7 @@ export function isSamePlacement<TLayer, TGroup = TLayer>(
  * @param move - The layer to move and its target parent, index and position.
  * @returns A partial context update with the new order.
  */
-export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = TLayer>(
+export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   move: MoveLayerParams,
 ): Partial<LayerManagerContext<TLayer, TGroup>> {
@@ -422,7 +422,7 @@ export function getUpdatedLayerStructureAfterMove<TLayer, TGroup = TLayer>(
 // Private implementation details for Manager Actions.
 // ============================================================================
 
-function isSameOrDescendant<TLayer, TGroup = TLayer>(
+function isSameOrDescendant<TLayer, TGroup = undefined>(
   context: Pick<LayerManagerContext<TLayer, TGroup>, 'groupChildLayerOrder'>,
   layerId: string,
   ancestorId: string,
@@ -434,7 +434,7 @@ function isSameOrDescendant<TLayer, TGroup = TLayer>(
   return parentId !== undefined && isSameOrDescendant(context, parentId, ancestorId);
 }
 
-function addLayerToParent<TLayer, TGroup = TLayer>(
+function addLayerToParent<TLayer, TGroup = undefined>(
   context: LayerManagerContext<TLayer, TGroup>,
   newLayer: ManagedItem<TLayer, TGroup>,
   parentId: string,
@@ -451,7 +451,7 @@ function addLayerToParent<TLayer, TGroup = TLayer>(
   };
 }
 
-function addLayerToTopLevel<TLayer, TGroup = TLayer>(
+function addLayerToTopLevel<TLayer, TGroup = undefined>(
   layers: ManagedItem<TLayer, TGroup>[],
   newLayer: ManagedItem<TLayer, TGroup>,
   childLayerOrder: string[],
