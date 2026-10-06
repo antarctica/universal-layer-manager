@@ -9,17 +9,17 @@ export interface LayerData {
   leafletLayer: L.Layer;
 }
 
-export type ManagerRef = LayerManagerActor<LayerData, undefined>;
+export type ManagerRef = LayerManagerActor<LayerData>;
 export type ClientLayerActor = LayerActor<LayerData>;
 
 // The provider creates and starts the manager actor, and stops it when it unmounts.
-export const LayerManagerContext = createActorContext(createLayerManagerMachine<LayerData, undefined>(), {
+export const LayerManagerContext = createActorContext(createLayerManagerMachine<LayerData>(), {
   input: { allowNestedGroupLayers: true },
 });
 
 const NO_CHILDREN: readonly string[] = [];
 
-function actorsFor(layerIds: readonly string[], layers: ManagedItem<LayerData, undefined>[]): ClientLayerActor[] {
+function actorsFor(layerIds: readonly string[], layers: ManagedItem<LayerData>[]): ClientLayerActor[] {
   return layerIds.flatMap((layerId) => {
     const actor = findManagedLayerById(layers, layerId)?.layerActor;
     return actor ? [actor] : [];
