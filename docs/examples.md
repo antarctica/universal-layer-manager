@@ -10,20 +10,19 @@ A layer list built with plain DOM code, with no framework and no map. You can ad
 
 ### The approach
 
-The whole list is drawn from the manager's current state. Every callback is wired to the same `render` function, which throws the old list away and draws it again:
+The whole list is drawn from the manager's layer tree. The list subscribes to the manager, and `render` reads `getTree()`, throws the old list away and draws it again:
 
 ```ts
-const manager = new LayerManager<undefined>({
-  allowNestedGroupLayers: true,
-  onLayerAdded: render,
-  onVisibilityChanged: render,
-  onEnabledChanged: render,
-  onOpacityChanged: render,
-  onOrderChanged: render,
-});
+const manager = new LayerManager<undefined>({ allowNestedGroupLayers: true });
+manager.subscribe(render);
+
+function render() {
+  const { rootIds, layers } = manager.getTree();
+  list.replaceChildren(...renderLayers(rootIds, layers));
+}
 ```
 
-The list never keeps its own copy of the layer state. Its checkboxes and sliders call manager methods such as `setEnabled` and `setOpacity`, and the callbacks then redraw the list with the result. Redrawing everything keeps the code simple and is fast enough for a short list. For long lists, subscribe to each layer instead, as the Leaflet example does.
+The list never keeps its own copy of the layer state. Its checkboxes and sliders call manager methods such as `setEnabled` and `setOpacity`, and the subscription then redraws the list with the result. Redrawing everything keeps the code simple and is fast enough for a short list. For long lists, subscribe to each layer instead, as the Leaflet example does.
 
 ## Leaflet and React
 

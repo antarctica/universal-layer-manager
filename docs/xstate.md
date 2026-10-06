@@ -58,16 +58,17 @@ Use the `enabled` and `visible` tags to check a layer's state. They mean the sam
 
 ### A group
 
-A group row works the same way, using the group's actor. It also subscribes to the group's own `childLayerOrder`, and looks up each child with `manager.getLayer` to render its row:
+A group row works the same way, using the group's actor. It also subscribes to the group's own `children`, the child actors in the manager's order, and renders a row for each:
 
 ```tsx
 import type { LayerGroupMachineActor } from '@ulm/core';
+import { isLayerMachine } from '@ulm/core';
 
 function GroupRow({ groupActor }: { groupActor: LayerGroupMachineActor<LayerData> }) {
   const layerName = useSelector(groupActor, (state) => state.context.layerName);
   const isEnabled = useSelector(groupActor, (state) => state.hasTag('enabled'));
-  // re-renders only when this group's own order changes
-  const childLayerOrder = useSelector(groupActor, (state) => state.context.childLayerOrder);
+  // re-renders only when this group's children change
+  const children = useSelector(groupActor, (state) => state.context.children);
 
   return (
     <>
@@ -80,14 +81,11 @@ function GroupRow({ groupActor }: { groupActor: LayerGroupMachineActor<LayerData
         {layerName}
       </label>
       <ul>
-        {[...childLayerOrder].reverse().map((layerId) => {
-          const child = manager.getLayer(layerId);
-          return (
-            <li key={layerId}>
-              {child?.type === 'layer' && <LayerRow layerActor={child.layerActor} />}
-            </li>
-          );
-        })}
+        {[...children].reverse().map((child) => (
+          <li key={child.id}>
+            {isLayerMachine(child) && <LayerRow layerActor={child} />}
+          </li>
+        ))}
       </ul>
     </>
   );

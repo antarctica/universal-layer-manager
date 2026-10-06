@@ -36,37 +36,30 @@ export interface LayerGroupInfo<TGroup = undefined> extends BaseLayerInfo<TGroup
 export type ManagedLayerInfo<TLayer = unknown, TGroup = undefined> = LayerInfo<TLayer> | LayerGroupInfo<TGroup>;
 
 // ============================================================================
-// ADAPTER CONTRACT
-// Terra-draw-style interface: LayerManager calls adapter methods directly.
-// Adapters no longer subscribe to events; they receive them as method calls.
+// CHANGE HOOKS
+// What the manager reports, both to an adapter and to the callbacks in LayerManagerOptions.
 // ============================================================================
 
-export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> {
-  /** Called by setAdapter() when the adapter is attached, before it is told about existing layers. */
-  register?: () => void;
-
-  /** Called by LayerManager.destroy() or setAdapter() when the adapter is detached or replaced, to clean up. */
-  unregister?: () => void;
-
-  /** Called when a new layer is added and ready. */
+export interface LayerManagerHooks<TLayer = unknown, TGroup = undefined> {
+  /** Called when a layer or group is added. */
   onLayerAdded?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
 
-  /** Called when a layer is removed. */
+  /** Called when a layer or group is removed, including by `reset()`. */
   onLayerRemoved?: (layerId: string) => void;
 
-  /** Called when a layer's visibility changes. */
+  /** Called when a layer or group starts or stops showing. */
   onVisibilityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean) => void;
 
   /** Called when a layer or group is switched on or off, even while a group above hides it. */
   onEnabledChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean) => void;
 
-  /** Called when a layer's computed opacity changes. */
+  /** Called when a layer's or group's computed opacity changes. */
   onOpacityChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number) => void;
 
-  /** Called when a layer's time info is updated. */
+  /** Called when a layer's or group's time info changes. */
   onTimeInfoChanged?: (info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo) => void;
 
-  /** Called when a layer's data payload is updated. */
+  /** Called when a layer's or group's `layerData` is replaced. */
   onLayerDataChanged?: (info: ManagedLayerInfo<TLayer, TGroup>) => void;
 
   /** Called when a layer or group is moved, with `info.parentId` set to its new parent. */
@@ -74,4 +67,17 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> {
 
   /** Called when the layer order changes, with every layer ID from bottom to top. */
   onOrderChanged?: (layerOrder: string[]) => void;
+}
+
+// ============================================================================
+// ADAPTER CONTRACT
+// The manager calls an adapter's hooks directly as layers change.
+// ============================================================================
+
+export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> extends LayerManagerHooks<TLayer, TGroup> {
+  /** Called by setAdapter() when the adapter is attached, before it is told about existing layers. */
+  register?: () => void;
+
+  /** Called by LayerManager.destroy() or setAdapter() when the adapter is detached or replaced, to clean up. */
+  unregister?: () => void;
 }

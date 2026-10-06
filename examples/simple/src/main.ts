@@ -1,19 +1,14 @@
+import type { LayerTree, ManagedLayerInfo } from '@ulm/core';
 import { LayerManager } from '@ulm/core';
 import './style.css';
 
 const list = document.getElementById('layer-list')!;
 
 // ---- Layer Manager ----
-// Whenever anything changes, draw the whole list again from the manager's state.
+// Whenever anything changes, draw the whole list again from the manager's layer tree.
 
-const manager = new LayerManager<undefined>({
-  allowNestedGroupLayers: true,
-  onLayerAdded: render,
-  onVisibilityChanged: render,
-  onEnabledChanged: render,
-  onOpacityChanged: render,
-  onOrderChanged: render,
-});
+const manager = new LayerManager<undefined>({ allowNestedGroupLayers: true });
+manager.subscribe(render);
 
 function addLayer(parentId: string | null) {
   const id = Math.random().toString(36).substring(7);
@@ -34,24 +29,22 @@ function addGroup(parentId: string | null) {
 // ---- Drawing ----
 
 function render() {
-  list.replaceChildren(...renderLayers(manager.layers.map((item) => item.layerActor.id)));
+  const { rootIds, layers } = manager.getTree();
+  list.replaceChildren(...renderLayers(rootIds, layers));
 }
 
 // The manager orders layers from the bottom up; the list shows the top layer first.
-function renderLayers(layerIds: string[]): HTMLElement[] {
-  return [...layerIds].reverse().map(renderLayer);
+function renderLayers(layerIds: readonly string[], layers: LayerTree<undefined>['layers']): HTMLElement[] {
+  return [...layerIds].reverse().map((layerId) => renderLayer(layers[layerId]!, layers));
 }
 
-function renderLayer(layerId: string): HTMLElement {
-  const item = manager.getLayer(layerId)!;
-  const snapshot = item.layerActor.getSnapshot();
-  const { layerName, opacity, computedOpacity } = snapshot.context;
-  const visible = snapshot.hasTag('visible');
-  const icon = item.type === 'layerGroup' ? '📁' : '📄';
+function renderLayer(info: ManagedLayerInfo<undefined>, layers: LayerTree<undefined>['layers']): HTMLElement {
+  const { layerId, layerName, opacity, computedOpacity, visible } = info;
+  const icon = info.layerType === 'layerGroup' ? '📁' : '📄';
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
-  checkbox.checked = snapshot.hasTag('enabled');
+  checkbox.checked = info.enabled;
   checkbox.addEventListener('change', () => manager.setEnabled(layerId, checkbox.checked));
 
   const name = document.createElement('span');
@@ -74,7 +67,7 @@ function renderLayer(layerId: string): HTMLElement {
   wrapper.className = 'layer-wrapper';
   wrapper.append(row);
 
-  if (item.type === 'layerGroup') {
+  if (info.layerType === 'layerGroup') {
     const addLayerButton = document.createElement('button');
     addLayerButton.textContent = '+ Layer';
     addLayerButton.addEventListener('click', () => addLayer(layerId));
@@ -89,7 +82,7 @@ function renderLayer(layerId: string): HTMLElement {
 
     const children = document.createElement('div');
     children.className = 'children';
-    children.append(...renderLayers(item.layerActor.getSnapshot().context.childLayerOrder));
+    children.append(...renderLayers(info.childIds, layers));
 
     wrapper.append(controls, children);
   }
