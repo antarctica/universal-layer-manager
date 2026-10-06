@@ -8,6 +8,8 @@ export interface TestLayerData {
   test: string;
 }
 
+export type TestLayerManager = LayerManagerActor<TestLayerData>;
+
 export interface CreateTestLayerOptions {
   visible?: boolean;
 }
@@ -29,12 +31,12 @@ export interface CreateLayerManagerOptions {
  * @param options - Configuration for the layer manager
  * @returns A started layer manager actor
  */
-export function createTestLayerManager<TLayer = TestLayerData, TGroup = TLayer>(
+export function createTestLayerManager(
   options: CreateLayerManagerOptions = {},
-): LayerManagerActor<TLayer, TGroup> {
+): TestLayerManager {
   const { allowNestedGroupLayers = true } = options;
 
-  const layerManagerMachine = createLayerManagerMachine<TLayer, TGroup>();
+  const layerManagerMachine = createLayerManagerMachine<TestLayerData>();
   const layerManager = createActor(layerManagerMachine, {
     input: {
       allowNestedGroupLayers,
@@ -43,20 +45,20 @@ export function createTestLayerManager<TLayer = TestLayerData, TGroup = TLayer>(
 
   layerManager.start();
 
-  return layerManager as LayerManagerActor<TLayer, TGroup>;
+  return layerManager;
 }
 
 /**
  * Creates a default layer configuration for testing.
  * Provides sensible defaults that can be overridden.
  */
-export function createTestLayerConfig<TLayer = TestLayerData>(
-  overrides: Partial<LayerConfig<TLayer>> = {},
-): LayerConfig<TLayer> {
+export function createTestLayerConfig(
+  overrides: Partial<LayerConfig<TestLayerData>> = {},
+): LayerConfig<TestLayerData> {
   return {
     layerId: 'layer-1',
     layerName: 'Test layer',
-    layerData: { test: 'test' } as TLayer,
+    layerData: { test: 'test' },
     layerType: 'layer',
     parentId: null,
     ...overrides,
@@ -67,13 +69,13 @@ export function createTestLayerConfig<TLayer = TestLayerData>(
  * Creates a default layer group configuration for testing.
  * Provides sensible defaults that can be overridden.
  */
-export function createTestLayerGroupConfig<TGroup = TestLayerData>(
-  overrides: Partial<LayerGroupConfig<TestLayerData, TGroup>> = {},
-): LayerGroupConfig<TestLayerData, TGroup> {
+export function createTestLayerGroupConfig(
+  overrides: Partial<LayerGroupConfig> = {},
+): LayerGroupConfig {
   return {
     layerId: 'group-1',
     layerName: 'Test group',
-    layerData: { test: 'group-test' } as TGroup,
+    layerData: undefined,
     layerType: 'layerGroup',
     parentId: null,
     ...overrides,
@@ -91,16 +93,16 @@ export function createTestLayerGroupConfig<TGroup = TestLayerData>(
  * @param managerOptions - Configuration for the manager (optional)
  * @returns The layer actor and the manager
  */
-export function createLayerWithManager<TLayer = TestLayerData, TGroup = TLayer>(
-  layerOptions: CreateTestLayerOptions & Partial<LayerConfig<TLayer>> = {},
+export function createLayerWithManager(
+  layerOptions: CreateTestLayerOptions & Partial<LayerConfig<TestLayerData>> = {},
   managerOptions: CreateLayerManagerOptions = {},
 ): {
-  layerActor: LayerMachineActor<TLayer, TGroup>;
-  layerManager: LayerManagerActor<TLayer, TGroup>;
+  layerActor: LayerMachineActor<TestLayerData>;
+  layerManager: TestLayerManager;
 } {
-  const layerManager = createTestLayerManager<TLayer, TGroup>(managerOptions);
+  const layerManager = createTestLayerManager(managerOptions);
   const { visible, ...configOverrides } = layerOptions;
-  const config = createTestLayerConfig<TLayer>(configOverrides);
+  const config = createTestLayerConfig(configOverrides);
 
   return addLayerToManager(layerManager, config, { visible });
 }
@@ -121,15 +123,15 @@ export function createLayerWithManager<TLayer = TestLayerData, TGroup = TLayer>(
  * @returns The layer actor and the manager
  * @throws Error if the layer was not successfully created
  */
-export function addLayerToManager<TLayer = TestLayerData, TGroup = TLayer>(
-  layerManager: LayerManagerActor<TLayer, TGroup>,
-  config: LayerConfig<TLayer>,
+export function addLayerToManager(
+  layerManager: TestLayerManager,
+  config: LayerConfig<TestLayerData>,
   options?: {
     visible?: boolean;
   },
 ): {
-  layerActor: LayerMachineActor<TLayer, TGroup>;
-  layerManager: LayerManagerActor<TLayer, TGroup>;
+  layerActor: LayerMachineActor<TestLayerData>;
+  layerManager: TestLayerManager;
 } {
   const { layerId } = config;
   layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: config, visible: options?.visible ?? false } });
@@ -165,15 +167,15 @@ export function addLayerToManager<TLayer = TestLayerData, TGroup = TLayer>(
  * @returns The group actor and the manager
  * @throws Error if the group was not successfully created
  */
-export function addLayerGroupToManager<TLayer = TestLayerData, TGroup = TLayer>(
-  layerManager: LayerManagerActor<TLayer, TGroup>,
-  config: LayerGroupConfig<TLayer, TGroup>,
+export function addLayerGroupToManager(
+  layerManager: TestLayerManager,
+  config: LayerGroupConfig,
   options?: {
     visible?: boolean;
   },
 ): {
-  groupActor: LayerGroupMachineActor<TLayer, TGroup>;
-  layerManager: LayerManagerActor<TLayer, TGroup>;
+  groupActor: LayerGroupMachineActor<TestLayerData>;
+  layerManager: TestLayerManager;
 } {
   const { layerId } = config;
   layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: config, visible: options?.visible ?? false } });
@@ -207,10 +209,10 @@ export function addLayerGroupToManager<TLayer = TestLayerData, TGroup = TLayer>(
  * @returns The child layer actor
  * @throws Error if the parent group or child layer was not successfully found/created
  */
-export function addChildLayerToGroup<TLayer = TestLayerData, TGroup = TLayer>(
-  layerManager: LayerManagerActor<TLayer, TGroup>,
+export function addChildLayerToGroup(
+  layerManager: TestLayerManager,
   parentGroupId: string,
-  childConfig: LayerConfig<TLayer>,
+  childConfig: LayerConfig<TestLayerData>,
   options?: {
     visible?: boolean;
     index?: number;
@@ -218,8 +220,8 @@ export function addChildLayerToGroup<TLayer = TestLayerData, TGroup = TLayer>(
     enabled?: boolean;
   },
 ): {
-  childActor: LayerMachineActor<TLayer, TGroup>;
-  groupActor: LayerGroupMachineActor<TLayer, TGroup>;
+  childActor: LayerMachineActor<TestLayerData>;
+  groupActor: LayerGroupMachineActor<TestLayerData>;
 } {
   // Set parent ID
   const configWithParent = { ...childConfig, parentId: parentGroupId };

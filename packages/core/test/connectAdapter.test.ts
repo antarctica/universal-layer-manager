@@ -1,11 +1,14 @@
-import type { TestLayerData } from './utils/layer-manager-helpers';
-import { describe, expect, it } from 'vitest';
+import type { LayerManagerAdapter } from '../src/adapters/types';
+import type { TestLayerData, TestLayerManager } from './utils/layer-manager-helpers';
+import { describe, expect, it, vi } from 'vitest';
+import { createActor } from 'xstate';
 import { connectAdapter } from '../src/connectAdapter';
+import { createLayerManagerMachine } from '../src/layerManagerMachines/layerManagerMachine';
 import { monitorContract } from './utils/contract-monitor';
 import { createTestLayerConfig, createTestLayerGroupConfig, createTestLayerManager } from './utils/layer-manager-helpers';
 import { createMapModel } from './utils/map-model';
 
-function connectMap(manager: ReturnType<typeof createTestLayerManager<TestLayerData, TestLayerData>>) {
+function connectMap(manager: TestLayerManager) {
   const map = createMapModel<TestLayerData>();
   const monitor = monitorContract(map);
   const disconnect = connectAdapter(manager, monitor.adapter);
@@ -14,8 +17,8 @@ function connectMap(manager: ReturnType<typeof createTestLayerManager<TestLayerD
 
 describe('connectAdapter', () => {
   it('tells an adapter about the layers a manager actor already holds', () => {
-    const manager = createTestLayerManager<TestLayerData, TestLayerData>();
-    manager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1' }), visible: true } });
+    const manager = createTestLayerManager();
+    manager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerGroupConfig({ layerId: 'group-1' }), visible: true } });
     manager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'layer-1', parentId: 'group-1' }), visible: true } });
 
     const { map, monitor } = connectMap(manager);
@@ -27,7 +30,7 @@ describe('connectAdapter', () => {
   });
 
   it('passes later changes on to the adapter', () => {
-    const manager = createTestLayerManager<TestLayerData, TestLayerData>();
+    const manager = createTestLayerManager();
     const { map, monitor } = connectMap(manager);
 
     manager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'layer-1', opacity: 1 }), visible: true } });
@@ -39,7 +42,7 @@ describe('connectAdapter', () => {
   });
 
   it('stops passing changes on, and unregisters the adapter, once disconnected', () => {
-    const manager = createTestLayerManager<TestLayerData, TestLayerData>();
+    const manager = createTestLayerManager();
     const { map, monitor, disconnect } = connectMap(manager);
 
     disconnect();
@@ -48,5 +51,15 @@ describe('connectAdapter', () => {
     expect(map.registered).toBe(false);
     expect(map.layers.size).toBe(0);
     monitor.assertMet();
+  });
+
+  it('accepts a manager machine and an adapter typed with only the layer data type', () => {
+    const manager = createActor(createLayerManagerMachine<TestLayerData>(), { input: { allowNestedGroupLayers: false } }).start();
+    const adapter: LayerManagerAdapter<TestLayerData> = { onLayerAdded: vi.fn() };
+
+    connectAdapter(manager, adapter);
+    manager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'layer-1' }), visible: true } });
+
+    expect(adapter.onLayerAdded).toHaveBeenCalledTimes(1);
   });
 });

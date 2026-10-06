@@ -22,7 +22,7 @@ import {
   visibilityChange,
 } from './layerChanges';
 
-export function layerMachine<TLayer, TGroup = TLayer>() {
+export function layerMachine<TLayer, TGroup = undefined>() {
   return setup({
     types: {
       context: {} as LayerContext<TLayer, TGroup>,

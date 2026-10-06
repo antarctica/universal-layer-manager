@@ -63,7 +63,7 @@ export interface LayerConfig<TLayer> extends BaseLayerConfig<TLayer> {
   listMode?: 'show' | 'hide';
 }
 
-export interface LayerGroupConfig<TLayer, TGroup = TLayer> extends BaseLayerConfig<TGroup> {
+export interface LayerGroupConfig<TGroup = undefined> extends BaseLayerConfig<TGroup> {
   layerType: 'layerGroup';
   listMode?: 'show' | 'hide' | 'hide-children';
 }
@@ -83,7 +83,7 @@ export interface AddGroupLayerParams<TGroup> extends BaseAddLayerParams {
   layerConfig: LayerGroupConfig<TGroup>;
 }
 
-export type AddManagedLayerParams<TLayer, TGroup = TLayer> = AddLayerParams<TLayer> | AddGroupLayerParams<TGroup>;
+export type AddManagedLayerParams<TLayer, TGroup = undefined> = AddLayerParams<TLayer> | AddGroupLayerParams<TGroup>;
 
 export interface MoveLayerTarget {
   parentId: string | null;
@@ -129,14 +129,14 @@ export type LayerGroupEvent<TGroup> = ChildEvent | ParentEvent | LayerEventBase<
 
 // --- Manager Events (Inputs & Outputs) ---
 
-export type LayerManagerEvent<TLayer, TGroup = TLayer>
+export type LayerManagerEvent<TLayer, TGroup = undefined>
   = | { type: 'LAYER.ADD'; params: AddManagedLayerParams<TLayer, TGroup> }
     | { type: 'LAYER.REMOVE'; layerId: string }
     | ({ type: 'LAYER.MOVE' } & MoveLayerParams)
     | { type: 'RESET' };
 
 /** Notifications that layer and group actors send to their manager. Not for callers. */
-export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
+export type LayerManagerChildEvent<TLayer, TGroup = undefined>
   = | { type: 'CHILD.VISIBILITY_CHANGED'; layerId: string; visible: boolean }
     | { type: 'CHILD.ENABLED_CHANGED'; layerId: string; enabled: boolean }
     | { type: 'CHILD.OPACITY_CHANGED'; layerId: string; opacity: number; computedOpacity: number }
@@ -144,7 +144,7 @@ export type LayerManagerChildEvent<TLayer, TGroup = TLayer>
     | { type: 'CHILD.LAYER_DATA_CHANGED'; layerId: string; layerData: TLayer | TGroup }
     | { type: 'CHILD.REJECTED'; layerId: string; reason: string };
 
-export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
+export type LayerManagerEmittedEvent<TLayer, TGroup = undefined>
   = | { type: 'LAYER.ADDED'; layerId: string }
     | { type: 'LAYER.REMOVED'; layerId: string }
     | { type: 'LAYER.ORDER_CHANGED'; layerOrder: string[] }
@@ -162,7 +162,7 @@ export type LayerManagerEmittedEvent<TLayer, TGroup = TLayer>
 // ============================================================================
 
 // Generic Actor References
-export type LayerManagerRef<TLayer, TGroup = TLayer> = ActorRef<Snapshot<unknown>, LayerManagerChildEvent<TLayer, TGroup>>;
+export type LayerManagerRef<TLayer, TGroup = undefined> = ActorRef<Snapshot<unknown>, LayerManagerChildEvent<TLayer, TGroup>>;
 export type ParentLayerSnapshot = Snapshot<unknown> & {
   context: Pick<LayerContextBase<unknown>, 'layerId' | 'computedOpacity'>;
   hasTag: (tag: LayerStateTag) => boolean;
@@ -184,7 +184,7 @@ export type LayerActor<TLayer = unknown, TGroup = undefined> = LayerMachineActor
 // The internal state models of the actors.
 // ============================================================================
 
-export interface LayerContextBase<TLayer, TGroup = TLayer> {
+export interface LayerContextBase<TLayer, TGroup = undefined> {
   layerManagerRef: LayerManagerRef<TLayer, TGroup>;
   parentRef: ParentLayerActor | null;
   layerId: string;
@@ -198,13 +198,13 @@ export interface LayerContextBase<TLayer, TGroup = TLayer> {
   startState: LayerStartState;
 }
 
-export interface LayerContext<TLayer, TGroup = TLayer> extends LayerContextBase<TLayer, TGroup> {
+export interface LayerContext<TLayer, TGroup = undefined> extends LayerContextBase<TLayer, TGroup> {
   layerType: 'layer';
   layerData: TLayer;
   listMode: 'show' | 'hide';
 }
 
-export interface LayerGroupContext<TLayer, TGroup = TLayer> extends LayerContextBase<TLayer, TGroup> {
+export interface LayerGroupContext<TLayer, TGroup = undefined> extends LayerContextBase<TLayer, TGroup> {
   layerType: 'layerGroup';
   layerData: TGroup;
   children: ChildLayerActor[];
@@ -213,7 +213,7 @@ export interface LayerGroupContext<TLayer, TGroup = TLayer> extends LayerContext
   listMode: 'show' | 'hide' | 'hide-children';
 }
 
-export interface LayerManagerContext<TLayer, TGroup = TLayer> {
+export interface LayerManagerContext<TLayer, TGroup = undefined> {
   layers: ManagedItem<TLayer, TGroup>[];
   childLayerOrder: string[];
   groupChildLayerOrder: Record<string, string[]>;
@@ -226,23 +226,23 @@ export interface LayerManagerContext<TLayer, TGroup = TLayer> {
 // ============================================================================
 
 // Wrappers
-export interface ManagedLayer<TLayer, TGroup = TLayer> {
+export interface ManagedLayer<TLayer, TGroup = undefined> {
   type: 'layer';
   layerActor: LayerMachineActor<TLayer, TGroup>;
 }
 
-export interface ManagedLayerGroup<TLayer, TGroup = TLayer> {
+export interface ManagedLayerGroup<TLayer, TGroup = undefined> {
   type: 'layerGroup';
   layerActor: LayerGroupMachineActor<TLayer, TGroup>;
 }
 
-export type ManagedItem<TLayer, TGroup = TLayer> = ManagedLayer<TLayer, TGroup> | ManagedLayerGroup<TLayer, TGroup>;
+export type ManagedItem<TLayer, TGroup = undefined> = ManagedLayer<TLayer, TGroup> | ManagedLayerGroup<TLayer, TGroup>;
 
 // Type Guards
-export function isLayerMachine<TLayer, TGroup = TLayer>(layer: LayerActor<TLayer, TGroup>): layer is LayerMachineActor<TLayer, TGroup> {
+export function isLayerMachine<TLayer, TGroup = undefined>(layer: LayerActor<TLayer, TGroup>): layer is LayerMachineActor<TLayer, TGroup> {
   return layer.getSnapshot().context.layerType === 'layer';
 }
 
-export function isLayerGroupMachine<TLayer, TGroup = TLayer>(layer: LayerActor<TLayer, TGroup>): layer is LayerGroupMachineActor<TLayer, TGroup> {
+export function isLayerGroupMachine<TLayer, TGroup = undefined>(layer: LayerActor<TLayer, TGroup>): layer is LayerGroupMachineActor<TLayer, TGroup> {
   return layer.getSnapshot().context.layerType === 'layerGroup';
 }

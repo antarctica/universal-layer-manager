@@ -93,7 +93,7 @@ You can also skip the `LayerManager` class and run the manager machine yourself.
 import { connectAdapter, createLayerManagerMachine, createLayerTreeReader } from '@ulm/core';
 import { createActor } from 'xstate';
 
-const managerActor = createActor(createLayerManagerMachine<LayerData, undefined>(), {
+const managerActor = createActor(createLayerManagerMachine<LayerData>(), {
   input: { allowNestedGroupLayers: false },
 }).start();
 
@@ -122,7 +122,7 @@ import type { LayerActor } from '@ulm/core';
 import { createLayerManagerMachine } from '@ulm/core';
 import { createActorContext, useSelector } from '@xstate/react';
 
-const LayerManagerContext = createActorContext(createLayerManagerMachine<LayerData, undefined>(), {
+const LayerManagerContext = createActorContext(createLayerManagerMachine<LayerData>(), {
   input: { allowNestedGroupLayers: false },
 });
 

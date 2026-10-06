@@ -29,10 +29,10 @@ import {
   isSamePlacement,
 } from '../utils';
 
-export type LayerManagerMachine<TLayer, TGroup = TLayer> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
-export type LayerManagerActor<TLayer, TGroup = TLayer> = ActorRefFrom<LayerManagerMachine<TLayer, TGroup>>;
+export type LayerManagerMachine<TLayer, TGroup = undefined> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
+export type LayerManagerActor<TLayer, TGroup = undefined> = ActorRefFrom<LayerManagerMachine<TLayer, TGroup>>;
 
-export function createLayerManagerMachine<TLayer, TGroup = TLayer>() {
+export function createLayerManagerMachine<TLayer, TGroup = undefined>() {
   return setup({
     types: {
       context: {} as LayerManagerContext<TLayer, TGroup>,
