@@ -79,7 +79,7 @@ function createStubLayerGroup(id: string, children: StubLayer[]): StubLayer {
 
 function setup(options: LeafletAdapterOptions<StubLayerData> = {}) {
   const map = createFakeMap();
-  const adapter = new LeafletLayerManagerAdapter<StubLayerData, undefined>(map as unknown as L.Map, options);
+  const adapter = new LeafletLayerManagerAdapter<StubLayerData>(map as unknown as L.Map, options);
   const manager = new LayerManager<StubLayerData>({ allowNestedGroupLayers: true });
   manager.setAdapter(adapter);
   return { map, adapter, manager };
