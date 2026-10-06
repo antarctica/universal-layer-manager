@@ -1,5 +1,4 @@
 import type {
-  LayerInfo,
   LayerManagerAdapter,
   ManagedLayerInfo,
 } from '@ulm/core';
@@ -63,7 +62,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const leafletLayer = this.layerFactory(info as LayerInfo<TLayer>, this.map);
+    const leafletLayer = this.layerFactory(info, this.map);
     if (!leafletLayer) {
       return;
     }
@@ -76,7 +75,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       leafletLayer.addTo(this.map);
     }
 
-    this.options.hooks?.onLayerAdded?.(info as LayerInfo<TLayer>, leafletLayer);
+    this.options.hooks?.onLayerAdded?.(info, leafletLayer);
   }
 
   onLayerRemoved(layerId: string): void {
@@ -91,7 +90,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
     const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
+    if (info.layerType !== 'layer' || !leafletLayer) {
       return;
     }
     if (visible) {
@@ -99,32 +98,32 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     } else {
       this.map.removeLayer(leafletLayer);
     }
-    this.options.hooks?.onVisibilityChanged?.(info as LayerInfo<TLayer>, visible, leafletLayer);
+    this.options.hooks?.onVisibilityChanged?.(info, visible, leafletLayer);
   }
 
   onEnabledChanged(info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean): void {
     const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
+    if (info.layerType !== 'layer' || !leafletLayer) {
       return;
     }
-    this.options.hooks?.onEnabledChanged?.(info as LayerInfo<TLayer>, enabled, leafletLayer);
+    this.options.hooks?.onEnabledChanged?.(info, enabled, leafletLayer);
   }
 
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
     const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
+    if (info.layerType !== 'layer' || !leafletLayer) {
       return;
     }
     this.fadeLayerPane(info.layerId, computedOpacity);
-    this.options.hooks?.onOpacityChanged?.(info as LayerInfo<TLayer>, info.opacity, computedOpacity, leafletLayer);
+    this.options.hooks?.onOpacityChanged?.(info, info.opacity, computedOpacity, leafletLayer);
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
     const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
+    if (info.layerType !== 'layer' || !leafletLayer) {
       return;
     }
-    this.options.hooks?.onLayerDataChanged?.(info as LayerInfo<TLayer>, leafletLayer);
+    this.options.hooks?.onLayerDataChanged?.(info, leafletLayer);
   }
 
   onOrderChanged(layerOrder: string[]): void {
