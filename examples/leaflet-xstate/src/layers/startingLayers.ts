@@ -13,7 +13,7 @@ const SHAPES = [
 
 /** Adds the layers the demo starts with to `managerRef`. Returns a function that removes them again. */
 export function addStartingLayers(managerRef: ManagerRef): () => void {
-  const add = (params: AddManagedLayerParams<LayerData, undefined>): void => managerRef.send({ type: 'LAYER.ADD', params });
+  const add = (params: AddManagedLayerParams<LayerData>): void => managerRef.send({ type: 'LAYER.ADD', params });
 
   add({
     layerConfig: { layerId: 'baselayers', layerName: 'Base Layers', layerType: 'layerGroup', layerData: undefined },
