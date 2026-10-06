@@ -1,8 +1,6 @@
-# Leaflet React Example
+# Leaflet React Example with XState (advanced)
 
-A React + Leaflet example of the Universal Layer Manager (`@ulm/core`). The layer list reads the manager's layer tree with `useSyncExternalStore` and changes layers through manager methods, with no XState in the example's own code.
-
-For working with the layer and group actors directly through `@xstate/react`, see the advanced example in `examples/leaflet-xstate`.
+An advanced version of `examples/leaflet`. The layer list subscribes to each layer's XState actor with `@xstate/react` and sends events straight to the actors. Start with `examples/leaflet` unless you already use XState and want to work with the actors directly.
 
 ## Setup
 
@@ -20,7 +18,7 @@ This will install dependencies for the workspace, including the example. The exa
 npm run dev
 ```
 
-The example will be available at `http://localhost:5176`
+The example will be available at `http://localhost:5177`
 
 ## What the example demonstrates
 
@@ -36,20 +34,22 @@ The example will be available at `http://localhost:5176`
 ```
 src/
   main.tsx                    renders <App />
-  App.tsx                     the layer list beside the map
+  App.tsx                     the provider, the starting-layers effect, and the layer list beside the map
   layers/
-    manager.ts                the LayerManager store, its LayerData type and starting layers
-    LayerManagerProvider.tsx  React context, plus useLayerTree and useLayer over useSyncExternalStore
+    LayerManagerContext.ts    createActorContext for the manager machine, LayerData, and hooks that select actors
+    startingLayers.ts         sends the starting layers to the manager actor it is given
   map/
-    LeafletMap.tsx            the Leaflet map, which attaches the @ulm/leaflet adapter while it is mounted
+    LeafletMap.tsx            the Leaflet map, attached to the manager actor with connectAdapter
   layerList/
     LayerList.tsx             add buttons, then every row, top first
-    LayerRow.tsx              one layer or group: drag handle, switch, name, opacity and children
-    AddLayerButtons.tsx       adds a random marker or a group
-    useLayerDragAndDrop.ts    turns a drop into a moveLayer call
+    LayerRow.tsx              one layer or group, read from its actor and changed by sending it events
+    AddLayerButtons.tsx       sends LAYER.ADD for a random marker or a group
+    useLayerDragAndDrop.ts    sends LAYER.MOVE for a drop
 ```
 
-The manager is created once in `layers/manager.ts`, outside React, like a store. The map attaches the adapter while it is mounted, and the manager replays its layers to it. Each row reads its own layer with `useLayer`, and is memoised, so it re-renders only when that layer changes.
+`LayerManagerContext.Provider` creates the manager actor and stops it when it unmounts. Components get it with `LayerManagerContext.useActorRef()` and pass it on as an input: to `addStartingLayers`, to `connectAdapter` for the map, and as the target for `LAYER.ADD` and `LAYER.MOVE`. Each row gets its layer's actor as a prop, subscribes to it with `useSelector`, and sends it events such as `LAYER.SET_OPACITY`.
+
+Compare it with `examples/leaflet`, which uses the `LayerManager` class and its layer tree instead. The page, the map and the row markup are the same.
 
 ### Layer Data Structure
 
@@ -60,7 +60,7 @@ The layer manager doesn't distinguish between layer types - it simply stores the
 
 ### Initial Layers
 
-The example starts with these layers, added in `src/layers/manager.ts`:
+The example starts with these layers, added in `src/layers/startingLayers.ts`:
 - A "Base Layers" group containing:
   - OpenStreetMap tile layer (visible)
   - Esri World Imagery tile layer (visible, below OpenStreetMap)
@@ -81,4 +81,4 @@ The example starts with these layers, added in `src/layers/manager.ts`:
 - Every kind of layer follows the order: drag "Base Layers" above "Shapes" to draw the tile layers over the circles, or "London Marker" below "Shapes" to put it under them
 - A layer moved into a group that is switched off stays switched on but hidden
 - Moves the manager rejects, such as a group into itself, are logged as warnings in the browser console
-- The panel uses the browser's HTML5 drag and drop, with no extra library. See `layerList/useLayerDragAndDrop.ts` for how a drop becomes a `moveLayer` call, using the placement read from the layer tree
+- The panel uses the browser's HTML5 drag and drop, with no extra library. See `layerList/useLayerDragAndDrop.ts` for how a drop becomes a `moveLayer` call

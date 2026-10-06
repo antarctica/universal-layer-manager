@@ -35,10 +35,73 @@ A React layer list alongside a Leaflet map, with nested groups, tile layers, cir
 A single `LayerManager` is created once and shared through React context. The layer list and the map are separate components that never talk to each other directly. Both work through the manager:
 
 + The **map** attaches the Leaflet adapter and adds the initial layers. From then on, the adapter keeps the map in step.
-+ The **layer list** subscribes to the actors with `@xstate/react`, as described in [Working with XState](./xstate). Each row subscribes to its own layer's actor and sends events straight to it.
++ The **layer list** reads the manager's layer tree with React's `useSyncExternalStore`, and changes layers through manager methods such as `setEnabled` and `setOpacity`.
+
+Two small hooks do the reading:
+
+```tsx
+function useLayerTree() {
+  const manager = useLayerManager();
+  return React.useSyncExternalStore(manager.subscribe, manager.getTree);
+}
+
+function useLayer(layerId: string) {
+  const manager = useLayerManager();
+  return React.useSyncExternalStore(manager.subscribe, () => manager.getTree().layers[layerId]);
+}
+```
+
+The list renders `rootIds`, and each group renders its `childIds`. Each row is memoised on its `layerId` and reads its own layer with `useLayer`. A layer that didn't change keeps the same info object, so a row re-renders only when its own layer changes.
 
 ### Worth a closer look
 
-+ **Setting up in an effect.** The map calls `manager.reset()` before setting up its layers. React runs effects twice in development, and without the reset the second run's layers would be rejected as duplicates.
-+ **Drag and drop.** `useLayerDragAndDrop.ts` turns a drop in a top-first list into a `moveLayer` call, which counts from the bottom and from after the layer has left its old place.
++ **One row component.** Layers and groups share a single, memoised `LayerRow`, because both are plain info with the same fields.
++ **Drag and drop.** `layerList/useLayerDragAndDrop.ts` finds where a layer sits from its `parentId` and its parent's `childIds`, and turns a drop in a top-first list into a `moveLayer` call, which counts from the bottom and from after the layer has left its old place.
 + **Invalid moves.** The list doesn't try to prevent drops such as a group into itself. It leaves the manager to reject them, and logs the reason from `onError`.
++ **The manager is a store.** `layers/manager.ts` creates it once, outside React, and adds the starting layers, and the provider only makes it available. The map's effect attaches the adapter and detaches it in its cleanup. The manager replays its layers to each newly attached adapter, so React's development double-run needs no reset, and layers added by the user survive the map remounting.
+
+### When your starting layers depend on parameters
+
+The example's starting layers are fixed, so it builds them with the manager. When they depend on something only known inside React, such as a prop, the route or data you fetch, keep the manager as a store and add the layers in an effect keyed on those values. The layers then belong to those values, so the effect removes them in its cleanup:
+
+```tsx
+React.useEffect(() => {
+  if (!products) {
+    return;
+  }
+  addLayersFor(manager, { crs, products });
+  return () => manager.reset();
+}, [manager, crs, products]);
+```
+
+A change of `crs` or `products` then replaces the layers, and the map's adapter receives the removals and additions like any other change. Use simple values as dependencies, so the effect runs again only when they really change.
+
+Parameters known before React starts, such as the page's URL parameters, don't need this: pass them to the setup in `layers/manager.ts`. And to change layers that already exist, for example switching one on from the URL, call methods such as `setEnabled` instead of rebuilding.
+
+## Leaflet and React with XState (advanced)
+
+[Live demo](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/leaflet-xstate)
+
+The same layer list and map, built on the manager machine and its actors with `@xstate/react`, without the `LayerManager` class. Choose this approach if you already use XState and want to work with the actors directly. Otherwise, start with the example above.
+
+### The approach
+
+`createActorContext` from `@xstate/react` provides the manager machine, run without the `LayerManager` class as in [Working with XState](./xstate#without-the-layermanager-class). Components get the actor with `LayerManagerContext.useActorRef()` and pass it on as an input:
+
+```tsx
+const managerRef = LayerManagerContext.useActorRef();
+
+// the starting layers, removed again in the effect's cleanup
+React.useEffect(() => addStartingLayers(managerRef), [managerRef]);
+
+// the map
+React.useEffect(() => connectAdapter(managerRef, new LeafletLayerManagerAdapter<LayerData>(map)), [managerRef, map]);
+```
+
+Each row gets its layer's actor as a prop, subscribes to it with `useSelector`, and sends it events such as `LAYER.SET_OPACITY`. The add buttons and drag and drop send `LAYER.ADD` and `LAYER.MOVE` to the manager actor.
+
+### Worth a closer look
+
++ **Starting layers in an effect.** The provider creates the actor inside React, so the starting layers are added in an effect, and its cleanup sends `RESET`. This is the parameterised pattern from the example above.
++ **Children from the manager's list.** A group's child actors are looked up by ID in the manager's typed list of layers, in the group's own `childLayerOrder`.
++ **Rejections.** Without the class's `onError` option, the demo listens for `LAYER.REJECTED` on the manager actor.

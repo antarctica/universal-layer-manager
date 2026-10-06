@@ -1,14 +1,29 @@
 import * as React from 'react';
 import styles from './App.module.css';
 import { LayerList } from './layerList/LayerList';
-import { LayerManagerProvider } from './layers/LayerManagerProvider';
-import { manager } from './layers/manager';
+import { LayerManagerContext } from './layers/LayerManagerContext';
+import { addStartingLayers } from './layers/startingLayers';
 import { LeafletMap } from './map/LeafletMap';
 
-// The layer list beside the map. Both read and change the same manager.
+// Adds the starting layers to the provider's manager actor, and logs the changes it rejects.
+function ManagerSetup(): null {
+  const managerRef = LayerManagerContext.useActorRef();
+
+  React.useEffect(() => addStartingLayers(managerRef), [managerRef]);
+
+  React.useEffect(() => {
+    const subscription = managerRef.on('LAYER.REJECTED', ({ reason }) => console.warn(reason));
+    return () => subscription.unsubscribe();
+  }, [managerRef]);
+
+  return null;
+}
+
+// The layer list beside the map. Both read and change the same manager actor.
 export function App(): React.ReactElement {
   return (
-    <LayerManagerProvider manager={manager}>
+    <LayerManagerContext.Provider>
+      <ManagerSetup />
       <div className={styles.page}>
         <section className={styles.panel}>
           <h1 className={styles.title}>Layer Manager</h1>
@@ -22,6 +37,6 @@ export function App(): React.ReactElement {
           <LeafletMap />
         </main>
       </div>
-    </LayerManagerProvider>
+    </LayerManagerContext.Provider>
   );
 }
