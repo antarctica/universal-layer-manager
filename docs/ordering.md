@@ -16,7 +16,7 @@ LayerManager
 
 Order works like a stack. The top level and each group keep their own list of the items inside them, ordered from the bottom of the map to the top. Index `0` is the bottom, and each item is drawn on top of the ones before it, so the last item in the list is the top of the map.
 
-The same rule applies everywhere in the library: to `index` when adding and moving layers, to `manager.layers`, and to the order reported by `onOrderChanged`.
+The same rule applies everywhere in the library: to `index` when adding and moving layers, to `rootIds` and `childIds` in the layer tree, and to the order reported by `onOrderChanged`.
 
 ::: tip
 A layer list usually shows the top of the map first, so reverse each list when you draw it, as the trees on this page do.

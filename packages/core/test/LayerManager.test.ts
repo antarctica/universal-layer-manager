@@ -2,6 +2,7 @@ import type { LayerManagerAdapter } from '../src/adapters/types';
 import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
+import type { MapModel } from './utils/map-model';
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { LayerManager } from '../src/LayerManager';
@@ -16,8 +17,26 @@ function createManager(options: LayerManagerOptions<TestLayerData, TestLayerData
   const map = createMapModel<TestLayerData>();
   const monitor = monitorContract(map);
   manager.setAdapter(monitor.adapter);
-  onTestFinished(() => monitor.assertMet());
+  onTestFinished(() => {
+    monitor.assertMet();
+    if (map.registered) {
+      expectTreeToMatchMap(manager, map);
+    }
+  });
   return { manager, map };
+}
+
+function expectTreeToMatchMap(manager: TestManager, map: MapModel<TestLayerData>) {
+  const { rootIds, layers } = manager.getTree();
+  const flatOrder = (ids: readonly string[]): string[] => ids.flatMap((id) => {
+    const info = layers[id];
+    return [id, ...(info?.layerType === 'layerGroup' ? flatOrder(info.childIds) : [])];
+  });
+  expect(Object.keys(layers).sort()).toEqual([...map.layers.keys()].sort());
+  map.layers.forEach((state, layerId) => {
+    expect(layers[layerId]).toMatchObject(state);
+  });
+  expect(flatOrder(rootIds)).toEqual(map.order);
 }
 
 function layer(layerId: string, overrides: Partial<LayerConfig<TestLayerData>> = {}) {
@@ -29,12 +48,16 @@ function group(layerId: string, parentId: string | null = null) {
 }
 
 function topLevelIds(manager: TestManager): string[] {
-  return manager.layers.map((item) => item.layerActor.id);
+  return [...manager.getTree().rootIds];
 }
 
 function childIdsOf(manager: TestManager, groupId: string): string[] {
-  const item = manager.getLayer(groupId);
-  return item?.type === 'layerGroup' ? item.layerActor.getSnapshot().context.childLayerOrder : [];
+  const info = manager.getTree().layers[groupId];
+  return info?.layerType === 'layerGroup' ? info.childIds : [];
+}
+
+function actorOf(manager: TestManager, layerId: string) {
+  return manager.actor.getSnapshot().children[layerId];
 }
 
 const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
@@ -157,8 +180,8 @@ describe('layerManager', () => {
       manager.addLayer(layer('c1', { parentId: 'group-1' }));
       manager.addLayer({ ...layer('c2', { parentId: 'group-1' }), position: 'top' });
 
-      const item = manager.getLayer('group-1');
-      const children = item?.type === 'layerGroup' ? item.layerActor.getSnapshot().context.children : [];
+      const context = actorOf(manager, 'group-1')?.getSnapshot().context;
+      const children = context && 'children' in context ? context.children : [];
 
       expect(children.map((child) => child.id)).toEqual(['c1', 'c2']);
     });
@@ -593,14 +616,14 @@ describe('layerManager', () => {
       const shownWhenAdded: boolean[] = [];
       const { manager } = createManager({
         onLayerAdded: (info) => {
-          shownWhenAdded.push(manager.getLayer(info.layerId)?.layerActor.getSnapshot().hasTag('visible') ?? true);
+          shownWhenAdded.push(manager.getTree().layers[info.layerId]?.visible ?? true);
         },
       });
 
       manager.addLayer({ ...layer('layer-1'), visible: true });
 
       expect(shownWhenAdded).toEqual([false]);
-      expect(manager.getLayer('layer-1')?.layerActor.getSnapshot().hasTag('visible')).toBe(true);
+      expect(manager.getTree().layers['layer-1']?.visible).toBe(true);
     });
 
     it('reports visibility only when it changes', () => {
@@ -941,7 +964,7 @@ describe('layerManager', () => {
       const { manager, map } = createManager({ onError });
       manager.addLayer(layer('layer-1', { opacity: 0.5 }));
 
-      manager.getLayer('layer-1')?.layerActor.send({ type: 'LAYER.SET_OPACITY', opacity: 5 });
+      actorOf(manager, 'layer-1')?.send({ type: 'LAYER.SET_OPACITY', opacity: 5 });
 
       expect(onError.mock.calls.map(([error]) => error)).toEqual([
         new Error('Opacity 5 for layer layer-1 must be a number between 0 and 1. Opacity not set.'),
@@ -1073,14 +1096,14 @@ describe('layerManager', () => {
       const { manager, map } = createManager({ onLayerRemoved });
       manager.addLayer(layer('a'));
       manager.addLayer(layer('b'));
-      const removed = manager.getLayer('a');
+      const removed = actorOf(manager, 'a');
 
       manager.removeLayer('a');
 
       expect(onLayerRemoved).toHaveBeenCalledWith('a');
-      expect(removed?.layerActor.getSnapshot().status).toBe('stopped');
+      expect(removed?.getSnapshot().status).toBe('stopped');
       expect(topLevelIds(manager)).toEqual(['b']);
-      expect(manager.getLayer('a')).toBeUndefined();
+      expect(manager.getTree().layers.a).toBeUndefined();
       expect([...map.layers.keys()]).toEqual(['b']);
     });
 
@@ -1103,7 +1126,7 @@ describe('layerManager', () => {
       manager.removeLayer('c1');
       manager.removeLayer('group-1');
 
-      expect(manager.layers).toEqual([]);
+      expect(manager.getTree().rootIds).toEqual([]);
     });
   });
 
@@ -1125,7 +1148,7 @@ describe('layerManager', () => {
       manager.addGroup(group('inner', 'outer'));
 
       expect(onError).toHaveBeenCalledWith(new Error('Nested group layers are not allowed.'));
-      expect(manager.getLayer('inner')).toBeUndefined();
+      expect(manager.getTree().layers.inner).toBeUndefined();
     });
   });
 
@@ -1138,7 +1161,7 @@ describe('layerManager', () => {
       manager.addLayer(layer('layer-1'));
 
       expect(onError).toHaveBeenCalledWith(new Error('Layer with ID layer-1 already exists. Layer not added.'));
-      expect(manager.layers).toHaveLength(1);
+      expect(manager.getTree().rootIds).toHaveLength(1);
     });
 
     it('reports adding a layer to a parent that does not exist through onError', () => {
@@ -1148,7 +1171,7 @@ describe('layerManager', () => {
       manager.addLayer(layer('child-1', { parentId: 'missing-group' }));
 
       expect(onError).toHaveBeenCalledWith(new Error('Unable to find parent group missing-group. Layer child-1 not added.'));
-      expect(manager.getLayer('child-1')).toBeUndefined();
+      expect(manager.getTree().layers['child-1']).toBeUndefined();
     });
 
     it('reports adding a layer with an opacity outside 0 to 1 through onError', () => {
@@ -1164,7 +1187,7 @@ describe('layerManager', () => {
         new Error('Opacity -1 for layer too-low must be a number between 0 and 1. Layer not added.'),
         new Error('Opacity NaN for layer not-a-number must be a number between 0 and 1. Layer not added.'),
       ]);
-      expect(manager.layers).toEqual([]);
+      expect(manager.getTree().rootIds).toEqual([]);
       expect(map.layers.size).toBe(0);
     });
 
@@ -1175,7 +1198,7 @@ describe('layerManager', () => {
       manager.addGroup({ layerConfig: createTestLayerGroupConfig<TestLayerData>({ layerId: 'group-1', opacity: 1.5 }) });
 
       expect(onError).toHaveBeenCalledWith(new Error('Opacity 1.5 for layer group-1 must be a number between 0 and 1. Layer not added.'));
-      expect(manager.layers).toEqual([]);
+      expect(manager.getTree().rootIds).toEqual([]);
       expect(map.layers.size).toBe(0);
     });
 
@@ -1231,7 +1254,7 @@ describe('layerManager', () => {
       manager.removeLayer('group-1');
 
       expect(onError).toHaveBeenCalledWith(new Error('Layer group group-1 has children. Layer not removed.'));
-      expect(manager.getLayer('group-1')).toBeDefined();
+      expect(manager.getTree().layers['group-1']).toBeDefined();
     });
 
     it('reports moving a layer that does not exist through onError and keeps the order', () => {
@@ -1314,7 +1337,7 @@ describe('layerManager', () => {
       manager.reset();
 
       expect(onLayerRemoved.mock.calls.map(([layerId]) => layerId).sort()).toEqual(['child-1', 'group-1', 'layer-1']);
-      expect(manager.layers).toEqual([]);
+      expect(manager.getTree().rootIds).toEqual([]);
       expect(map.layers.size).toBe(0);
     });
 
@@ -1322,13 +1345,13 @@ describe('layerManager', () => {
       const { manager } = createManager();
       manager.addGroup(group('group-1'));
       manager.addLayer(layer('layer-1'));
-      const groupItem = manager.getLayer('group-1');
-      const layerItem = manager.getLayer('layer-1');
+      const groupActor = actorOf(manager, 'group-1');
+      const layerActor = actorOf(manager, 'layer-1');
 
       manager.reset();
 
-      expect(groupItem?.layerActor.getSnapshot().status).toBe('stopped');
-      expect(layerItem?.layerActor.getSnapshot().status).toBe('stopped');
+      expect(groupActor?.getSnapshot().status).toBe('stopped');
+      expect(layerActor?.getSnapshot().status).toBe('stopped');
     });
 
     it('accepts new layers with previously used ids', () => {
@@ -1339,6 +1362,53 @@ describe('layerManager', () => {
       manager.addLayer(layer('layer-1'));
 
       expect(topLevelIds(manager)).toEqual(['layer-1']);
+    });
+  });
+
+  describe('layer tree', () => {
+    it('lists every layer and group, with the top level bottom first', () => {
+      const { manager } = createManager();
+      manager.addGroup(group('group-1'));
+      manager.addLayer(layer('c1', { parentId: 'group-1' }));
+      manager.addLayer({ ...layer('a'), position: 'top' });
+
+      const tree = manager.getTree();
+
+      expect(tree.rootIds).toEqual(['group-1', 'a']);
+      expect(Object.keys(tree.layers).sort()).toEqual(['a', 'c1', 'group-1']);
+      expect(tree.layers['group-1']).toMatchObject({ layerType: 'layerGroup', childIds: ['c1'] });
+      expect(tree.layers.c1).toMatchObject({ layerType: 'layer', parentId: 'group-1' });
+    });
+
+    it('keeps the same tree until something changes, and the same info for each layer that did not change', () => {
+      const { manager } = createManager();
+      manager.addLayer(layer('a'));
+      manager.addLayer(layer('b'));
+      const before = manager.getTree();
+
+      expect(manager.getTree()).toBe(before);
+
+      manager.setOpacity('a', 0.5);
+      const after = manager.getTree();
+
+      expect(after).not.toBe(before);
+      expect(after.layers.a).toMatchObject({ opacity: 0.5 });
+      expect(after.layers.b).toBe(before.layers.b);
+      expect(after.rootIds).toBe(before.rootIds);
+    });
+
+    it('calls a subscriber after each change until it unsubscribes', () => {
+      const { manager } = createManager();
+      const listener = vi.fn();
+      const unsubscribe = manager.subscribe(listener);
+
+      manager.addLayer(layer('a'));
+      const callsWhileSubscribed = listener.mock.calls.length;
+      unsubscribe();
+      manager.setOpacity('a', 0.5);
+
+      expect(callsWhileSubscribed).toBeGreaterThan(0);
+      expect(listener).toHaveBeenCalledTimes(callsWhileSubscribed);
     });
   });
 

@@ -36,7 +36,8 @@
 | `setOpacity(layerId, opacity)` | Set a layer's or group's own opacity, from 0 to 1 |
 | `setTimeInfo(layerId, timeInfo)` | Set a layer's or group's time info |
 | `updateLayerData(layerId, layerData)` | Replace a layer's or group's `layerData` |
-| `getLayer(layerId)` | Return the managed item, `{ type, layerActor }`, or `undefined` |
+| `getTree()` | The layer tree: every layer and group as plain data. See [Layer tree](#layer-tree) |
+| `subscribe(listener)` | Call `listener` whenever the manager or a layer may have changed. Returns a function that stops the calls. Read `getTree()` for the result |
 | `setAdapter(adapter \| null)` | Attach an adapter, replacing any existing one, or detach it with `null` |
 | `reset()` | Remove every layer and group, reporting each removal and the empty order |
 | `destroy()` | Detach the adapter and stop the manager, without reporting the removals. The instance can't be used again, and calling `destroy()` again does nothing |
@@ -45,9 +46,23 @@
 
 | Property | Description |
 |----------|-------------|
-| `layers` | The top-level items in order, bottom first |
 | `actor` | The manager's XState actor. See [Working with XState](../xstate) |
 | `destroyed` | `true` after `destroy()` |
+
+## Layer tree
+
+`getTree()` returns `{ rootIds, layers }`:
+
+| Field | Description |
+|-------|-------------|
+| `rootIds` | The IDs of the top-level layers and groups, bottom first |
+| `layers` | Every layer and group by ID, as [layer info](#layer-info). A group's `childIds` lists its children, bottom first |
+
+The tree is read-only. The manager returns the same object until something changes, and a layer that didn't change keeps the same info object. That suits React's `useSyncExternalStore`, with no XState needed:
+
+```ts
+const tree = useSyncExternalStore(manager.subscribe, manager.getTree);
+```
 
 ## Add parameters
 
