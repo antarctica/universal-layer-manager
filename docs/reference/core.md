@@ -177,7 +177,7 @@ A command that cannot be carried out, such as an opacity outside 0 to 1 or an un
 
 ## For adapters that render layers
 
-The Leaflet and MapLibre adapters share these types and the `RenderedLayers` class, so their options take the same shape and follow the same rules. They are not part of `LayerManagerAdapter`. Use them if you write an adapter of your own that shows each layer with a `renderLayer` function. See [Writing an adapter](../adapters/writing-an-adapter#showing-layers-with-renderlayer).
+The Leaflet and MapLibre adapters share these types and extend the `RenderAdapter` class, so their options take the same shape and follow the same rules. They are not part of `LayerManagerAdapter`. Use them if you write an adapter of your own that shows each layer with a `renderLayer` function. See [Writing an adapter](../adapters/writing-an-adapter#showing-layers-with-renderlayer).
 
 | Type | Description |
 |------|-------------|
@@ -185,26 +185,27 @@ The Leaflet and MapLibre adapters share these types and the `RenderedLayers` cla
 | `RenderAdapterArgs<TLayer, TOptions, TDefaultData>` | The adapter constructor's options argument: optional when every layer's data is `TDefaultData`, the shape its default `renderLayer` shows, and required with `renderLayer` otherwise, so a mismatch fails to compile |
 | `RenderAdapterOptions<TLayer, TMap, TRendered>` | `{ renderLayer?, disposeLayer? }`. `disposeLayer(rendered, layerId)` undoes setup for something `renderLayer` returned, once the adapter discards it: when its layer is removed, when `renderLayer` returns something different, and when the adapter is detached |
 
-### `new RenderedLayers<TLayer, TMap, TRendered>(options)`
+### `RenderAdapter<TLayer, TGroup, TMap, TRendered>`
 
-Keeps what `renderLayer` returned for each layer, and calls `renderLayer` and `disposeLayer` by the rules above. Groups are skipped.
+An abstract `LayerManagerAdapter` that calls `renderLayer` and `disposeLayer` by the rules above. It skips groups, and keeps each layer's visibility, computed opacity and place in the order. Its constructor takes `(map, { renderLayer, disposeLayer? })`, with `renderLayer` required: pass the adapter's default when the app gives none. The map is then `this.map`.
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `map` | `TMap` | Passed to `renderLayer` |
-| `renderLayer` | `RenderLayer<TLayer, TMap, TRendered>` | Required. Pass the adapter's default when the app gives none |
-| `disposeLayer` | `(rendered, layerId) => void` | Optional. Pass on the app's option |
-| `place` | `(info, rendered, previous?) => void` | Puts a result on the map. `previous` is the result it replaces, if any |
-| `erase` | `(layerId, rendered, next?) => void` | Takes a result off the map. `next` is the result that replaces it, if any |
-| `isSame` | `(previous, next) => boolean` | Optional. Whether `next` stands in for `previous`, so `previous` is not disposed of. Without it, only the same object counts |
+A subclass implements these methods. Each `layer` is a `RenderedLayer<TRendered>`: `{ layerId, rendered, visible, computedOpacity }`, where `rendered` is what `renderLayer` returned.
 
-| Method | Description |
+| Method | Called when |
 |--------|-------------|
-| `add(info)` | Call from `onLayerAdded`. Calls `renderLayer`, then `place` |
-| `update(info)` | Call from `onLayerDataChanged` and `onTimeInfoChanged`. Calls `renderLayer` with `current`, then `erase` and `place` unless it returned `current` |
-| `remove(layerId)` | Call from `onLayerRemoved`. Calls `erase`, then `disposeLayer` |
-| `clear()` | Call from `unregister`. Removes every layer |
-| `get(layerId)` | What `renderLayer` last returned for a layer, or `undefined`. While `erase` runs it no longer returns the result being erased; while `place` runs it returns the result being placed |
+| `placeLayer(layer, previous?)` | A result is to go on the map: when a layer is added, when `renderLayer` returns something new, and from `placeAll()`. `previous` is the result it replaces, if any |
+| `eraseLayer(layerId, rendered, next?)` | A result is to come off the map: when its layer is removed, when it is replaced, and when the adapter is detached. `next` is the result that replaces it, if any |
+| `setLayerVisible(layer)` | A layer starts or stops showing |
+| `setLayerOpacity(layer)` | A layer's computed opacity changes |
+| `restackLayers(bottomToTop)` | The order changes, and after a replaced result is placed. Lists only the layers with a result |
+
+| Protected member | Description |
+|------------------|-------------|
+| `isSame(previous, next)` | Override to say `next` stands in for `previous`: `previous` is not disposed of, and the layer is not restacked. Returns `false` unless overridden |
+| `renderedLayers()` | Every layer with a result. While `eraseLayer` runs it leaves out the result being erased; while `placeLayer` runs it includes the result being placed |
+| `placeAll()` | Calls `placeLayer` for every layer with a result, then `restackLayers`. For a map that lost them |
+
+A subclass that overrides `unregister` calls `super.unregister()`, which erases and disposes of every result.
 
 ## Helper functions
 

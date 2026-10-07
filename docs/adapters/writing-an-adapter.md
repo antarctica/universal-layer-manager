@@ -138,57 +138,60 @@ remove osm
 
 ## Showing layers with `renderLayer`
 
-The Leaflet and MapLibre adapters turn each layer into something the map shows with a `renderLayer` function, which the app can replace. If your adapter works the same way, `RenderedLayers` from `@ulm/core` does the bookkeeping. It calls `renderLayer` when a layer is added, and again with the last result as `current` when the layer's data or time changes. It leaves the map alone when `renderLayer` returns `current`, and calls `disposeLayer` when a result is removed, replaced or detached. Your adapter says how to put a result on the map and take it off:
+The Leaflet and MapLibre adapters turn each layer into something the map shows with a `renderLayer` function, which the app can replace. If your adapter works the same way, extend `RenderAdapter` from `@ulm/core`. It handles every hook for you:
+
++ It calls `renderLayer` when a layer is added, and again with the last result as `current` when the layer's data or time changes. When `renderLayer` returns `current`, the map is left alone.
++ It calls `disposeLayer` when a result is removed, replaced or detached.
++ It skips groups, and keeps each layer's visibility, computed opacity and place in the order, even while `renderLayer` leaves the layer off the map.
+
+Your adapter only changes the map:
 
 ```ts
-import type { LayerManagerAdapter, RenderAdapterOptions } from '@ulm/core';
+import type { RenderAdapterOptions, RenderedLayer } from '@ulm/core';
 import type { MapView } from 'my-map-library';
-import { RenderedLayers } from '@ulm/core';
+import { RenderAdapter } from '@ulm/core';
 import { TileLayer } from 'my-map-library';
 
+// the data each layer carries; here, where to load it from
 interface LayerData {
   url: string;
 }
 
-export function createMyAdapter(map: MapView, options: RenderAdapterOptions<LayerData, MapView, TileLayer> = {}): LayerManagerAdapter<LayerData> {
-  const tileLayers = new RenderedLayers({
-    map,
-    renderLayer: options.renderLayer ?? ((info) => new TileLayer(info.layerData.url)),
-    disposeLayer: options.disposeLayer,
-    place(info, tileLayer) {
-      tileLayer.visible = info.visible;
-      tileLayer.opacity = info.computedOpacity;
-      map.add(tileLayer);
-    },
-    erase(_layerId, tileLayer) {
-      map.remove(tileLayer);
-    },
-  });
+export class MyAdapter extends RenderAdapter<LayerData, undefined, MapView, TileLayer> {
+  constructor(map: MapView, options: RenderAdapterOptions<LayerData, MapView, TileLayer> = {}) {
+    super(map, {
+      renderLayer: options.renderLayer ?? ((info) => new TileLayer(info.layerData.url)),
+      disposeLayer: options.disposeLayer,
+    });
+  }
 
-  return {
-    onLayerAdded: (info) => tileLayers.add(info),
-    onLayerRemoved: (layerId) => tileLayers.remove(layerId),
-    onLayerDataChanged: (info) => tileLayers.update(info),
-    onTimeInfoChanged: (info) => tileLayers.update(info),
-    onVisibilityChanged(info, visible) {
-      const tileLayer = tileLayers.get(info.layerId);
-      if (tileLayer) {
-        tileLayer.visible = visible;
-      }
-    },
-    onOpacityChanged(info, computedOpacity) {
-      const tileLayer = tileLayers.get(info.layerId);
-      if (tileLayer) {
-        tileLayer.opacity = computedOpacity;
-      }
-    },
-    // restack in onOrderChanged as in the minimal adapter
-    unregister: () => tileLayers.clear(),
-  };
+  protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<TileLayer>) {
+    rendered.visible = visible;
+    rendered.opacity = computedOpacity;
+    this.map.add(rendered);
+  }
+
+  protected eraseLayer(_layerId: string, rendered: TileLayer) {
+    this.map.remove(rendered);
+  }
+
+  protected setLayerVisible({ rendered, visible }: RenderedLayer<TileLayer>) {
+    rendered.visible = visible;
+  }
+
+  protected setLayerOpacity({ rendered, computedOpacity }: RenderedLayer<TileLayer>) {
+    rendered.opacity = computedOpacity;
+  }
+
+  protected restackLayers(bottomToTop: RenderedLayer<TileLayer>[]) {
+    bottomToTop.forEach(({ rendered }, index) => {
+      rendered.zIndex = index;
+    });
+  }
 }
 ```
 
-`RenderedLayers` skips groups, so the hooks above don't check `layerType`. When a new result can update the map in place, `place` receives the result it replaces and `erase` the result that replaces it. Pass `isSame` to keep a replaced result from `disposeLayer`. The MapLibre adapter does this for styles that differ only in GeoJSON data or tile URLs. See the [`@ulm/core` reference](../reference/core#for-adapters-that-render-layers) for every option.
+When a new result can update the map in place, `placeLayer` receives the result it replaces and `eraseLayer` the result that replaces it. Override `isSame` to say a new result stands in for the old one: the old one is then not disposed of, and the layer is not restacked. The MapLibre adapter does this for styles that differ only in GeoJSON data or tile URLs. If your map can lose everything you added, as MapLibre does when the app changes the style, call `placeAll()` to put it all back. See the [`@ulm/core` reference](../reference/core#for-adapters-that-render-layers) for details.
 
 ## Custom behaviour
 
