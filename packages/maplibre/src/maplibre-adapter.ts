@@ -18,30 +18,24 @@ function isTileSource(source: SourceSpecification): source is TileSourceSpecific
   return source.type === 'vector' || source.type === 'raster' || source.type === 'raster-dem';
 }
 
-// Whether MapLibre can change a source from `before` to `next` in place. setTiles and setUrl keep the old tiles showing until the new ones load.
-function canUpdateInPlace(before: SourceSpecification, next: SourceSpecification | undefined): boolean {
-  if (next && isTileSource(before) && isTileSource(next)) {
-    return sameJson({ ...before, tiles: null, url: null }, { ...next, tiles: null, url: null });
-  }
-  if (next?.type === 'geojson' && before.type === 'geojson') {
-    return sameJson({ ...before, data: null }, { ...next, data: null });
-  }
-  return sameJson(before, next);
-}
-
 // A source's spec without the values MapLibre updates in place: GeoJSON data, and a tile source's tiles and url.
-function withoutInPlaceValues(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(sources).map(([id, source]) => {
-    if (source.type === 'geojson') {
-      return [id, { ...source, data: null }];
-    }
-    return [id, isTileSource(source) ? { ...source, tiles: null, url: null } : source];
-  }));
+// setData, setTiles and setUrl keep the old features and tiles showing until the new ones load.
+function withoutInPlaceValues(source: SourceSpecification): unknown {
+  if (source.type === 'geojson') {
+    return { ...source, data: null };
+  }
+  return isTileSource(source) ? { ...source, tiles: null, url: null } : source;
 }
 
-// Whether two styles draw the same, apart from the GeoJSON data and tile URLs that MapLibre updates in place.
+// Whether MapLibre can change a source from `before` to `next` in place.
+function canUpdateInPlace(before: SourceSpecification, next: SourceSpecification | undefined): boolean {
+  return next !== undefined && sameJson(withoutInPlaceValues(before), withoutInPlaceValues(next));
+}
+
+// Whether two styles draw the same, apart from the values MapLibre updates in place.
 function drawsTheSame(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): boolean {
-  return sameJson(previous.layers, next.layers) && sameJson(withoutInPlaceValues(previous.sources), withoutInPlaceValues(next.sources));
+  const sourcesOf = (style: MapLibreLayerStyle) => Object.fromEntries(Object.entries(style.sources ?? {}).map(([id, source]) => [id, withoutInPlaceValues(source)]));
+  return sameJson(previous.layers, next.layers) && sameJson(sourcesOf(previous), sourcesOf(next));
 }
 
 // A layer's visibility and computed opacity, kept so its style can be written once the style loads.
