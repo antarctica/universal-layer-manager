@@ -88,7 +88,7 @@ With neither `visible` nor `enabled`, it is added switched off.
 | `layerName` | `string` | Display name |
 | `layerType` | `'layer' \| 'layerGroup'` | Which kind of item this is |
 | `parentId` | `string \| null` | The ID of the group it belongs to. Leave it out, or use `null`, for the top level |
-| `layerData` | `TLayer` / `TGroup` | Your data for this layer or group |
+| `layerData` | `TLayer` / `TGroup` | Your data for this layer or group. Optional when its type allows `undefined`, as for groups by default |
 | `opacity` | `number` | Its own opacity, from 0 to 1 (default `1`) |
 | `timeInfo` | `LayerTimeInfo` | Optional single date or date range |
 | `listMode` | `'show' \| 'hide'`, plus `'hide-children'` for groups | A hint for your layer list. The manager stores it but doesn't act on it (default `'show'`) |
