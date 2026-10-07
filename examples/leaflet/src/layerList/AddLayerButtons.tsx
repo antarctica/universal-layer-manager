@@ -35,7 +35,7 @@ export function AddLayerButtons({ parentId }: { parentId: string | null }): Reac
   const addGroup = (): void => {
     const id = randomId();
     manager.addGroup({
-      layerConfig: { layerId: id, layerName: `Group ${id}`, layerType: 'layerGroup', parentId, layerData: undefined },
+      layerConfig: { layerId: id, layerName: `Group ${id}`, layerType: 'layerGroup', parentId },
       visible: true,
     });
   };
