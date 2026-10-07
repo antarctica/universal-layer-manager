@@ -28,14 +28,15 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
   // The Leaflet layer the factory last gave the adapter for each layer, so the map can be checked against it.
   const built = new Map<string, L.Layer | null>();
   const layerFactory = options.layerFactory ?? createDefaultLeafletFactory<LayerData>();
-  manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map, {
+  const adapter = new LeafletLayerManagerAdapter<LayerData>(map, {
     ...options,
     layerFactory: (info, factoryMap, current) => {
       const leafletLayer = layerFactory(info, factoryMap, current);
       built.set(info.layerId, leafletLayer);
       return leafletLayer;
     },
-  }));
+  });
+  manager.setAdapter(adapter);
 
   let attached = true;
   const detach = () => {
@@ -50,7 +51,7 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
     map.remove();
     container.remove();
   });
-  return { map, manager, detach };
+  return { map, manager, adapter, detach };
 }
 
 /** What the map shows matches the manager's tree: who is on the map, at what opacity, in what order. */
@@ -506,5 +507,66 @@ describe('leafletLayerManagerAdapter', () => {
     manager.setTimeInfo('layer-1', newYearsDay);
 
     expect(disposeLayer).toHaveBeenCalledWith(before, 'layer-1');
+  });
+
+  it('draws the Leaflet layer the factory now builds when the layer is redrawn', () => {
+    const themed = { light: circle(), dark: circle() };
+    let theme: keyof typeof themed = 'light';
+    const { map, manager, adapter } = setup({ layerFactory: () => themed[theme] });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+
+    theme = 'dark';
+    adapter.redraw('layer-1');
+
+    expect([map.hasLayer(themed.light), map.hasLayer(themed.dark)]).toEqual([false, true]);
+  });
+
+  it('redraws every layer when no layer is named', () => {
+    const redrawn = new Map<string, L.Layer>();
+    let isRedrawing = false;
+    const { map, manager, adapter } = setup({
+      layerFactory: (info) => {
+        if (!isRedrawing) {
+          return info.layerData.leafletLayer;
+        }
+        const leafletLayer = circle();
+        redrawn.set(info.layerId, leafletLayer);
+        return leafletLayer;
+      },
+    });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    manager.addLayer({ ...layerParams('layer-2', circle()), visible: true });
+
+    isRedrawing = true;
+    adapter.redraw();
+
+    expect([...redrawn.keys()].sort()).toEqual(['layer-1', 'layer-2']);
+    expect([...redrawn.values()].every((leafletLayer) => map.hasLayer(leafletLayer))).toBe(true);
+  });
+
+  it('keeps a hidden layer off the map when it is redrawn', () => {
+    const replacement = circle();
+    let isRedrawing = false;
+    const { map, manager, adapter } = setup({ layerFactory: (info) => (isRedrawing ? replacement : info.layerData.leafletLayer) });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    manager.setEnabled('layer-1', false);
+
+    isRedrawing = true;
+    adapter.redraw('layer-1');
+
+    expect(map.hasLayer(replacement)).toBe(false);
+  });
+
+  it('leaves a removed layer off the map when every layer is redrawn', () => {
+    const replacement = circle();
+    let isRedrawing = false;
+    const { map, manager, adapter } = setup({ layerFactory: (info) => (isRedrawing ? replacement : info.layerData.leafletLayer) });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    manager.removeLayer('layer-1');
+
+    isRedrawing = true;
+    adapter.redraw();
+
+    expect(map.hasLayer(replacement)).toBe(false);
   });
 });
