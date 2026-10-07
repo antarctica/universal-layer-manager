@@ -31,4 +31,9 @@ export type MapLibreLayerFactory<TLayer> = (
 
 export interface MapLibreAdapterOptions<TLayer> {
   layerFactory: MapLibreLayerFactory<TLayer>;
+  /**
+   * The ID of a style layer to draw every layer below. Leave it out to draw them below the
+   * map's first label layer, or on top when the map has no labels.
+   */
+  drawBelow?: string;
 }
