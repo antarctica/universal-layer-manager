@@ -50,6 +50,7 @@ export default withMermaid(defineConfig({
         items: [
           { text: 'About adapters', link: '/adapters/' },
           { text: 'Leaflet', link: '/adapters/leaflet' },
+          { text: 'MapLibre', link: '/adapters/maplibre' },
           { text: 'Writing an adapter', link: '/adapters/writing-an-adapter' },
         ],
       },
@@ -65,6 +66,7 @@ export default withMermaid(defineConfig({
         items: [
           { text: '@ulm/core', link: '/reference/core' },
           { text: '@ulm/leaflet', link: '/reference/leaflet' },
+          { text: '@ulm/maplibre', link: '/reference/maplibre' },
         ],
       },
       {

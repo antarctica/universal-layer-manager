@@ -1,5 +1,5 @@
 
-<img src="./packages/core/assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
+<img src="./docs/public/logo.svg" alt="Universal Layer Manager logo" width="160" />
 
 
 # Universal Layer Manager
@@ -20,6 +20,7 @@ A state-machine-powered layer management library for map applications. Model you
 |---------|---------|-------------|
 | [`@ulm/core`](./packages/core/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/core.svg)](https://www.npmjs.com/package/@ulm/core) | Core state machine library — framework and map-library agnostic |
 | [`@ulm/leaflet`](./packages/leaflet/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/leaflet.svg)](https://www.npmjs.com/package/@ulm/leaflet) | Leaflet adapter — syncs manager state to a Leaflet map |
+| [`@ulm/maplibre`](./packages/maplibre/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/maplibre.svg)](https://www.npmjs.com/package/@ulm/maplibre) | MapLibre GL JS adapter — syncs manager state to a MapLibre map's style |
 
 For another map library, [write your own adapter](https://antarctica.github.io/universal-layer-manager/adapters/writing-an-adapter).
 
@@ -69,7 +70,7 @@ manager.addLayer({
 });
 ```
 
-Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet adapter](https://antarctica.github.io/universal-layer-manager/adapters/leaflet).
+Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet](https://antarctica.github.io/universal-layer-manager/adapters/leaflet) or [MapLibre](https://antarctica.github.io/universal-layer-manager/adapters/maplibre) adapter.
 
 ---
 
@@ -80,6 +81,7 @@ Next, read [Getting started](https://antarctica.github.io/universal-layer-manage
 | [`examples/simple`](./examples/simple/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/simple/)) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
 | [`examples/leaflet`](./examples/leaflet/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet/)) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering, read from the layer tree |
 | [`examples/leaflet-xstate`](./examples/leaflet-xstate/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/)) | Advanced: the same example built on the layer actors with `@xstate/react` |
+| [`examples/maplibre`](./examples/maplibre/README.md) | React + MapLibre — `@ulm/maplibre` adapter, raster and vector tile layers below the basemap's labels, and a basemap switcher |
 
 To run them locally:
 
@@ -97,10 +99,12 @@ npm run dev        # start all dev servers via Turbo
 packages/
   core/       @ulm/core — state machine library
   leaflet/    @ulm/leaflet — Leaflet adapter
+  maplibre/   @ulm/maplibre — MapLibre GL JS adapter
 examples/
   simple/          vanilla TypeScript example
   leaflet/         React + Leaflet example
   leaflet-xstate/  the same example built on the actors (advanced)
+  maplibre/        React + MapLibre example
 docs/         documentation site (VitePress)
 ```
 
