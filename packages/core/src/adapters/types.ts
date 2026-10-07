@@ -97,26 +97,28 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> exten
 }
 
 // ============================================================================
-// DRAWING ADAPTERS
-// What an adapter that draws each layer from a factory offers the app. `TMap` is the map it draws on, and `TDrawn`
-// what it draws for a layer, such as a Leaflet layer or a MapLibre style. Not part of the contract above.
+// ADAPTERS THAT RENDER LAYERS
+// What an adapter that renders each layer with a renderLayer function offers the app. `TMap` is the map it renders on,
+// and `TRendered` what renderLayer returns for a layer, such as a Leaflet layer or a MapLibre style. Not part of the
+// contract above.
 // ============================================================================
 
 /**
- * Turns a layer into what the adapter draws for it, or `null` to leave it off the map. The adapter calls it when a
- * layer is added, and again when its `layerData` or `timeInfo` changes, with what it returned last time as `current`.
- * Return `current` to leave the map as it is. Put anything else the drawing depends on, such as a theme, in
+ * Returns what the adapter shows for a layer, or `null` to leave it off the map. The adapter calls it when a layer is
+ * added, and again when its `layerData` or `timeInfo` changes, with what it returned last time as `current`.
+ * Return `current` to leave the map as it is. Put anything else the layer's look depends on, such as a theme, in
  * `layerData`.
  */
-export type LayerFactory<TLayer, TMap, TDrawn> = (info: LayerInfo<TLayer>, map: TMap, current?: TDrawn) => TDrawn | null;
+export type RenderLayer<TLayer, TMap, TRendered> = (info: LayerInfo<TLayer>, map: TMap, current?: TRendered) => TRendered | null;
 
-/** The options every drawing adapter takes. */
-export interface DrawingAdapterOptions<TLayer, TMap, TDrawn> {
-  /** Builds what the adapter draws for each layer. */
-  layerFactory?: LayerFactory<TLayer, TMap, TDrawn>;
+/** The options every adapter that renders layers with `renderLayer` takes. */
+export interface RenderAdapterOptions<TLayer, TMap, TRendered> {
+  /** Returns what the adapter shows for each layer. */
+  renderLayer?: RenderLayer<TLayer, TMap, TRendered>;
   /**
-   * Undoes what was set up for a drawing once the adapter discards it: when its layer is removed, when the factory
-   * returns a different drawing, and when the adapter is detached. Hiding a layer does not discard its drawing.
+   * Undoes what was set up for what `renderLayer` returned once the adapter discards it: when its layer is removed,
+   * when `renderLayer` returns something different, and when the adapter is detached. Hiding a layer does not
+   * discard it.
    */
-  disposeLayer?: (drawn: TDrawn, layerId: string) => void;
+  disposeLayer?: (rendered: TRendered, layerId: string) => void;
 }

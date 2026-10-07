@@ -245,7 +245,7 @@ export function updateLayerOrder(
     const safeIndex = Math.min(Math.max(index, 0), currentOrder.length);
     newOrder.splice(safeIndex, 0, newLayerId);
   } else if (position === 'top') {
-    // 'Top' implies highest Z-index, usually end of array in rendering
+    // 'Top' implies highest Z-index, usually end of array in draw order
     newOrder.push(newLayerId);
   } else {
     // 'Bottom' implies lowest Z-index, usually start of array
