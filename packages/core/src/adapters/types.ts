@@ -95,3 +95,28 @@ export interface LayerManagerAdapter<TLayer = unknown, TGroup = undefined> exten
   /** Called by LayerManager.destroy() or setAdapter() when the adapter is detached or replaced, to clean up. */
   unregister?: () => void;
 }
+
+// ============================================================================
+// DRAWING ADAPTERS
+// What an adapter that draws each layer from a factory offers the app. `TMap` is the map it draws on, and `TDrawn`
+// what it draws for a layer, such as a Leaflet layer or a MapLibre style. Not part of the contract above.
+// ============================================================================
+
+/**
+ * Turns a layer into what the adapter draws for it, or `null` to leave it off the map. The adapter calls it when a
+ * layer is added, and again when its `layerData` or `timeInfo` changes, with what it returned last time as `current`.
+ * Return `current` to leave the map as it is. Put anything else the drawing depends on, such as a theme, in
+ * `layerData`.
+ */
+export type LayerFactory<TLayer, TMap, TDrawn> = (info: LayerInfo<TLayer>, map: TMap, current?: TDrawn) => TDrawn | null;
+
+/** The options every drawing adapter takes. */
+export interface DrawingAdapterOptions<TLayer, TMap, TDrawn> {
+  /** Builds what the adapter draws for each layer. */
+  layerFactory?: LayerFactory<TLayer, TMap, TDrawn>;
+  /**
+   * Undoes what was set up for a drawing once the adapter discards it: when its layer is removed, when the factory
+   * returns a different drawing, and when the adapter is detached. Hiding a layer does not discard its drawing.
+   */
+  disposeLayer?: (drawn: TDrawn, layerId: string) => void;
+}
