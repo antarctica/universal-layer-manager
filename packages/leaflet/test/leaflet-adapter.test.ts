@@ -2,6 +2,7 @@ import type { LeafletAdapterOptions } from '../src/types';
 import { LayerManager } from '@ulm/core';
 import * as L from 'leaflet';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { createDefaultLeafletFactory } from '../src/default-factory';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 import 'leaflet/dist/leaflet.css';
 
@@ -21,7 +22,18 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
 
   const map = L.map(container, { center: LONDON, zoom: 13 });
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
-  manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map, options));
+
+  // The Leaflet layer the factory last gave the adapter for each layer, so the map can be checked against it.
+  const built = new Map<string, L.Layer | null>();
+  const layerFactory = options.layerFactory ?? createDefaultLeafletFactory<LayerData>();
+  manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map, {
+    ...options,
+    layerFactory: (info, factoryMap, current) => {
+      const leafletLayer = layerFactory(info, factoryMap, current);
+      built.set(info.layerId, leafletLayer);
+      return leafletLayer;
+    },
+  }));
 
   let attached = true;
   const detach = () => {
@@ -31,7 +43,7 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
 
   onTestFinished(() => {
     if (attached) {
-      expectMapToMatchTree(manager, map);
+      expectMapToMatchTree(manager, map, built);
     }
     map.remove();
     container.remove();
@@ -40,7 +52,7 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
 }
 
 /** What the map shows matches the manager's tree: who is on the map, at what opacity, in what order. */
-function expectMapToMatchTree(manager: Manager, map: L.Map) {
+function expectMapToMatchTree(manager: Manager, map: L.Map, built: Map<string, L.Layer | null>) {
   const { rootIds, layers } = manager.getTree();
   const flatOrder = (ids: readonly string[]): string[] => ids.flatMap((id) => {
     const info = layers[id];
@@ -50,10 +62,10 @@ function expectMapToMatchTree(manager: Manager, map: L.Map) {
   const zIndexes: number[] = [];
   for (const layerId of flatOrder(rootIds)) {
     const info = layers[layerId];
-    if (info?.layerType !== 'layer') {
+    const leafletLayer = built.get(layerId);
+    if (info?.layerType !== 'layer' || !leafletLayer) {
       continue;
     }
-    const { leafletLayer } = info.layerData;
     expect(map.hasLayer(leafletLayer), `${layerId} on the map`).toBe(info.visible);
     expect(opacityOf(map, leafletLayer), `${layerId} opacity`).toBeCloseTo(info.computedOpacity);
     zIndexes.push(Number(getComputedStyle(paneOf(map, leafletLayer)).zIndex));
@@ -167,6 +179,85 @@ describe('leafletLayerManagerAdapter', () => {
     manager.addLayer({ layerConfig: { ...layerParams('child-1', leafletLayer, 'group-1').layerConfig, opacity: 0.8 } });
 
     expect(opacityOf(map, leafletLayer)).toBeCloseTo(0.4);
+  });
+
+  it('draws the new Leaflet layer in place of the old one when a layer\'s data changes', () => {
+    const { map, manager } = setup();
+    const before = circle();
+    const after = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+
+    manager.updateLayerData('layer-1', { leafletLayer: after });
+
+    expect([map.hasLayer(before), map.hasLayer(after)]).toEqual([false, true]);
+  });
+
+  it('leaves a layer on the map when its data changes but its Leaflet layer stays the same', () => {
+    const { manager } = setup();
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    const removed = vi.fn();
+    leafletLayer.on('remove', removed);
+
+    manager.updateLayerData('layer-1', { leafletLayer });
+
+    expect(removed).not.toHaveBeenCalled();
+  });
+
+  it('keeps the current Leaflet layer when the layer factory returns it', () => {
+    const { map, manager } = setup({ layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+    const before = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+
+    manager.updateLayerData('layer-1', { leafletLayer: circle() });
+
+    expect(map.hasLayer(before)).toBe(true);
+  });
+
+  it('takes a layer off the map when its new data has no Leaflet layer', () => {
+    const skipped = circle();
+    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    const before = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+
+    manager.updateLayerData('layer-1', { leafletLayer: skipped });
+
+    expect(map.hasLayer(before)).toBe(false);
+  });
+
+  it('tells the onLayerDataChanged hook about the new Leaflet layer', () => {
+    const onLayerDataChanged = vi.fn();
+    const { manager } = setup({ hooks: { onLayerDataChanged } });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    const after = circle();
+
+    manager.updateLayerData('layer-1', { leafletLayer: after });
+
+    expect(onLayerDataChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), after);
+  });
+
+  it('draws a layer the factory skipped once its new data has a Leaflet layer', () => {
+    const skipped = circle();
+    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    manager.addLayer({ ...layerParams('bottom', circle()), visible: true });
+    manager.addLayer({ ...layerParams('layer-1', skipped), visible: true, position: 'top' });
+    const after = circle();
+
+    manager.updateLayerData('layer-1', { leafletLayer: after });
+
+    expect(map.hasLayer(after)).toBe(true);
+  });
+
+  it('draws a layer the factory skipped at the opacity it was given while skipped', () => {
+    const skipped = circle();
+    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    manager.addLayer({ ...layerParams('layer-1', skipped), visible: true });
+    manager.setOpacity('layer-1', 0.5);
+    const after = circle();
+
+    manager.updateLayerData('layer-1', { leafletLayer: after });
+
+    expect(opacityOf(map, after)).toBeCloseTo(0.5);
   });
 
   it('takes a layer off the map when it is removed', () => {

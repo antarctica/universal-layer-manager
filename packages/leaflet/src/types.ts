@@ -5,11 +5,14 @@ import type L from 'leaflet';
 // ============================================================================
 // LAYER FACTORY
 // Creates a Leaflet layer from adapter layer info. Return null to skip.
+// When a layer's data changes, `current` is the Leaflet layer already drawn:
+// return it to keep it, or return a new one to replace it.
 // ============================================================================
 
 export type LeafletLayerFactory<TLayer> = (
   info: LayerInfo<TLayer>,
   map: L.Map,
+  current?: L.Layer,
 ) => L.Layer | null;
 
 // ============================================================================
