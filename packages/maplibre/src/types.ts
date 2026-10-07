@@ -1,4 +1,4 @@
-import type { LayerInfo } from '@ulm/core';
+import type { RenderAdapterOptions, RenderLayer } from '@ulm/core';
 
 import type { MapLibreMap, TransformStyleFunction } from 'maplibre-gl';
 import type { createDefaultMapLibreRenderLayer } from './default-render-layer';
@@ -44,25 +44,21 @@ export interface MapLibreLayerStyle {
  * };
  * ```
  */
-export type MapLibreRenderLayer<TLayer> = (
-  info: LayerInfo<TLayer>,
-  map: MapLibreMap,
-  current?: MapLibreLayerStyle,
-) => MapLibreLayerStyle | null;
+export type MapLibreRenderLayer<TLayer> = RenderLayer<TLayer, MapLibreMap, MapLibreLayerStyle>;
 
 // ============================================================================
 // ADAPTER OPTIONS
 // ============================================================================
 
-export interface MapLibreAdapterOptions<TLayer> {
+export interface MapLibreAdapterOptions<TLayer> extends RenderAdapterOptions<TLayer, MapLibreMap, MapLibreLayerStyle> {
   /** Returns the style that shows each layer. Defaults to {@link createDefaultMapLibreRenderLayer}. */
   renderLayer?: MapLibreRenderLayer<TLayer>;
   /**
-   * Undoes what was set up for a layer's style once the adapter discards it: when the layer is removed, when the
-   * `renderLayer` returns a different style, and when the adapter is detached. A style that differs only in GeoJSON data or
-   * tile URLs is updated in place, not discarded, and hiding a layer does not discard its style.
+   * Undoes what was set up for a layer's style once the adapter discards it: when the layer is removed, when
+   * `renderLayer` returns a different style, and when the adapter is detached. A style that differs only in GeoJSON
+   * data or tile URLs is updated in place, not discarded, and hiding a layer does not discard its style.
    */
-  disposeLayer?: (style: MapLibreLayerStyle, layerId: string) => void;
+  disposeLayer?: RenderAdapterOptions<TLayer, MapLibreMap, MapLibreLayerStyle>['disposeLayer'];
   /**
    * The ID of a style layer to draw every layer below. Leave it out to draw them below the
    * map's first label layer, or on top when the map has no labels.
