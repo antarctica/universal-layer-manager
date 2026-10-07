@@ -2,7 +2,7 @@
 
 There are two main reasons to write your own adapter:
 
-+ to support a map library we don't provide an adapter for, such as OpenLayers or MapLibre;
++ to support a map library we don't provide an adapter for, such as OpenLayers;
 + to add your own behaviour, such as synthetic layers that filter the features of a single map layer instead of adding and removing layers.
 
 ## The adapter interface
@@ -11,16 +11,28 @@ An adapter is any object that implements `LayerManagerAdapter` from `@ulm/core`.
 
 | Method | Called when |
 |---|---|
-| `register(manager, callbacks)` | The adapter is attached. `callbacks.getSnapshot()` returns the top-level items and `callbacks.getLayer(id)` returns one item |
+| `register()` | The adapter is attached, before it is told about existing layers |
 | `unregister()` | The adapter is detached, replaced, or the manager is destroyed |
 | `onLayerAdded(info)` | A layer or group is added, or already exists when the adapter is attached |
 | `onLayerRemoved(layerId)` | A layer or group is removed |
 | `onVisibilityChanged(info, visible)` | A layer or group starts or stops showing |
+| `onEnabledChanged(info, enabled)` | A layer or group is switched on or off, including while a group above hides it |
 | `onOpacityChanged(info, computedOpacity)` | A layer's computed opacity changes |
 | `onTimeInfoChanged(info, timeInfo)` | A layer's time information changes |
 | `onLayerDataChanged(info)` | A layer's `layerData` is replaced |
 | `onOrderChanged(layerOrder)` | The order changes, or the adapter is attached, with every layer ID from bottom to top |
 | `onLayerMoved(info)` | A layer or group is moved, raised or lowered, with `info.parentId` set to its new parent |
+
+To draw a map, `onVisibilityChanged` is enough: it says what should be showing. Use `onEnabledChanged` only if your adapter also needs to know about switches that don't change what is drawn, for example to keep a map library's own layer control in step.
+
+### Guarantees
+
+The manager calls an adapter in a predictable order, so your adapter doesn't need to guard against these cases:
+
++ **Added first, nothing after removal.** `onLayerAdded` is the first call for any layer or group. A newly added layer always arrives hidden, and a layer added as visible is shown by `onVisibilityChanged` straight after. An adapter attached to a manager that already has layers receives `onLayerAdded` for each of them in its current state, which may be visible, then `onOrderChanged`. After `onLayerRemoved` for an ID, or after `unregister`, nothing more arrives for it.
++ **The order follows every structural change.** After every add, remove, move and reset, `onOrderChanged` receives every current layer ID, bottom to top. For a move, `onLayerMoved` comes after `onOrderChanged`.
++ **Only real changes are reported.** A change that leaves a value as it was, such as setting the current opacity or moving a layer to where it already is, sends nothing. The one exception is `updateLayerData`, which always reports, because the manager can't compare your data.
++ **Adapter first.** Each hook runs on the adapter before the matching options callback, so by the time your UI hears about a change, the map already shows it.
 
 ## A minimal adapter
 
@@ -34,7 +46,7 @@ interface LayerData {
   url: string;
 }
 
-export function createMyAdapter(): LayerManagerAdapter<LayerData, undefined> {
+export function createMyAdapter(): LayerManagerAdapter<LayerData> {
   // the layers this adapter has created on the map
   const mapLayers = new Set<string>();
 
@@ -124,6 +136,63 @@ set osm opacity to 0.5
 remove osm
 ```
 
+## Showing layers with `renderLayer`
+
+The Leaflet and MapLibre adapters turn each layer into something the map shows with a `renderLayer` function, which the app can replace. If your adapter works the same way, extend `RenderAdapter` from `@ulm/core`. It handles every hook for you:
+
++ It calls `renderLayer` when a layer is added, and again with the last result as `current` when the layer's data or time changes. When `renderLayer` returns `current`, the map is left alone.
++ It calls `disposeLayer` when a result is removed, replaced or detached.
++ It skips groups, and keeps each layer's visibility, computed opacity and place in the order, even while `renderLayer` leaves the layer off the map.
+
+Your adapter only changes the map:
+
+```ts
+import type { RenderAdapterOptions, RenderedLayer } from '@ulm/core';
+import type { MapView } from 'my-map-library';
+import { RenderAdapter } from '@ulm/core';
+import { TileLayer } from 'my-map-library';
+
+// the data each layer carries; here, where to load it from
+interface LayerData {
+  url: string;
+}
+
+export class MyAdapter extends RenderAdapter<LayerData, undefined, MapView, TileLayer> {
+  constructor(map: MapView, options: RenderAdapterOptions<LayerData, MapView, TileLayer> = {}) {
+    super(map, {
+      renderLayer: options.renderLayer ?? ((info) => new TileLayer(info.layerData.url)),
+      disposeLayer: options.disposeLayer,
+    });
+  }
+
+  protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<TileLayer>) {
+    rendered.visible = visible;
+    rendered.opacity = computedOpacity;
+    this.map.add(rendered);
+  }
+
+  protected eraseLayer(_layerId: string, rendered: TileLayer) {
+    this.map.remove(rendered);
+  }
+
+  protected setLayerVisible({ rendered, visible }: RenderedLayer<TileLayer>) {
+    rendered.visible = visible;
+  }
+
+  protected setLayerOpacity({ rendered, computedOpacity }: RenderedLayer<TileLayer>) {
+    rendered.opacity = computedOpacity;
+  }
+
+  protected restackLayers(bottomToTop: RenderedLayer<TileLayer>[]) {
+    bottomToTop.forEach(({ rendered }, index) => {
+      rendered.zIndex = index;
+    });
+  }
+}
+```
+
+When a new result can update the map in place, `placeLayer` receives the result it replaces and `eraseLayer` the result that replaces it. Override `isSame` to say a new result stands in for the old one: the old one is then not disposed of, and the layer is not restacked. The MapLibre adapter does this for styles that differ only in GeoJSON data or tile URLs. If your map can lose everything you added, as MapLibre does when the app changes the style, call `placeAll()` to put it all back. See the [`@ulm/core` reference](../reference/core#for-adapters-that-render-layers) for details.
+
 ## Custom behaviour
 
 An adapter doesn't have to add and remove map layers. In this example, each layer in the manager stands for a road type, and switching layers on and off filters a single roads layer on the map:
@@ -136,7 +205,7 @@ interface RoadData {
 // the road types that are switched on
 const visibleRoadTypes = new Set<string>();
 
-const roadsAdapter: LayerManagerAdapter<RoadData, undefined> = {
+const roadsAdapter: LayerManagerAdapter<RoadData> = {
   onVisibilityChanged(info, visible) {
     if (info.layerType !== 'layer') {
       return;

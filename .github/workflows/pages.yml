@@ -53,6 +53,12 @@ jobs:
           VITE_BASE_PATH: /universal-layer-manager/examples/leaflet/
         run: npm run build
 
+      - name: Build leaflet XState example
+        working-directory: ./examples/leaflet-xstate
+        env:
+          VITE_BASE_PATH: /universal-layer-manager/examples/leaflet-xstate/
+        run: npm run build
+
       - name: Prepare GitHub Pages structure
         run: |
           mkdir -p gh-pages
@@ -63,6 +69,8 @@ jobs:
           cp -r examples/simple/dist/* gh-pages/examples/simple/
           mkdir -p gh-pages/examples/leaflet
           cp -r examples/leaflet/dist/* gh-pages/examples/leaflet/
+          mkdir -p gh-pages/examples/leaflet-xstate
+          cp -r examples/leaflet-xstate/dist/* gh-pages/examples/leaflet-xstate/
 
       - name: Verify build output
         run: |
@@ -80,6 +88,10 @@ jobs:
           fi
           if [ ! -f "gh-pages/examples/leaflet/index.html" ]; then
             echo "Error: leaflet example not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/examples/leaflet-xstate/index.html" ]; then
+            echo "Error: leaflet XState example not found"
             exit 1
           fi
 

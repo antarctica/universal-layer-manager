@@ -1,0 +1,46 @@
+{
+  "name": "@ulm/maplibre",
+  "type": "module",
+  "version": "3.0.0",
+  "description": "MapLibre GL JS adapter for @ulm/core",
+  "author": {
+    "name": "Jonathan Dawe",
+    "email": "jonwe@bas.ac.uk"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/maplibre.d.ts",
+      "import": "./dist/maplibre.js"
+    }
+  },
+  "module": "./dist/maplibre.js",
+  "types": "./dist/maplibre.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest --run",
+    "check-types": "tsc --noemit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@ulm/core": "^3.0.0",
+    "maplibre-gl": "^6.11.2"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.59.2",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^24.0.0",
+    "@ulm/core": "^3.0.0",
+    "@vitest/browser-playwright": "^5.0.1",
+    "camelcase": "^9.0.0",
+    "maplibre-gl": "^6.11.2",
+    "playwright": "^1.63.0",
+    "temporal-polyfill": "^1.0.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1",
+    "vite-plugin-dts": "^5.1.1",
+    "vitest": "^5.0.1",
+    "xstate": "^5.33.2"
+  }
+}

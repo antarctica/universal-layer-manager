@@ -18,7 +18,7 @@ const manager = new LayerManager<LayerData>();
 
 ### Adding a layer
 
-Add a layer with `addLayer`, giving it a unique `layerId`, a display name and your own `layerData`. A `parentId` of `null` places it at the top level.
+Add a layer with `addLayer`, giving it a unique `layerId`, a display name and your own `layerData`. Leave out `parentId`, or set it to `null`, to place it at the top level.
 
 ```ts
 manager.addLayer({
@@ -33,7 +33,9 @@ manager.addLayer({
 });
 ```
 
-`visible: true` switches the layer on so it shows straight away. Leave it out to add the layer switched off. See [Visibility and opacity](./visibility-and-opacity) for the difference between switching a layer on and it being visible.
+`visible: true` switches on the layer and every group above it, so it shows straight away. Leave it out to add the layer switched off.
+
+`enabled: true` switches on the layer but leaves the groups above it as they are. Use it to restore a saved layer list: a layer that was switched on inside a switched-off group comes back switched on but hidden. See [Visibility and opacity](./visibility-and-opacity) for the difference between switching a layer on and it being visible.
 
 ### Adding a group
 
@@ -41,13 +43,7 @@ Groups are added in the same way with `addGroup`, using a `layerType` of `'layer
 
 ```ts
 manager.addGroup({
-  layerConfig: {
-    layerId: 'ocean',
-    layerName: 'Ocean',
-    layerType: 'layerGroup',
-    parentId: null,
-    layerData: undefined,
-  },
+  layerConfig: { layerId: 'ocean', layerName: 'Ocean', layerType: 'layerGroup' },
   visible: true,
 });
 ```
@@ -99,7 +95,7 @@ manager.addLayer({
 });
 ```
 
-If you give both, `index` wins. An `index` outside the current order is ignored and `position` is used instead. See [Ordering and moving](./ordering) for moving layers once they are added.
+If you give both, `index` wins. An `index` above the number of layers in the parent adds the layer at the top, and a negative `index` adds it at the bottom. See [Ordering and moving](./ordering) for moving layers once they are added.
 
 ### Removing a layer or group
 
@@ -119,19 +115,13 @@ By default, groups can only sit at the top level, which keeps the layer list to 
 const manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
 
 manager.addGroup({
-  layerConfig: {
-    layerId: 'forecasts',
-    layerName: 'Forecasts',
-    layerType: 'layerGroup',
-    parentId: 'ocean',
-    layerData: undefined,
-  },
+  layerConfig: { layerId: 'forecasts', layerName: 'Forecasts', layerType: 'layerGroup', parentId: 'ocean' },
 });
 ```
 
 ## Your own data
 
-Each layer can carry any data you like in `layerData`, and the manager passes it back to you wherever that layer appears. You set its type with the first type parameter of `LayerManager`. Groups can carry their own data too, using the second type parameter, which is `undefined` by default.
+Each layer can carry any data you like in `layerData`, and the manager passes it back to you wherever that layer appears. You set its type with the first type parameter of `LayerManager`. Groups can carry their own data too, using the second type parameter, which is `undefined` by default. While a data type allows `undefined`, you can leave `layerData` out, as the group examples above do.
 
 You can read the data back in any callback, and replace it with `updateLayerData`:
 
@@ -191,7 +181,7 @@ manager.setTimeInfo('sea-ice', {
 });
 ```
 
-The manager stores the time information and reports changes through `onTimeInfoChanged`. What you do with it, such as showing dates in your layer list or driving a time slider, is up to you.
+The manager stores the time information and reports changes through `onTimeInfoChanged`. What you do with it, such as showing dates in your layer list or driving a time slider, is up to you. The Leaflet and MapLibre adapters pass a layer's time to its `renderLayer`, so it can show the data for that date.
 
 ::: tip
 You only need the polyfill until every browser you support has Temporal built in. The manager accepts built-in and polyfilled dates alike, so your layer code stays the same when you drop it.
@@ -230,7 +220,7 @@ removed sea-ice
 
 ## Rejections and errors
 
-If a change can't be made, the manager leaves the layer structure as it was and reports why through the `onError` callback:
+The manager ignores any change it can't make, such as adding a layer with an ID that is already in use, changing a layer that doesn't exist, or setting an opacity outside 0 to 1. The layers stay as they were, and the manager reports why through the `onError` callback:
 
 ```ts
 const manager = new LayerManager<LayerData>({
@@ -240,7 +230,7 @@ const manager = new LayerManager<LayerData>({
 });
 ```
 
-An add is rejected when the `layerId` is already in use, the parent group doesn't exist, or a group is added inside a group without `allowNestedGroupLayers`. A remove is rejected when the layer doesn't exist or the group still has layers in it. For example, removing the `ocean` group above while it still holds `sea-ice` logs:
+For example, removing the `ocean` group above while it still holds `sea-ice` logs:
 
 ::: danger Error
 Layer group ocean has children. Layer not removed.

@@ -70,9 +70,29 @@ yarn add @ulm/leaflet leaflet
 
 If you are using TypeScript, also install `@types/leaflet`.
 
+### MapLibre
+
+::: code-group
+
+```sh [npm]
+npm install @ulm/maplibre maplibre-gl
+```
+
+```sh [pnpm]
+pnpm add @ulm/maplibre maplibre-gl
+```
+
+```sh [yarn]
+yarn add @ulm/maplibre maplibre-gl
+```
+
+:::
+
+`maplibre-gl` brings its own TypeScript types. The adapter needs `maplibre-gl` 6, and like it, is published as ES modules only.
+
 ### Other map libraries
 
-Leaflet is the only adapter we provide at the moment. For other map libraries, you can [write your own adapter](./adapters/writing-an-adapter).
+For other map libraries, you can [write your own adapter](./adapters/writing-an-adapter).
 
 ## From a local clone
 

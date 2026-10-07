@@ -1,10 +1,17 @@
 import type { LayerContextBase, LayerTimeInfo, ParentLayerActor } from '../types';
+import { getOpacityRejection } from '../utils';
 
 type LayerIdentity = Pick<LayerContextBase<unknown>, 'layerId'>;
 
 export function visibilityChange(context: LayerIdentity, visible: boolean) {
   return {
     notification: { type: 'CHILD.VISIBILITY_CHANGED' as const, layerId: context.layerId, visible },
+  };
+}
+
+export function enabledChange(context: LayerIdentity, enabled: boolean) {
+  return {
+    notification: { type: 'CHILD.ENABLED_CHANGED' as const, layerId: context.layerId, enabled },
   };
 }
 
@@ -17,6 +24,12 @@ export function ownOpacityChange(context: LayerIdentity & Pick<LayerContextBase<
   return {
     update: { opacity, computedOpacity },
     notification: { type: 'CHILD.OPACITY_CHANGED' as const, layerId: context.layerId, opacity, computedOpacity },
+  };
+}
+
+export function opacityRejection(context: LayerIdentity, opacity: number) {
+  return {
+    notification: { type: 'CHILD.REJECTED' as const, layerId: context.layerId, reason: getOpacityRejection(context.layerId, opacity) ?? '' },
   };
 }
 

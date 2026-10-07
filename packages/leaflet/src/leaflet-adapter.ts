@@ -1,15 +1,10 @@
-import type {
-  LayerInfo,
-  LayerManager,
-  LayerManagerAdapter,
-  LayerManagerCallbacks,
-  ManagedLayerInfo,
-} from '@ulm/core';
+import type { RenderedLayer } from '@ulm/core';
 
 import type L from 'leaflet';
-import type { LeafletAdapterOptions, LeafletLayerFactory } from './types';
+import type { LeafletAdapterArgs } from './types';
 
-import { createDefaultLeafletFactory } from './default-factory';
+import { RenderAdapter } from '@ulm/core';
+import { defaultLeafletRenderLayer } from './default-render-layer';
 
 const CONTAINER_PANE = 'ulmPane';
 // Between Leaflet's overlay pane (400) and shadow pane (500), so popups, tooltips and unmanaged markers stay on top.
@@ -29,139 +24,68 @@ function placeInPane(layer: L.Layer, pane: string): void {
   }
 }
 
-export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = TLayer>
-implements LayerManagerAdapter<TLayer, TGroup> {
-  private readonly map: L.Map;
-  private readonly options: LeafletAdapterOptions<TLayer>;
-  private readonly layerFactory: LeafletLayerFactory<TLayer>;
-  private readonly leafletLayers = new Map<string, L.Layer>();
-
-  constructor(map: L.Map, options: LeafletAdapterOptions<TLayer> = {}) {
-    this.map = map;
-    this.options = options;
-    this.layerFactory = options.layerFactory ?? createDefaultLeafletFactory<TLayer>();
+export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
+  extends RenderAdapter<TLayer, TGroup, L.Map, L.Layer> {
+  constructor(map: L.Map, ...[options = {}]: LeafletAdapterArgs<TLayer>) {
+    super(map, { renderLayer: options.renderLayer ?? defaultLeafletRenderLayer, disposeLayer: options.disposeLayer });
   }
 
-  // --------------------------------------------------------------------------
-  // Lifecycle — called by LayerManager
-  // --------------------------------------------------------------------------
-
-  register(_layerManager: LayerManager<TLayer, TGroup>, _callbacks: LayerManagerCallbacks<TLayer, TGroup>): void {
-    // Callbacks available for subclasses that need to query manager state.
+  override unregister(): void {
+    super.unregister();
+    this.map.getPane(CONTAINER_PANE)?.remove();
   }
 
-  unregister(): void {
-    for (const layer of this.leafletLayers.values()) {
-      this.map.removeLayer(layer);
-    }
-    this.leafletLayers.clear();
-  }
-
-  getContext(): L.Map {
-    return this.map;
-  }
-
-  // --------------------------------------------------------------------------
-  // Layer lifecycle — called directly by LayerManager (push model)
-  // --------------------------------------------------------------------------
-
-  onLayerAdded(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    if (info.layerType !== 'layer') {
-      return;
-    }
-    const leafletLayer = this.layerFactory(info as LayerInfo<TLayer>, this.map);
-    if (!leafletLayer) {
-      return;
-    }
-
-    this.leafletLayers.set(info.layerId, leafletLayer);
-    placeInPane(leafletLayer, this.createLayerPane(info.layerId));
-    this.fadeLayerPane(info.layerId, info.computedOpacity);
-
-    if (info.visible) {
-      leafletLayer.addTo(this.map);
-    }
-
-    this.options.hooks?.onLayerAdded?.(info as LayerInfo<TLayer>, leafletLayer);
-  }
-
-  onLayerRemoved(layerId: string): void {
-    const leafletLayer = this.leafletLayers.get(layerId);
-    if (!leafletLayer) {
-      return;
-    }
-    this.map.removeLayer(leafletLayer);
-    this.leafletLayers.delete(layerId);
-    this.options.hooks?.onLayerRemoved?.(layerId, leafletLayer);
-  }
-
-  onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
-      return;
-    }
+  // Draws a layer's Leaflet layer in a pane of its own, faded as the layer is, and on the map if the layer is showing.
+  protected placeLayer({ layerId, rendered, visible, computedOpacity }: RenderedLayer<L.Layer>): void {
+    const pane = this.attachPane(layerPaneName(layerId), this.getContainerPane());
+    pane.style.opacity = String(computedOpacity);
+    placeInPane(rendered, layerPaneName(layerId));
     if (visible) {
-      leafletLayer.addTo(this.map);
+      rendered.addTo(this.map);
+    }
+  }
+
+  protected eraseLayer(layerId: string, rendered: L.Layer, next?: L.Layer): void {
+    this.map.removeLayer(rendered);
+    if (!next) {
+      this.map.getPane(layerPaneName(layerId))?.remove();
+    }
+  }
+
+  protected setLayerVisible({ rendered, visible }: RenderedLayer<L.Layer>): void {
+    if (visible) {
+      rendered.addTo(this.map);
     } else {
-      this.map.removeLayer(leafletLayer);
-    }
-    this.options.hooks?.onVisibilityChanged?.(info as LayerInfo<TLayer>, visible, leafletLayer);
-  }
-
-  onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
-      return;
-    }
-    this.fadeLayerPane(info.layerId, computedOpacity);
-    this.options.hooks?.onOpacityChanged?.(info as LayerInfo<TLayer>, info.opacity, computedOpacity, leafletLayer);
-  }
-
-  onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (!leafletLayer) {
-      return;
-    }
-    this.options.hooks?.onLayerDataChanged?.(info as LayerInfo<TLayer>, leafletLayer);
-  }
-
-  onOrderChanged(layerOrder: string[]): void {
-    let zIndex = 1;
-    for (const layerId of layerOrder) {
-      const pane = this.map.getPane(layerPaneName(layerId));
-      if (pane) {
-        pane.style.zIndex = String(zIndex);
-        zIndex += 1;
-      }
+      this.map.removeLayer(rendered);
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Private helpers
-  // --------------------------------------------------------------------------
-
-  private createLayerPane(layerId: string): string {
-    const name = layerPaneName(layerId);
-    if (!this.map.getPane(name)) {
-      this.map.createPane(name, this.getContainerPane());
-    }
-    return name;
-  }
-
-  private fadeLayerPane(layerId: string, computedOpacity: number): void {
+  protected setLayerOpacity({ layerId, computedOpacity }: RenderedLayer<L.Layer>): void {
     const pane = this.map.getPane(layerPaneName(layerId));
     if (pane) {
       pane.style.opacity = String(computedOpacity);
     }
   }
 
+  protected restackLayers(bottomToTop: RenderedLayer<L.Layer>[]): void {
+    bottomToTop.forEach(({ layerId }, index) => {
+      const pane = this.map.getPane(layerPaneName(layerId));
+      if (pane) {
+        pane.style.zIndex = String(index + 1);
+      }
+    });
+  }
+
   private getContainerPane(): HTMLElement {
-    const existing = this.map.getPane(CONTAINER_PANE);
-    if (existing) {
-      return existing;
-    }
-    const pane = this.map.createPane(CONTAINER_PANE);
+    const pane = this.attachPane(CONTAINER_PANE, this.map.getPanes().mapPane);
     pane.style.zIndex = CONTAINER_PANE_Z_INDEX;
+    return pane;
+  }
+
+  // Leaflet keeps a removed pane under its name, so this reuses it and puts it back on the map.
+  private attachPane(name: string, parent: HTMLElement): HTMLElement {
+    const pane = this.map.getPane(name) ?? this.map.createPane(name, parent);
+    parent.append(pane);
     return pane;
   }
 }

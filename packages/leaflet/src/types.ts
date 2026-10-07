@@ -1,47 +1,26 @@
-import type { LayerInfo } from '@ulm/core';
+import type { RenderAdapterArgs, RenderAdapterOptions, RenderLayer } from '@ulm/core';
 
 import type L from 'leaflet';
 
 // ============================================================================
-// LAYER FACTORY
-// Creates a Leaflet layer from adapter layer info. Return null to skip.
+// RENDER LAYER
+// Returns the Leaflet layer that shows a layer. Return null to skip.
+// When a layer's data or time changes, `current` is the Leaflet layer already
+// drawn: return it to keep it, or return a new one to replace it.
 // ============================================================================
 
-export type LeafletLayerFactory<TLayer> = (
-  info: LayerInfo<TLayer>,
-  map: L.Map,
-) => L.Layer | null;
-
-// ============================================================================
-// HOOKS
-// Optional callbacks for custom behaviour. Additive only.
-// ============================================================================
-
-export interface LeafletAdapterHooks<TLayer> {
-  onLayerAdded?: (info: LayerInfo<TLayer>, leafletLayer: L.Layer) => void;
-  onLayerRemoved?: (layerId: string, leafletLayer: L.Layer) => void;
-  onVisibilityChanged?: (
-    info: LayerInfo<TLayer>,
-    visible: boolean,
-    leafletLayer: L.Layer,
-  ) => void;
-  onOpacityChanged?: (
-    info: LayerInfo<TLayer>,
-    opacity: number,
-    computedOpacity: number,
-    leafletLayer: L.Layer,
-  ) => void;
-  onLayerDataChanged?: (
-    info: LayerInfo<TLayer>,
-    leafletLayer: L.Layer,
-  ) => void;
-}
+export type LeafletRenderLayer<TLayer> = RenderLayer<TLayer, L.Map, L.Layer>;
 
 // ============================================================================
 // ADAPTER OPTIONS
 // ============================================================================
 
-export interface LeafletAdapterOptions<TLayer> {
-  layerFactory?: LeafletLayerFactory<TLayer>;
-  hooks?: LeafletAdapterHooks<TLayer>;
+export type LeafletAdapterOptions<TLayer> = RenderAdapterOptions<TLayer, L.Map, L.Layer>;
+
+/** The layer data the default renderLayer shows: the Leaflet layer itself. */
+export interface LeafletLayerData {
+  leafletLayer: L.Layer;
 }
+
+/** The adapter's options: optional when every layer's data is {@link LeafletLayerData}, otherwise with `renderLayer`. */
+export type LeafletAdapterArgs<TLayer> = RenderAdapterArgs<TLayer, LeafletAdapterOptions<TLayer>, LeafletLayerData>;

@@ -18,14 +18,14 @@ export interface MapLayerState<TData> {
  * An adapter that records what a map would show, so tests can assert on
  * the outcome a consumer sees rather than on machine internals.
  */
-export interface MapModel<TLayer, TGroup = TLayer> extends LayerManagerAdapter<TLayer, TGroup> {
+export interface MapModel<TLayer, TGroup = undefined> extends LayerManagerAdapter<TLayer, TGroup> {
   registered: boolean;
   readonly layers: Map<string, MapLayerState<TLayer | TGroup>>;
   order: string[];
   visibleLayerIds: () => string[];
 }
 
-export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGroup> {
+export function createMapModel<TLayer, TGroup = undefined>(): MapModel<TLayer, TGroup> {
   const layers = new Map<string, MapLayerState<TLayer | TGroup>>();
 
   const record = (info: ManagedLayerInfo<TLayer, TGroup>): void => {
@@ -60,6 +60,7 @@ export function createMapModel<TLayer, TGroup = TLayer>(): MapModel<TLayer, TGro
       layers.delete(layerId);
     },
     onVisibilityChanged: record,
+    onEnabledChanged: record,
     onOpacityChanged: record,
     onTimeInfoChanged: record,
     onLayerDataChanged: record,

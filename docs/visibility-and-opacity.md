@@ -45,7 +45,7 @@ For a top-level layer the two are always the same. Inside a group they can diffe
 
 ### Cascading through groups
 
-Switching on a layer inside a group also switches on every group above it, so the layer always becomes visible, however deeply it is nested:
+Switching on a layer that is switched off also switches on every group above it, so the layer becomes visible, however deeply it is nested:
 
 ```ts
 manager.setEnabled('sea-ice', true);
@@ -76,6 +76,37 @@ When the group is switched back on, the sea ice shows again just as it was, and 
 ```ts
 manager.setEnabled('ocean', true);
 ```
+
+### Showing a layer
+
+`setEnabled` works like a checkbox. A layer that is already switched on has nothing to switch, so `setEnabled(…, true)` leaves it as it is, even while a group above it hides it. With the ocean group switched off, the second line here does nothing:
+
+```ts
+manager.setEnabled('ocean', false);
+manager.setEnabled('sea-ice', true);
+```
+
+```
+LayerManager
+├── coastline        disabled
+└── ocean (group)    disabled
+    └── sea-ice      enabled, hidden
+```
+
+When your code needs a layer to show whatever its checkbox says, for example after a search or from a "zoom to layer" button, use `showLayer`. It switches on the layer and every group above it:
+
+```ts
+manager.showLayer('sea-ice');
+```
+
+```
+LayerManager
+├── coastline        disabled
+└── ocean (group)    enabled, visible
+    └── sea-ice      enabled, visible
+```
+
+`showLayer` works on groups too. There is no `hideLayer`: hiding a layer always means switching off the layer or a group above it, which is what `setEnabled` does.
 
 ## Opacity
 
@@ -120,6 +151,24 @@ Ocean: showing, enabled: true
 
 The callbacks fire for groups as well as layers, and only for those whose values actually changed. Switching on the sea ice, for example, also reports the ocean group.
 
+### Switching on and off
+
+Visibility doesn't tell you about every checkbox change. While a group hides a layer, switching the layer off leaves it hidden, so `onVisibilityChanged` doesn't fire. Use `onEnabledChanged` to keep your checkboxes in step:
+
+```ts
+const manager = new LayerManager<LayerData>({
+  onEnabledChanged(info, enabled) {
+    console.log(`${info.layerName}: ${enabled ? 'switched on' : 'switched off'}`);
+  },
+});
+```
+
+With the ocean group switched off, switching off the sea ice prints:
+
+```
+Sea ice: switched off
+```
+
 ::: tip
-In a layer list, tie each checkbox to `info.enabled` and use `info.visible` to show whether the layer is actually on the map, for example by greying out a row that is switched on but hidden.
+In a layer list, tie each checkbox to `info.enabled` and update it from `onEnabledChanged`. Use `info.visible` to show whether the layer is actually on the map, for example by greying out a row that is switched on but hidden.
 :::

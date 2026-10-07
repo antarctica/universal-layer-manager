@@ -28,7 +28,7 @@ interface LayerData {
 const map = L.map('map').setView([51.505, -0.09], 13);
 
 const manager = new LayerManager<LayerData>();
-manager.setAdapter(new LeafletLayerManagerAdapter<LayerData, undefined>(map));
+manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
 
 manager.addLayer({
   layerConfig: {
@@ -44,7 +44,7 @@ manager.addLayer({
 
 ## Learn more
 
-- [Leaflet guide](https://antarctica.github.io/universal-layer-manager/adapters/leaflet): layer factories, hooks, and how stacking and opacity work
+- [Leaflet guide](https://antarctica.github.io/universal-layer-manager/adapters/leaflet): showing layers with renderLayer, and how stacking and opacity work
 - [API reference](https://antarctica.github.io/universal-layer-manager/reference/leaflet)
 - [`@ulm/core` documentation](https://antarctica.github.io/universal-layer-manager/)
 

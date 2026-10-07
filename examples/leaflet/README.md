@@ -1,6 +1,8 @@
 # Leaflet React Example
 
-This is a React + Leaflet example demonstrating a pattern for integrating the Universal Layer Manager (`@ulm/core`) with Leaflet maps.
+A React + Leaflet example of the Universal Layer Manager (`@ulm/core`). The layer list reads the manager's layer tree with `useSyncExternalStore` and changes layers through manager methods, with no XState in the example's own code.
+
+For working with the layer and group actors directly through `@xstate/react`, see the advanced example in `examples/leaflet-xstate`.
 
 ## Setup
 
@@ -31,12 +33,23 @@ The example will be available at `http://localhost:5176`
 
 ## How it works
 
-The example uses:
-- `LayerManager` from `@ulm/core` to create the layer manager instance
-- `LayerManagerProvider` to expose the `LayerManager` via React context, and `@xstate/react` selectors to subscribe components to actor state
-- `LeafletMap` component that renders a Leaflet map and initialises the base layers and marker, keeping the Leaflet adapter in sync with manager state
-- `LayerList` component that provides a UI for managing layers (the layer list control), including toggling enable/disable, setting opacity and reordering by drag and drop. It lists layers top first, the reverse of the manager's bottom-first order
-- The `@ulm/leaflet` adapter to keep Leaflet layer visibility, opacity and stacking in sync with the layer manager
+```
+src/
+  main.tsx                    renders <App />
+  App.tsx                     the layer list beside the map
+  layers/
+    manager.ts                the LayerManager store, its LayerData type and starting layers
+    LayerManagerProvider.tsx  React context, plus useLayerTree and useLayer over useSyncExternalStore
+  map/
+    LeafletMap.tsx            the Leaflet map, which attaches the @ulm/leaflet adapter while it is mounted
+  layerList/
+    LayerList.tsx             add buttons, then every row, top first
+    LayerRow.tsx              one layer or group: drag handle, switch, name, opacity and children
+    AddLayerButtons.tsx       adds a random marker or a group
+    useLayerDragAndDrop.ts    turns a drop into a moveLayer call
+```
+
+The manager is created once in `layers/manager.ts`, outside React, like a store. The map attaches the adapter while it is mounted, and the manager replays its layers to it. Each row reads its own layer with `useLayer`, and is memoised, so it re-renders only when that layer changes.
 
 ### Layer Data Structure
 
@@ -47,7 +60,7 @@ The layer manager doesn't distinguish between layer types - it simply stores the
 
 ### Initial Layers
 
-The example initialises with:
+The example starts with these layers, added in `src/layers/manager.ts`:
 - A "Base Layers" group containing:
   - OpenStreetMap tile layer (visible)
   - Esri World Imagery tile layer (visible, below OpenStreetMap)
@@ -68,4 +81,4 @@ The example initialises with:
 - Every kind of layer follows the order: drag "Base Layers" above "Shapes" to draw the tile layers over the circles, or "London Marker" below "Shapes" to put it under them
 - A layer moved into a group that is switched off stays switched on but hidden
 - Moves the manager rejects, such as a group into itself, are logged as warnings in the browser console
-- The panel uses the browser's HTML5 drag and drop, with no extra library. See `useLayerDragAndDrop.ts` for how a drop becomes a `moveLayer` call
+- The panel uses the browser's HTML5 drag and drop, with no extra library. See `layerList/useLayerDragAndDrop.ts` for how a drop becomes a `moveLayer` call, using the placement read from the layer tree

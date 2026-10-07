@@ -1,7 +1,8 @@
-export { createDefaultLeafletFactory } from './default-factory';
+export { defaultLeafletRenderLayer } from './default-render-layer';
 export { LeafletLayerManagerAdapter } from './leaflet-adapter';
 export type {
-  LeafletAdapterHooks,
+  LeafletAdapterArgs,
   LeafletAdapterOptions,
-  LeafletLayerFactory,
+  LeafletLayerData,
+  LeafletRenderLayer,
 } from './types';

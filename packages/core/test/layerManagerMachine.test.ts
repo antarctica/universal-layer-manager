@@ -18,17 +18,18 @@ import {
 // Behaviour reachable through LayerManager is specified in LayerManager.test.ts.
 describe('layerManagerMachine', () => {
   describe('emitted events', () => {
-    it('emits LAYER.ADDED with the visibility the layer has once added', () => {
+    it('emits LAYER.ADDED, and leaves a layer that starts visible to report its own visibility', () => {
       const layerManager = createTestLayerManager();
-      const addedWatcher = vi.fn();
-      layerManager.on('LAYER.ADDED', addedWatcher);
+      const watcher = vi.fn();
+      layerManager.on('*', watcher);
 
       layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'hidden-layer' }) } });
       layerManager.send({ type: 'LAYER.ADD', params: { layerConfig: createTestLayerConfig({ layerId: 'shown-layer' }), enabled: true } });
 
-      expect(addedWatcher.mock.calls.map(([event]) => event)).toEqual([
-        { type: 'LAYER.ADDED', layerId: 'hidden-layer', visible: false },
-        { type: 'LAYER.ADDED', layerId: 'shown-layer', visible: true },
+      expect(watcher.mock.calls.map(([event]) => event).filter((event) => event.type !== 'LAYER.ORDER_CHANGED')).toEqual([
+        { type: 'LAYER.ADDED', layerId: 'hidden-layer' },
+        { type: 'LAYER.ADDED', layerId: 'shown-layer' },
+        { type: 'LAYER.VISIBILITY_CHANGED', layerId: 'shown-layer', visible: true },
       ]);
     });
 
@@ -43,7 +44,7 @@ describe('layerManagerMachine', () => {
       expect(removedWatcher).toHaveBeenCalledWith({ type: 'LAYER.REMOVED', layerId: 'layer-1' });
     });
 
-    it('emits a change event when a layer is shown, faded, dated or given new data', () => {
+    it('emits a change event when a layer is switched on and shown, faded, dated or given new data', () => {
       const layerManager = createTestLayerManager();
       const { layerActor } = addLayerToManager(layerManager, createTestLayerConfig({ layerId: 'layer-1' }));
       const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
@@ -56,6 +57,7 @@ describe('layerManagerMachine', () => {
       layerActor.send({ type: 'LAYER.SET_LAYER_DATA', layerData: { test: 'updated' } });
 
       expect(emittedWatcher.mock.calls.map(([event]) => event)).toEqual([
+        { type: 'LAYER.ENABLED_CHANGED', layerId: 'layer-1', enabled: true },
         { type: 'LAYER.VISIBILITY_CHANGED', layerId: 'layer-1', visible: true },
         { type: 'LAYER.OPACITY_CHANGED', layerId: 'layer-1', opacity: 0.5, computedOpacity: 0.5 },
         { type: 'LAYER.TIME_INFO_CHANGED', layerId: 'layer-1', timeInfo },
@@ -70,6 +72,7 @@ describe('layerManagerMachine', () => {
       const timeInfo: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.ZonedDateTime.from('2024-01-01T00:00[UTC]') };
 
       layerManager.send({ type: 'CHILD.VISIBILITY_CHANGED', layerId: 'non-existent', visible: true });
+      layerManager.send({ type: 'CHILD.ENABLED_CHANGED', layerId: 'non-existent', enabled: true });
       layerManager.send({ type: 'CHILD.OPACITY_CHANGED', layerId: 'non-existent', opacity: 0.5, computedOpacity: 0.5 });
       layerManager.send({ type: 'CHILD.TIME_INFO_CHANGED', layerId: 'non-existent', timeInfo });
       layerManager.send({ type: 'CHILD.LAYER_DATA_CHANGED', layerId: 'non-existent', layerData: { test: 'data' } });

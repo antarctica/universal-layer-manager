@@ -29,7 +29,7 @@ A common source of confusion in nested layer lists is whether a layer is switche
 + **`visible`** reflects whether the layer is actually rendered on the map.
 
 ::: tip The visibility cascade
-We have taken an oppinionated approach that when a user switches on a layer, it should always become visible. This means a layer only shows if it is enabled *and* every group above it is enabled. When you enable a layer, any parent groups are also automatically enabled to ensure the layer immediately appears on the map.
+We have taken an opinionated approach: when a user switches on a layer, it should become visible. A layer only shows if it is enabled *and* every group above it is enabled, so switching on a layer also switches on every group above it. See [Showing a layer](./visibility-and-opacity#showing-a-layer).
 :::
 
 ### Opacity and computed opacity
@@ -52,7 +52,7 @@ Alongside identifiers and visibility flags, each layer can carry your own custom
 
 ### Adapters
 
-An adapter connects the manager to your chosen map engine, translating state updates into map calls. We provide an adapter for [Leaflet](./adapters/leaflet), and it is straightforward to [write your own](./adapters/writing-an-adapter) for libraries like OpenLayers or MapLibre.
+An adapter connects the manager to your chosen map engine, translating state updates into map calls. We provide adapters for [Leaflet](./adapters/leaflet) and [MapLibre](./adapters/maplibre), and it is straightforward to [write your own](./adapters/writing-an-adapter) for libraries like OpenLayers.
 
 ### State machines
 

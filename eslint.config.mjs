@@ -9,6 +9,8 @@ export default antfu(
       'dist',
       'node_modules',
       'README.md',
+      // Turbo injects a second H1 into the managed agent-rules block.
+      'AGENTS.md',
     ],
   },
   {
