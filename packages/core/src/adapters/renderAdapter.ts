@@ -15,6 +15,10 @@ interface LayerState<TRendered> {
   rendered?: TRendered;
 }
 
+function toRenderedLayer<TRendered>(layerId: string, state: LayerState<TRendered>, rendered: TRendered): RenderedLayer<TRendered> {
+  return { layerId, rendered, visible: state.visible, computedOpacity: state.computedOpacity };
+}
+
 /**
  * A base class for adapters that show each layer with a renderLayer function. It handles every hook: it calls
  * renderLayer and disposeLayer, skips groups, and keeps each layer's visibility, opacity and place in the order.
@@ -82,6 +86,7 @@ export abstract class RenderAdapter<TLayer, TGroup, TMap, TRendered> implements 
       this.removeRendered(layerId);
     }
     this.layers.clear();
+    this.layerOrder = [];
   }
 
   onLayerAdded(info: ManagedLayerInfo<TLayer, TGroup>): void {
@@ -93,7 +98,7 @@ export abstract class RenderAdapter<TLayer, TGroup, TMap, TRendered> implements 
     const rendered = this.renderLayer(info, this.map);
     if (rendered) {
       state.rendered = rendered;
-      this.placeLayer({ layerId: info.layerId, rendered, visible: state.visible, computedOpacity: state.computedOpacity });
+      this.placeLayer(toRenderedLayer(info.layerId, state, rendered));
     }
   }
 
@@ -127,6 +132,24 @@ export abstract class RenderAdapter<TLayer, TGroup, TMap, TRendered> implements 
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
+    this.rerender(info);
+  }
+
+  onOrderChanged(layerOrder: string[]): void {
+    this.layerOrder = layerOrder;
+    this.restack();
+  }
+
+  // renderLayer can read the time, so a new time renders the layer again as new data does.
+  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
+    this.rerender(info);
+  }
+
+  // --------------------------------------------------------------------------
+  // Private helpers
+  // --------------------------------------------------------------------------
+
+  private rerender(info: ManagedLayerInfo<TLayer, TGroup>): void {
     if (info.layerType !== 'layer') {
       return;
     }
@@ -148,26 +171,12 @@ export abstract class RenderAdapter<TLayer, TGroup, TMap, TRendered> implements 
     }
     if (next) {
       state.rendered = next;
-      this.placeLayer({ layerId: info.layerId, rendered: next, visible: state.visible, computedOpacity: state.computedOpacity }, previous);
+      this.placeLayer(toRenderedLayer(info.layerId, state, next), previous);
       if (!(previous && this.isSame(previous, next))) {
         this.restack();
       }
     }
   }
-
-  onOrderChanged(layerOrder: string[]): void {
-    this.layerOrder = layerOrder;
-    this.restack();
-  }
-
-  // renderLayer can read the time, so a new time renders the layer again as new data does.
-  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    this.onLayerDataChanged(info);
-  }
-
-  // --------------------------------------------------------------------------
-  // Private helpers
-  // --------------------------------------------------------------------------
 
   private restack(): void {
     this.restackLayers(this.layerOrder.flatMap((layerId) => this.renderedLayer(layerId) ?? []));
@@ -178,7 +187,7 @@ export abstract class RenderAdapter<TLayer, TGroup, TMap, TRendered> implements 
     if (!state?.rendered) {
       return undefined;
     }
-    return { layerId, rendered: state.rendered, visible: state.visible, computedOpacity: state.computedOpacity };
+    return toRenderedLayer(layerId, state, state.rendered);
   }
 
   // Takes a layer's result off the map and disposes of it. The layer stays known, so it can be shown again.

@@ -270,6 +270,16 @@ describe('renderAdapter', () => {
       expect(map.stack).toEqual(['rivers', 'lakes']);
     });
 
+    it('stacks a layer renderLayer left off the map in its place once it has a shape', () => {
+      const { manager, map } = setup({ renderLayer: skipNone });
+      manager.addLayer({ ...layer('rivers', 'none'), position: 'bottom' });
+      manager.addLayer({ ...layer('lakes', 'blue fill'), position: 'top' });
+
+      manager.updateLayerData('rivers', { test: 'blue line' });
+
+      expect(map.stack).toEqual(['rivers', 'lakes']);
+    });
+
     it('leaves the stack alone when the adapter counts a layer\'s new shape as the same', () => {
       const { manager, map } = setup({ isSame: () => true });
       manager.addLayer(layer('rivers', 'blue line'));
