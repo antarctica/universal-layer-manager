@@ -1,6 +1,7 @@
 import type { LayerInfo } from '@ulm/core';
 
 import type { MapLibreMap, TransformStyleFunction } from 'maplibre-gl';
+import type { createDefaultMapLibreFactory } from './default-factory';
 
 // maplibre-gl does not export the style spec types, so they are read off its API.
 export type StyleSpecification = ReturnType<TransformStyleFunction>;
@@ -20,6 +21,28 @@ export interface MapLibreLayerStyle {
   layers: LayerSpecification[];
 }
 
+/**
+ * Turns a layer into the MapLibre sources and style layers that draw it, or `null` to leave it off the map.
+ * The adapter calls it when a layer is added and again when its `layerData` is replaced.
+ *
+ * Without one, the adapter uses {@link createDefaultMapLibreFactory}, which draws `layerData` that is already a
+ * {@link MapLibreLayerStyle}. Write your own to keep other data in `layerData`, such as a URL, and fall back to the
+ * default for the rest:
+ *
+ * ```ts
+ * const drawStyle = createDefaultMapLibreFactory<LayerData>();
+ *
+ * const layerFactory: MapLibreLayerFactory<LayerData> = (info, map) => {
+ *   if ('geojsonUrl' in info.layerData) {
+ *     return {
+ *       sources: { [info.layerId]: { type: 'geojson', data: info.layerData.geojsonUrl } },
+ *       layers: [{ id: 'line', type: 'line', source: info.layerId }],
+ *     };
+ *   }
+ *   return drawStyle(info, map);
+ * };
+ * ```
+ */
 export type MapLibreLayerFactory<TLayer> = (
   info: LayerInfo<TLayer>,
   map: MapLibreMap,
@@ -30,7 +53,8 @@ export type MapLibreLayerFactory<TLayer> = (
 // ============================================================================
 
 export interface MapLibreAdapterOptions<TLayer> {
-  layerFactory: MapLibreLayerFactory<TLayer>;
+  /** Builds each layer's style. Defaults to {@link createDefaultMapLibreFactory}. */
+  layerFactory?: MapLibreLayerFactory<TLayer>;
   /**
    * The ID of a style layer to draw every layer below. Leave it out to draw them below the
    * map's first label layer, or on top when the map has no labels.

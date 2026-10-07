@@ -3,6 +3,8 @@ import type { LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
 import type { GeoJSONSource, MapLibreMap, RasterTileSource, Style, VectorTileSource } from 'maplibre-gl';
 import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerFactory, MapLibreLayerStyle, SourceSpecification } from './types';
 
+import { createDefaultMapLibreFactory } from './default-factory';
+
 // The prefix keeps runtime IDs clear of the basemap's.
 const ID_PREFIX = 'ulm:';
 
@@ -125,9 +127,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // isStyleLoaded() goes false while tiles load, so this tracks the style that last finished loading.
   private loadedStyle: Style | undefined;
 
-  constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer>) {
+  constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer> = {}) {
     this.map = map;
-    this.layerFactory = options.layerFactory;
+    this.layerFactory = options.layerFactory ?? createDefaultMapLibreFactory<TLayer>();
     this.drawBelow = options.drawBelow;
   }
 

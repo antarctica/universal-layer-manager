@@ -1,3 +1,4 @@
+export { createDefaultMapLibreFactory } from './default-factory';
 export { MapLibreLayerManagerAdapter } from './maplibre-adapter';
 export type {
   LayerSpecification,
