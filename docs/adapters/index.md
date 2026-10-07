@@ -31,4 +31,4 @@ Attaching an adapter replaces any existing one, and tells it about any layers al
 
 ## Available adapters
 
-We currently provide an adapter for [Leaflet](./leaflet), in `@ulm/leaflet`. For other map libraries, you can [write your own](./writing-an-adapter).
+We currently provide adapters for [Leaflet](./leaflet), in `@ulm/leaflet`, and [MapLibre GL JS](./maplibre), in `@ulm/maplibre`. For other map libraries, you can [write your own](./writing-an-adapter).
