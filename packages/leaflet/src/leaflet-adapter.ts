@@ -114,14 +114,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const previous = this.leafletLayers.get(info.layerId);
-    const leafletLayer = this.layerFactory(info, this.map, previous);
-    if (leafletLayer !== previous) {
-      this.eraseLayer(info.layerId);
-      if (leafletLayer) {
-        this.drawLayer(info, leafletLayer);
-      }
-    }
+    const leafletLayer = this.drawFromFactory(info);
     if (leafletLayer) {
       this.options.hooks?.onTimeInfoChanged?.(info, timeInfo, leafletLayer);
     }
@@ -131,14 +124,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const previous = this.leafletLayers.get(info.layerId);
-    const leafletLayer = this.layerFactory(info, this.map, previous);
-    if (leafletLayer !== previous) {
-      this.eraseLayer(info.layerId);
-      if (leafletLayer) {
-        this.drawLayer(info, leafletLayer);
-      }
-    }
+    const leafletLayer = this.drawFromFactory(info);
     if (leafletLayer) {
       this.options.hooks?.onLayerDataChanged?.(info, leafletLayer);
     }
@@ -158,6 +144,19 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // --------------------------------------------------------------------------
   // Private helpers
   // --------------------------------------------------------------------------
+
+  // Runs the factory with the Leaflet layer already drawn, and draws what it returns in that layer's place.
+  private drawFromFactory(info: LayerInfo<TLayer>): L.Layer | null {
+    const previous = this.leafletLayers.get(info.layerId);
+    const leafletLayer = this.layerFactory(info, this.map, previous);
+    if (leafletLayer !== previous) {
+      this.eraseLayer(info.layerId);
+      if (leafletLayer) {
+        this.drawLayer(info, leafletLayer);
+      }
+    }
+    return leafletLayer;
+  }
 
   // Draws a layer's Leaflet layer in the layer's pane, and on the map if the layer is showing.
   private drawLayer(info: LayerInfo<TLayer>, leafletLayer: L.Layer): void {
