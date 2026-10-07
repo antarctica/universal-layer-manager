@@ -1,4 +1,4 @@
-import type { DrawingAdapterOptions, LayerInfo, LayerManagerAdapter } from '../src/adapters/types';
+import type { LayerInfo, LayerManagerAdapter, RenderAdapterOptions } from '../src/adapters/types';
 import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
@@ -1432,7 +1432,7 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
-    it('types a drawing adapter\'s options with what it draws, so its factory and disposeLayer share one type', () => {
+    it('types a drawing adapter\'s options with what it draws, so renderLayer and disposeLayer share one type', () => {
       const info: LayerInfo<TestLayerData> = {
         layerId: 'layer-1',
         layerName: 'Layer',
@@ -1445,13 +1445,13 @@ describe('layerManager', () => {
         opacity: 1,
         computedOpacity: 1,
       };
-      const options: DrawingAdapterOptions<TestLayerData, { name: string }, string> = {
-        layerFactory: (layer, map, current) => current ?? `${map.name}:${layer.layerData.test}`,
+      const options: RenderAdapterOptions<TestLayerData, { name: string }, string> = {
+        renderLayer: (layer, map, current) => current ?? `${map.name}:${layer.layerData.test}`,
         disposeLayer: vi.fn(),
       };
 
-      expect(options.layerFactory?.(info, { name: 'polar' })).toBe('polar:sea-ice');
-      expect(options.layerFactory?.(info, { name: 'polar' }, 'drawn')).toBe('drawn');
+      expect(options.renderLayer?.(info, { name: 'polar' })).toBe('polar:sea-ice');
+      expect(options.renderLayer?.(info, { name: 'polar' }, 'drawn')).toBe('drawn');
     });
 
     it('tells the adapter about a change before the options callback', () => {
