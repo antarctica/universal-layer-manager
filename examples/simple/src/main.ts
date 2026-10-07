@@ -13,7 +13,7 @@ manager.subscribe(render);
 function addLayer(parentId: string | null) {
   const id = Math.random().toString(36).substring(7);
   manager.addLayer({
-    layerConfig: { layerId: id, layerName: `Layer ${id}`, parentId, layerData: undefined, layerType: 'layer' },
+    layerConfig: { layerId: id, layerName: `Layer ${id}`, parentId, layerType: 'layer' },
     visible: true,
   });
 }
@@ -21,7 +21,7 @@ function addLayer(parentId: string | null) {
 function addGroup(parentId: string | null) {
   const id = Math.random().toString(36).substring(7);
   manager.addGroup({
-    layerConfig: { layerId: id, layerName: `Group ${id}`, parentId, layerData: undefined, layerType: 'layerGroup' },
+    layerConfig: { layerId: id, layerName: `Group ${id}`, parentId, layerType: 'layerGroup' },
     visible: true,
   });
 }

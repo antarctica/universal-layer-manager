@@ -23,7 +23,7 @@ const SHAPES = [
 
 function addStartingLayers(): void {
   manager.addGroup({
-    layerConfig: { layerId: 'baselayers', layerName: 'Base Layers', layerType: 'layerGroup', layerData: undefined },
+    layerConfig: { layerId: 'baselayers', layerName: 'Base Layers', layerType: 'layerGroup' },
     visible: true,
   });
 
@@ -58,7 +58,7 @@ function addStartingLayers(): void {
   });
 
   manager.addGroup({
-    layerConfig: { layerId: 'shapes', layerName: 'Shapes', layerType: 'layerGroup', layerData: undefined },
+    layerConfig: { layerId: 'shapes', layerName: 'Shapes', layerType: 'layerGroup' },
     visible: true,
     position: 'top',
   });

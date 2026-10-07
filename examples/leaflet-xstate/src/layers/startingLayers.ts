@@ -16,7 +16,7 @@ export function addStartingLayers(managerRef: ManagerRef): () => void {
   const add = (params: AddManagedLayerParams<LayerData>): void => managerRef.send({ type: 'LAYER.ADD', params });
 
   add({
-    layerConfig: { layerId: 'baselayers', layerName: 'Base Layers', layerType: 'layerGroup', layerData: undefined },
+    layerConfig: { layerId: 'baselayers', layerName: 'Base Layers', layerType: 'layerGroup' },
     visible: true,
   });
 
@@ -51,7 +51,7 @@ export function addStartingLayers(managerRef: ManagerRef): () => void {
   });
 
   add({
-    layerConfig: { layerId: 'shapes', layerName: 'Shapes', layerType: 'layerGroup', layerData: undefined },
+    layerConfig: { layerId: 'shapes', layerName: 'Shapes', layerType: 'layerGroup' },
     visible: true,
     position: 'top',
   });

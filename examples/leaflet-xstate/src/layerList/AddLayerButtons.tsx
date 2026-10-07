@@ -40,7 +40,7 @@ export function AddLayerButtons({ parentId }: { parentId: string | null }): Reac
     managerRef.send({
       type: 'LAYER.ADD',
       params: {
-        layerConfig: { layerId: id, layerName: `Group ${id}`, layerType: 'layerGroup', parentId, layerData: undefined },
+        layerConfig: { layerId: id, layerName: `Group ${id}`, layerType: 'layerGroup', parentId },
         visible: true,
       },
     });
