@@ -56,7 +56,7 @@ manager.addLayer({
 
 ## Learn more
 
-- [MapLibre guide](https://antarctica.github.io/universal-layer-manager/adapters/maplibre): layer factories, shared sources, and how stacking, visibility and opacity work
+- [MapLibre guide](https://antarctica.github.io/universal-layer-manager/adapters/maplibre): showing layers with renderLayer, shared sources, and how stacking, visibility and opacity work
 - [API reference](https://antarctica.github.io/universal-layer-manager/reference/maplibre)
 - [`@ulm/core` documentation](https://antarctica.github.io/universal-layer-manager/)
 
