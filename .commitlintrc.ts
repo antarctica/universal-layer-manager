@@ -30,6 +30,7 @@ export default {
       [
         'core', // packages/core
         'leaflet', // packages/leaflet
+        'maplibre', // packages/maplibre
         'examples', // examples/
         'repo', // hooks, root config, README, CHANGELOG
         'deps', // lockfile and dependency bumps
