@@ -1,7 +1,9 @@
+import type { SingleTimeInfo } from '@ulm/core';
 import type { FeatureCollection } from 'geojson';
 import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerStyle, SourceSpecification, StyleSpecification } from '../src/types';
-import { LayerManager } from '@ulm/core';
+import { isSingleTimeInfo, LayerManager } from '@ulm/core';
 import * as maplibregl from 'maplibre-gl';
+import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { MapLibreLayerManagerAdapter } from '../src/maplibre-adapter';
 
@@ -673,5 +675,36 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ layerConfig: { layerId: 'rivers', layerName: 'Rivers', layerType: 'layer', layerData: { url: 'rivers.geojson' } }, visible: true });
 
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('gives a tile source the URLs the factory builds for the layer\'s new time, in place', async () => {
+    const imagery = (date: string): LayerData => ({
+      sources: { imagery: { type: 'raster', tiles: [`test://${date}/{z}/{x}/{y}.png`], tileSize: 256 } },
+      layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
+    });
+    const { map, manager } = await setup({
+      layerFactory: (info) => imagery(isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : 'latest'),
+    });
+    manager.addLayer({ ...layerParams('imagery', imagery('latest')), visible: true });
+    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('imagery', newYearsDay);
+
+    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(source?.serialize().tiles).toEqual(['test://2026-01-01/{z}/{x}/{y}.png']);
+  });
+
+  it('leaves the map alone when the factory returns the same style for the layer\'s new time', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    const source = map.getSource('ulm:rivers');
+    const styleLayer = map.getLayer('ulm:rivers:line');
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('rivers', newYearsDay);
+
+    expect(map.getSource('ulm:rivers')).toBe(source);
+    expect(map.getLayer('ulm:rivers:line')).toBe(styleLayer);
   });
 });

@@ -244,6 +244,11 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
+  // The factory can read the time, so a new time redraws the layer as new data does.
+  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
+    this.onLayerDataChanged(info);
+  }
+
   onOrderChanged(layerOrder: string[]): void {
     this.layerOrder = layerOrder;
     if (this.isStyleReady()) {
