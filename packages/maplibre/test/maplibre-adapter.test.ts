@@ -83,7 +83,7 @@ function layerParams(layerId: string, layerData: LayerData, parentId: string | n
 }
 
 function groupParams(layerId: string) {
-  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const, parentId: null, layerData: undefined } };
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const } };
 }
 
 function rivers(): LayerData {
