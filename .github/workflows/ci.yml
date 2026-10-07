@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium for the Leaflet tests
+      - name: Install Chromium for the map adapters tests
         run: npx playwright install --with-deps chromium
 
       - name: Run tests
