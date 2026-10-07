@@ -1,8 +1,9 @@
-import type { LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
+import type { LayerInfo, LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
 
 import type { GeoJSONSource, MapLibreMap, RasterTileSource, Style, VectorTileSource } from 'maplibre-gl';
-import type { LayerSpecification, MapLibreAdapterArgs, MapLibreAdapterOptions, MapLibreLayerStyle, MapLibreRenderLayer, SourceSpecification } from './types';
+import type { LayerSpecification, MapLibreAdapterArgs, MapLibreLayerStyle, SourceSpecification } from './types';
 
+import { RenderedLayers } from '@ulm/core';
 import { ErrorEvent } from 'maplibre-gl';
 import { defaultMapLibreRenderLayer } from './default-render-layer';
 
@@ -49,10 +50,10 @@ function drawsTheSame(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): b
   return sameJson(previous.layers, next.layers) && sameJson(withoutInPlaceValues(previous.sources), withoutInPlaceValues(next.sources));
 }
 
-interface DrawnLayer {
-  style: MapLibreLayerStyle;
+// A layer's visibility and computed opacity, kept so its style can be written once the style loads.
+interface VisibilityAndOpacity {
   visible: boolean;
-  opacity: number;
+  computedOpacity: number;
 }
 
 function visibilityOf(visible: boolean): 'visible' | 'none' {
@@ -120,10 +121,9 @@ function withVisibility(layer: LayerSpecification, visible: boolean): LayerSpeci
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: MapLibreMap;
-  private readonly render: MapLibreRenderLayer<TLayer>;
-  private readonly disposeLayer: MapLibreAdapterOptions<TLayer>['disposeLayer'];
   private readonly drawBelow: string | undefined;
-  private readonly drawnLayers = new Map<string, DrawnLayer>();
+  private readonly styles: RenderedLayers<TLayer, MapLibreMap, MapLibreLayerStyle>;
+  private readonly visibilityAndOpacity = new Map<string, VisibilityAndOpacity>();
   // The sources and style layers this adapter added to the current style. It removes and moves only these.
   private readonly ownedSourceIds = new Set<string>();
   private readonly ownedLayerIds = new Set<string>();
@@ -133,9 +133,15 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   constructor(map: MapLibreMap, ...[options = {}]: MapLibreAdapterArgs<TLayer>) {
     this.map = map;
-    this.render = options.renderLayer ?? defaultMapLibreRenderLayer;
-    this.disposeLayer = options.disposeLayer;
     this.drawBelow = options.drawBelow;
+    this.styles = new RenderedLayers({
+      map,
+      renderLayer: options.renderLayer ?? defaultMapLibreRenderLayer,
+      disposeLayer: options.disposeLayer,
+      place: (info, style, previous) => this.placeStyle(info, style, previous),
+      erase: (_layerId, style, next) => this.eraseStyle(style, next),
+      isSame: drawsTheSame,
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -152,14 +158,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   unregister(): void {
     this.map.off('style.load', this.handleStyleLoad);
-    const drawnLayers = [...this.drawnLayers];
-    this.drawnLayers.clear();
-    for (const [layerId, drawn] of drawnLayers) {
-      if (this.isStyleReady()) {
-        this.eraseLayer(drawn);
-      }
-      this.disposeLayer?.(drawn.style, layerId);
-    }
+    this.styles.clear();
+    this.visibilityAndOpacity.clear();
   }
 
   // --------------------------------------------------------------------------
@@ -170,52 +170,40 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const style = this.render(info, this.map);
-    if (!style) {
-      return;
-    }
-    const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
-    this.drawnLayers.set(info.layerId, drawn);
-    if (this.isStyleReady()) {
-      this.writeLayer(info.layerId, drawn);
-    }
+    this.visibilityAndOpacity.set(info.layerId, { visible: info.visible, computedOpacity: info.computedOpacity });
+    this.styles.add(info);
   }
 
   onLayerRemoved(layerId: string): void {
-    const drawn = this.drawnLayers.get(layerId);
-    if (!drawn) {
-      return;
-    }
-    this.drawnLayers.delete(layerId);
-    if (this.isStyleReady()) {
-      this.eraseLayer(drawn);
-    }
-    this.disposeLayer?.(drawn.style, layerId);
+    this.styles.remove(layerId);
+    this.visibilityAndOpacity.delete(layerId);
   }
 
   onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
-    const drawn = this.drawnLayers.get(info.layerId);
-    if (!drawn) {
+    const visibilityAndOpacity = this.visibilityAndOpacity.get(info.layerId);
+    if (!visibilityAndOpacity) {
       return;
     }
-    drawn.visible = visible;
-    if (this.isStyleReady()) {
-      for (const layer of this.ownedStyleLayers(drawn)) {
+    visibilityAndOpacity.visible = visible;
+    const style = this.styles.get(info.layerId);
+    if (style && this.isStyleReady()) {
+      for (const layer of this.ownedStyleLayers(style)) {
         this.map.setLayoutProperty(layer.id, 'visibility', visibilityOf(visible));
       }
     }
   }
 
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
-    const drawn = this.drawnLayers.get(info.layerId);
-    if (!drawn) {
+    const visibilityAndOpacity = this.visibilityAndOpacity.get(info.layerId);
+    if (!visibilityAndOpacity) {
       return;
     }
-    drawn.opacity = computedOpacity;
-    if (!this.isStyleReady()) {
+    visibilityAndOpacity.computedOpacity = computedOpacity;
+    const style = this.styles.get(info.layerId);
+    if (!style || !this.isStyleReady()) {
       return;
     }
-    for (const layer of this.ownedStyleLayers(drawn)) {
+    for (const layer of this.ownedStyleLayers(style)) {
       for (const [property, value] of opacityWrites(layer, computedOpacity)) {
         this.map.setPaintProperty(layer.id, property, value);
       }
@@ -223,40 +211,12 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    if (info.layerType !== 'layer') {
-      return;
-    }
-    const previous = this.drawnLayers.get(info.layerId);
-    const style = this.render(info, this.map, previous?.style);
-    if (previous && style && onlyGeoJsonDataChanged(previous.style, style)) {
-      this.drawnLayers.set(info.layerId, { ...previous, style });
-      if (this.isStyleReady()) {
-        this.setGeoJsonData(previous.style, style);
-      }
-      return;
-    }
-    // Any other change redraws the layer: its old style layers and sources go, the new ones come.
-    this.drawnLayers.delete(info.layerId);
-    if (previous && this.isStyleReady()) {
-      this.eraseLayer(previous, style ?? undefined);
-    }
-    if (previous && !(style && drawsTheSame(previous.style, style))) {
-      this.disposeLayer?.(previous.style, info.layerId);
-    }
-    if (style) {
-      const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
-      this.drawnLayers.set(info.layerId, drawn);
-      if (this.isStyleReady()) {
-        this.updateTileUrls(previous?.style, style);
-        this.writeLayer(info.layerId, drawn);
-        this.restack();
-      }
-    }
+    this.styles.update(info);
   }
 
   // renderLayer can read the time, so a new time draws the layer again as new data does.
   onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    this.onLayerDataChanged(info);
+    this.styles.update(info);
   }
 
   onOrderChanged(layerOrder: string[]): void {
@@ -270,13 +230,42 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // Private helpers
   // --------------------------------------------------------------------------
 
+  // Adds a layer's style to the map. A style that differs from the one it replaces only in GeoJSON data or tile URLs
+  // updates the sources in place, so the old features and tiles show until the new ones load.
+  private placeStyle(info: LayerInfo<TLayer>, style: MapLibreLayerStyle, previous?: MapLibreLayerStyle): void {
+    if (!this.isStyleReady()) {
+      return;
+    }
+    if (previous && onlyGeoJsonDataChanged(previous, style)) {
+      this.setGeoJsonData(previous, style);
+      return;
+    }
+    this.updateTileUrls(previous, style);
+    this.writeLayer(info.layerId, style, { visible: info.visible, computedOpacity: info.computedOpacity });
+    // A layer being added is not in the order yet, and onOrderChanged stacks it.
+    if (this.layerOrder.includes(info.layerId)) {
+      this.restack();
+    }
+  }
+
+  // Removes a layer's style from the map, keeping what `next` updates in place.
+  private eraseStyle(style: MapLibreLayerStyle, next?: MapLibreLayerStyle): void {
+    if (!this.isStyleReady() || (next && onlyGeoJsonDataChanged(style, next))) {
+      return;
+    }
+    this.eraseLayer(style, next);
+  }
+
   private readonly handleStyleLoad = (): void => {
     this.loadedStyle = this.map.style;
     // A new style starts without this adapter's sources and style layers, even where it uses the same IDs.
     this.ownedSourceIds.clear();
     this.ownedLayerIds.clear();
-    for (const [layerId, drawn] of this.drawnLayers) {
-      this.writeLayer(layerId, drawn);
+    for (const [layerId, visibilityAndOpacity] of this.visibilityAndOpacity) {
+      const style = this.styles.get(layerId);
+      if (style) {
+        this.writeLayer(layerId, style, visibilityAndOpacity);
+      }
     }
     this.restack();
   };
@@ -289,8 +278,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   private restack(): void {
     let layerAbove = this.layerToDrawBelow();
     for (const layerId of [...this.layerOrder].reverse()) {
-      const drawn = this.drawnLayers.get(layerId);
-      for (const layer of (drawn ? this.ownedStyleLayers(drawn) : []).reverse()) {
+      const style = this.styles.get(layerId);
+      for (const layer of (style ? this.ownedStyleLayers(style) : []).reverse()) {
         // MapLibre puts the layer directly below `layerAbove`, or on top when it is undefined.
         this.map.moveLayer(layer.id, layerAbove);
         layerAbove = layer.id;
@@ -307,8 +296,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // The layer's style layers that this adapter added, leaving out any it refused because their ID was taken.
-  private ownedStyleLayers(drawn: DrawnLayer): LayerSpecification[] {
-    return drawn.style.layers.filter(({ id }) => this.ownedLayerIds.has(id));
+  private ownedStyleLayers(style: MapLibreLayerStyle): LayerSpecification[] {
+    return style.layers.filter(({ id }) => this.ownedLayerIds.has(id));
   }
 
   // A symbol layer with text, as in MapLibre's examples. Icon-only symbols, such as one-way arrows, are not labels.
@@ -342,12 +331,12 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // Removes the layer's style layers, then the sources no other layer reads and `next` does not keep as they are.
-  private eraseLayer(drawn: DrawnLayer, next?: MapLibreLayerStyle): void {
-    for (const layer of this.ownedStyleLayers(drawn)) {
+  private eraseLayer(style: MapLibreLayerStyle, next?: MapLibreLayerStyle): void {
+    for (const layer of this.ownedStyleLayers(style)) {
       this.map.removeLayer(layer.id);
       this.ownedLayerIds.delete(layer.id);
     }
-    for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
+    for (const [sourceId, source] of Object.entries(style.sources ?? {})) {
       if (this.ownedSourceIds.has(sourceId) && !this.isSourceShared(sourceId) && !canUpdateInPlace(source, next?.sources?.[sourceId])) {
         this.removeSource(sourceId);
       }
@@ -355,7 +344,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   private isSourceShared(sourceId: string): boolean {
-    return [...this.drawnLayers.values()].some((drawn) => drawn.style.sources?.[sourceId]);
+    return [...this.visibilityAndOpacity.keys()].some((layerId) => this.styles.get(layerId)?.sources?.[sourceId]);
   }
 
   // Removes a source this adapter added. A style layer the app added that still reads it keeps it on the map.
@@ -368,23 +357,23 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // Adds the layer's sources and style layers that the map is missing.
-  private writeLayer(layerId: string, drawn: DrawnLayer): void {
-    const taken = this.takenId(drawn.style);
+  private writeLayer(layerId: string, style: MapLibreLayerStyle, visibilityAndOpacity: VisibilityAndOpacity): void {
+    const taken = this.takenId(style);
     if (taken) {
       this.map.fire(new ErrorEvent(new Error(`Layer "${layerId}" is not drawn: the map already has a ${taken}.`)));
       return;
     }
-    for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
+    for (const [sourceId, source] of Object.entries(style.sources ?? {})) {
       if (!this.map.getSource(sourceId)) {
         this.map.addSource(sourceId, source);
         this.ownedSourceIds.add(sourceId);
       }
     }
-    for (const layer of drawn.style.layers) {
+    for (const layer of style.layers) {
       if (!this.map.getLayer(layer.id)) {
-        this.map.addLayer(withVisibility(layer, drawn.visible));
+        this.map.addLayer(withVisibility(layer, visibilityAndOpacity.visible));
         this.ownedLayerIds.add(layer.id);
-        for (const [property, value] of opacityWrites(layer, drawn.opacity)) {
+        for (const [property, value] of opacityWrites(layer, visibilityAndOpacity.computedOpacity)) {
           this.map.setPaintProperty(layer.id, property, value);
         }
       }
