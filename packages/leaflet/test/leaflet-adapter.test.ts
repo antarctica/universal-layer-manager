@@ -439,4 +439,72 @@ describe('leafletLayerManagerAdapter', () => {
 
     expect(removed).not.toHaveBeenCalled();
   });
+
+  it('passes a removed layer\'s Leaflet layer to disposeLayer', () => {
+    const disposeLayer = vi.fn();
+    const { manager } = setup({ disposeLayer });
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+
+    manager.removeLayer('layer-1');
+
+    expect(disposeLayer).toHaveBeenCalledWith(leafletLayer, 'layer-1');
+  });
+
+  it('passes the Leaflet layer the factory replaces to disposeLayer', () => {
+    const disposeLayer = vi.fn();
+    const { manager } = setup({ disposeLayer });
+    const before = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+
+    manager.updateLayerData('layer-1', { leafletLayer: circle() });
+
+    expect(disposeLayer).toHaveBeenCalledWith(before, 'layer-1');
+  });
+
+  it('passes every Leaflet layer to disposeLayer when the adapter is detached', () => {
+    const disposeLayer = vi.fn();
+    const { manager, detach } = setup({ disposeLayer });
+    const first = circle();
+    const second = circle();
+    manager.addLayer({ ...layerParams('layer-1', first), visible: true });
+    manager.addLayer({ ...layerParams('layer-2', second), visible: false });
+
+    detach();
+
+    expect(disposeLayer.mock.calls).toEqual(expect.arrayContaining([[first, 'layer-1'], [second, 'layer-2']]));
+    expect(disposeLayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a hidden layer\'s Leaflet layer from disposeLayer, as it comes back when shown', () => {
+    const disposeLayer = vi.fn();
+    const { manager } = setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+
+    manager.setEnabled('layer-1', false);
+
+    expect(disposeLayer).not.toHaveBeenCalled();
+  });
+
+  it('keeps a Leaflet layer from disposeLayer when the factory returns it again', () => {
+    const disposeLayer = vi.fn();
+    const { manager } = setup({ disposeLayer, layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+
+    manager.updateLayerData('layer-1', { leafletLayer: circle() });
+
+    expect(disposeLayer).not.toHaveBeenCalled();
+  });
+
+  it('passes the Leaflet layer the factory replaces for a new time to disposeLayer', () => {
+    const disposeLayer = vi.fn();
+    const { manager } = setup({ disposeLayer, layerFactory: (info) => (info.timeInfo ? circle() : info.layerData.leafletLayer) });
+    const before = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('layer-1', newYearsDay);
+
+    expect(disposeLayer).toHaveBeenCalledWith(before, 'layer-1');
+  });
 });

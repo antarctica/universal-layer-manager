@@ -56,5 +56,10 @@ export interface LeafletAdapterHooks<TLayer> {
 
 export interface LeafletAdapterOptions<TLayer> {
   layerFactory?: LeafletLayerFactory<TLayer>;
+  /**
+   * Undoes what was set up for a Leaflet layer once the adapter discards it: when its layer is removed, when the
+   * factory returns a different Leaflet layer, and when the adapter is detached. Hiding a layer does not discard it.
+   */
+  disposeLayer?: (leafletLayer: L.Layer, layerId: string) => void;
   hooks?: LeafletAdapterHooks<TLayer>;
 }
