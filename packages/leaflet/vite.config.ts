@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url';
+import { playwright } from '@vitest/browser-playwright';
 import camelCase from 'camelcase';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
@@ -27,6 +28,12 @@ export default defineConfig({
   test: {
     alias: {
       '@ulm/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
+    },
+    browser: {
+      enabled: true,
+      provider: playwright(),
+      headless: true,
+      instances: [{ browser: 'chromium' }],
     },
   },
 });
