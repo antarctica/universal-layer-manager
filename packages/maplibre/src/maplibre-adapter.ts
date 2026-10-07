@@ -328,7 +328,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
       if (this.ownedSourceIds.has(sourceId) && !this.isSourceShared(sourceId) && !canUpdateInPlace(source, next?.sources?.[sourceId])) {
         this.removeSource(sourceId);
-        this.ownedSourceIds.delete(sourceId);
       }
     }
   }
@@ -337,16 +336,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     return [...this.drawnLayers.values()].some((drawn) => drawn.style.sources?.[sourceId]);
   }
 
-  // MapLibre keeps a source while any style layer reads it, so those go first.
+  // Removes a source this adapter added. A style layer the app added that still reads it keeps it on the map.
   private removeSource(id: string): void {
-    for (const layerId of this.map.getLayersOrder()) {
-      if (this.map.getLayer(layerId)?.source === id) {
-        this.map.removeLayer(layerId);
-      }
+    if (this.map.getLayersOrder().some((layerId) => this.map.getLayer(layerId)?.source === id)) {
+      return;
     }
-    if (this.map.getSource(id)) {
-      this.map.removeSource(id);
-    }
+    this.map.removeSource(id);
+    this.ownedSourceIds.delete(id);
   }
 
   // Adds the layer's sources and style layers that the map is missing.

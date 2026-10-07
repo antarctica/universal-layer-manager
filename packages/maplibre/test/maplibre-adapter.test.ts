@@ -380,14 +380,14 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
   });
 
-  it('removes the app\'s own style layers that read a layer\'s source along with the source', async () => {
+  it('keeps a layer\'s source on the map while a style layer the app added still reads it', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
     map.addLayer({ id: 'app-highlight', type: 'line', source: 'rivers' });
 
     manager.removeLayer('rivers');
 
-    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+    expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['app-highlight'] });
   });
 
   it('removes every source and style layer it added when the adapter is detached', async () => {
@@ -761,5 +761,35 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayer('rivers-line')?.type).toBe('background');
     expect(takeErrors(map)).toEqual(['Layer "rivers" is not drawn: the map already has a style layer "rivers-line".']);
+  });
+
+  it('draws a style layer that reads a basemap source it does not list', async () => {
+    const { map, manager } = await setup();
+
+    manager.addLayer({ ...layerParams('rivers', { layers: [{ id: 'rivers-line', type: 'line', source: 'basemap' }] }), visible: true });
+
+    expect(overlay(map)).toEqual({ sources: [], layers: ['rivers-line'] });
+    expect(map.getLayer('rivers-line')?.source).toBe('basemap');
+  });
+
+  it('leaves the basemap\'s source and style layers on the map when a layer that reads its source is removed', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', { layers: [{ id: 'rivers-line', type: 'line', source: 'basemap' }] }), visible: true });
+
+    manager.removeLayer('rivers');
+
+    expect(map.getSource('basemap')).toBeDefined();
+    expect(map.getLayersOrder()).toEqual(['land', 'labels']);
+  });
+
+  it('draws a layer again on its source that an app\'s style layer kept on the map', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    map.addLayer({ id: 'app-highlight', type: 'line', source: 'rivers' });
+    manager.removeLayer('rivers');
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['rivers-casing', 'rivers-line', 'app-highlight'] });
   });
 });
