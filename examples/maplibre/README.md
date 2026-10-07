@@ -57,7 +57,7 @@ Each layer's `layerData` is a MapLibre style: the sources it reads and its style
 manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map));
 ```
 
-To keep other data in `layerData`, such as a URL, pass a `renderLayer` that builds the style from it. It can hand any layer it does not handle to `createDefaultMapLibreRenderLayer()`. See `MapLibreRenderLayer` in `@ulm/maplibre` for an example.
+To keep other data in `layerData`, such as a URL, pass a `renderLayer` that builds the style from it. It can hand any layer it does not handle to `defaultMapLibreRenderLayer(info)`. See `MapLibreRenderLayer` in `@ulm/maplibre` for an example.
 
 The adapter adds the sources and style layers under the IDs the style gives them, hides layers with `visibility`, fades them with their opacity, and moves them as the manager's order changes. Each style layer's ID is its layer's ID, so no two clash.
 
