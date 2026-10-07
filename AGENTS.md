@@ -37,7 +37,7 @@ The expected value is a literal you know is right. Do not compute it with the sa
 
 Refactor with Martin Fowler's catalogue: [refactoring.com/catalog](https://refactoring.com/catalog/). One move at a time, and only while the tests are green. Name the move in the reply (Extract Function, Rename Variable, Move Function, Inline Function). Do not mix a refactor with a behaviour change, and do not refactor code the task did not touch.
 
-Use a pattern from [Patterns.dev](https://www.patterns.dev/) only when the problem matches it. This library already uses an adapter (`LayerManagerAdapter`), a push-style observer (`LayerManager` calls the adapter), and a factory (`LeafletLayerFactory`).
+Use a pattern from [Patterns.dev](https://www.patterns.dev/) only when the problem matches it. This library already uses an adapter (`LayerManagerAdapter`), a push-style observer (`LayerManager` calls the adapter), and a factory that also updates (`renderLayer`, typed `LeafletRenderLayer` and `MapLibreRenderLayer`).
 
 <!-- BEGIN:turborepo-agent-rules -->
 
