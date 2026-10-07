@@ -43,13 +43,7 @@ Groups are added in the same way with `addGroup`, using a `layerType` of `'layer
 
 ```ts
 manager.addGroup({
-  layerConfig: {
-    layerId: 'ocean',
-    layerName: 'Ocean',
-    layerType: 'layerGroup',
-    parentId: null,
-    layerData: undefined,
-  },
+  layerConfig: { layerId: 'ocean', layerName: 'Ocean', layerType: 'layerGroup' },
   visible: true,
 });
 ```
@@ -121,19 +115,13 @@ By default, groups can only sit at the top level, which keeps the layer list to 
 const manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
 
 manager.addGroup({
-  layerConfig: {
-    layerId: 'forecasts',
-    layerName: 'Forecasts',
-    layerType: 'layerGroup',
-    parentId: 'ocean',
-    layerData: undefined,
-  },
+  layerConfig: { layerId: 'forecasts', layerName: 'Forecasts', layerType: 'layerGroup', parentId: 'ocean' },
 });
 ```
 
 ## Your own data
 
-Each layer can carry any data you like in `layerData`, and the manager passes it back to you wherever that layer appears. You set its type with the first type parameter of `LayerManager`. Groups can carry their own data too, using the second type parameter, which is `undefined` by default.
+Each layer can carry any data you like in `layerData`, and the manager passes it back to you wherever that layer appears. You set its type with the first type parameter of `LayerManager`. Groups can carry their own data too, using the second type parameter, which is `undefined` by default. While a data type allows `undefined`, you can leave `layerData` out, as the group examples above do.
 
 You can read the data back in any callback, and replace it with `updateLayerData`:
 

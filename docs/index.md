@@ -59,13 +59,7 @@ manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
 
 // add a group to hold the circles; a group has no map layer of its own
 manager.addGroup({
-  layerConfig: {
-    layerId: 'circles',
-    layerName: 'Circles',
-    layerType: 'layerGroup',
-    parentId: null,
-    layerData: undefined,
-  },
+  layerConfig: { layerId: 'circles', layerName: 'Circles', layerType: 'layerGroup' },
   visible: true,
 });
 
