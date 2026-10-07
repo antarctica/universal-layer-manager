@@ -53,10 +53,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.map.getPane(CONTAINER_PANE)?.remove();
   }
 
-  getContext(): L.Map {
-    return this.map;
-  }
-
   // --------------------------------------------------------------------------
   // Layer lifecycle — called directly by LayerManager (push model)
   // --------------------------------------------------------------------------
