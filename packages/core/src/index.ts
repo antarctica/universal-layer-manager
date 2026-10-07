@@ -1,3 +1,5 @@
+export { RenderedLayers } from './adapters/renderedLayers';
+export type { RenderedLayersOptions } from './adapters/renderedLayers';
 export * from './adapters/types';
 export { connectAdapter } from './connectAdapter';
 export * from './LayerManager';
