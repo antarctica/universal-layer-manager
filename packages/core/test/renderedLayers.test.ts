@@ -30,12 +30,12 @@ function setup(options: SetupOptions = {}) {
     renderLayer: options.renderLayer ?? ((info) => ({ name: info.layerData.test })),
     disposeLayer: options.disposeLayer,
     isSame: options.isSame,
-    place: (info, shape) => {
-      changes.push(`place ${info.layerId}`);
+    place: (info, shape, previous) => {
+      changes.push(`place ${shape.name}${previous ? ` over ${previous.name}` : ''}`);
       map.set(info.layerId, shape);
     },
-    erase: (layerId) => {
-      changes.push(`erase ${layerId}`);
+    erase: (layerId, shape, next) => {
+      changes.push(`erase ${shape.name}${next ? ` for ${next.name}` : ''}`);
       map.delete(layerId);
     },
   });
@@ -200,5 +200,36 @@ describe('renderedLayers', () => {
     manager.addLayer(layer('rivers'));
 
     expect(layers.get('rivers')).toBeUndefined();
+  });
+
+  it('tells the adapter which shape replaces which, so it can update the map in place', () => {
+    const { manager, changes } = setup();
+    manager.addLayer(layer('rivers', { layerData: { test: 'blue line' } }));
+    changes.length = 0;
+
+    manager.updateLayerData('rivers', { test: 'red line' });
+
+    expect(changes).toEqual(['erase blue line for red line', 'place red line over blue line']);
+  });
+
+  it('gives the adapter a layer\'s new shape, and not its old one, while it erases the old and places the new', () => {
+    const held: (Shape | undefined)[] = [];
+    const manager = new LayerManager<TestLayerData>();
+    const layers: RenderedLayers<TestLayerData, ShapeMap, Shape> = new RenderedLayers({
+      map: new Map(),
+      renderLayer: (info) => ({ name: info.layerData.test }),
+      place: (info) => held.push(layers.get(info.layerId)),
+      erase: (layerId) => held.push(layers.get(layerId)),
+    });
+    manager.setAdapter({
+      onLayerAdded: (info) => layers.add(info),
+      onLayerDataChanged: (info) => layers.update(info),
+    });
+    manager.addLayer(layer('rivers', { layerData: { test: 'blue line' } }));
+    held.length = 0;
+
+    manager.updateLayerData('rivers', { test: 'red line' });
+
+    expect(held).toEqual([undefined, { name: 'red line' }]);
   });
 });

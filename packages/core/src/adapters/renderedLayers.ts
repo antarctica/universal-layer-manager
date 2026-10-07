@@ -4,10 +4,10 @@ import type { LayerInfo, ManagedLayerInfo, RenderAdapterOptions, RenderLayer } f
 export interface RenderedLayersOptions<TLayer, TMap, TRendered> extends RenderAdapterOptions<TLayer, TMap, TRendered> {
   map: TMap;
   renderLayer: RenderLayer<TLayer, TMap, TRendered>;
-  /** Puts what renderLayer returned for a layer on the map. */
-  place: (info: LayerInfo<TLayer>, rendered: TRendered) => void;
-  /** Takes what renderLayer returned for a layer off the map. */
-  erase: (layerId: string, rendered: TRendered) => void;
+  /** Puts what renderLayer returned for a layer on the map, with `previous` set to what it replaces, if anything. */
+  place: (info: LayerInfo<TLayer>, rendered: TRendered, previous?: TRendered) => void;
+  /** Takes what renderLayer returned for a layer off the map, with `next` set to what replaces it, if anything. */
+  erase: (layerId: string, rendered: TRendered, next?: TRendered) => void;
   /**
    * Whether `next` stands in for `previous` on the map, so `previous` is not disposed of. Without it, only the same
    * object counts as the same.
@@ -17,7 +17,8 @@ export interface RenderedLayersOptions<TLayer, TMap, TRendered> extends RenderAd
 
 /**
  * Keeps what renderLayer returned for each layer, and calls the adapter's `place` and `erase` as layers are added,
- * changed and removed.
+ * changed and removed. While `erase` runs, {@link RenderedLayers.get} no longer returns what is being erased; while
+ * `place` runs, it returns what is being placed.
  */
 export class RenderedLayers<TLayer, TMap, TRendered> {
   private readonly options: RenderedLayersOptions<TLayer, TMap, TRendered>;
@@ -56,14 +57,14 @@ export class RenderedLayers<TLayer, TMap, TRendered> {
     }
     if (previous) {
       this.rendered.delete(info.layerId);
-      this.options.erase(info.layerId, previous);
+      this.options.erase(info.layerId, previous, next ?? undefined);
       if (!(next && this.options.isSame?.(previous, next))) {
         this.options.disposeLayer?.(previous, info.layerId);
       }
     }
     if (next) {
       this.rendered.set(info.layerId, next);
-      this.options.place(info, next);
+      this.options.place(info, next, previous);
     }
   }
 
