@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-`@ulm/core` and `@ulm/leaflet` ship on the same version. The scope on each
+`@ulm/core`, `@ulm/leaflet` and `@ulm/maplibre` ship on the same version. The scope on each
 entry names the package that changed.
 
 Sections are drafted from the commit history with `npm run changelog:draft` and
