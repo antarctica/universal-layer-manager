@@ -45,9 +45,11 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     }
   }
 
-  protected eraseLayer(layerId: string, rendered: L.Layer): void {
+  protected eraseLayer(layerId: string, rendered: L.Layer, next?: L.Layer): void {
     this.map.removeLayer(rendered);
-    this.map.getPane(layerPaneName(layerId))?.remove();
+    if (!next) {
+      this.map.getPane(layerPaneName(layerId))?.remove();
+    }
   }
 
   protected setLayerVisible({ rendered, visible }: RenderedLayer<L.Layer>): void {
