@@ -5,17 +5,6 @@ import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerFactory, 
 
 import { createDefaultMapLibreFactory } from './default-factory';
 
-// The prefix keeps runtime IDs clear of the basemap's.
-const ID_PREFIX = 'ulm:';
-
-function runtimeSourceId(sourceId: string): string {
-  return `${ID_PREFIX}${sourceId}`;
-}
-
-function runtimeLayerId(layerId: string, styleLayerId: string): string {
-  return `${ID_PREFIX}${layerId}:${styleLayerId}`;
-}
-
 // Style specs are plain JSON.
 function sameJson(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -108,13 +97,8 @@ function opacityWrites(layer: LayerSpecification, opacity: number): PaintWrite[]
   }
 }
 
-function toRuntimeLayer(layerId: string, layer: LayerSpecification, drawn: DrawnLayer): LayerSpecification {
-  const id = runtimeLayerId(layerId, layer.id);
-  const layout = { ...layer.layout, visibility: visibilityOf(drawn.visible) };
-  if (!('source' in layer) || !drawn.style.sources?.[layer.source]) {
-    return { ...layer, id, layout };
-  }
-  return { ...layer, id, layout, source: runtimeSourceId(layer.source) };
+function withVisibility(layer: LayerSpecification, visible: boolean): LayerSpecification {
+  return { ...layer, layout: { ...layer.layout, visibility: visibilityOf(visible) } };
 }
 
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
@@ -147,11 +131,11 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   unregister(): void {
     this.map.off('style.load', this.handleStyleLoad);
-    const drawnLayers = [...this.drawnLayers];
+    const drawnLayers = [...this.drawnLayers.values()];
     this.drawnLayers.clear();
     if (this.isStyleReady()) {
-      for (const [layerId, drawn] of drawnLayers) {
-        this.eraseLayer(layerId, drawn);
+      for (const drawn of drawnLayers) {
+        this.eraseLayer(drawn);
       }
     }
   }
@@ -171,7 +155,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
     this.drawnLayers.set(info.layerId, drawn);
     if (this.isStyleReady()) {
-      this.writeLayer(info.layerId, drawn);
+      this.writeLayer(drawn);
     }
   }
 
@@ -182,7 +166,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
     this.drawnLayers.delete(layerId);
     if (this.isStyleReady()) {
-      this.eraseLayer(layerId, drawn);
+      this.eraseLayer(drawn);
     }
   }
 
@@ -194,7 +178,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     drawn.visible = visible;
     if (this.isStyleReady()) {
       for (const layer of drawn.style.layers) {
-        this.map.setLayoutProperty(runtimeLayerId(info.layerId, layer.id), 'visibility', visibilityOf(visible));
+        this.map.setLayoutProperty(layer.id, 'visibility', visibilityOf(visible));
       }
     }
   }
@@ -210,7 +194,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
     for (const layer of drawn.style.layers) {
       for (const [property, value] of opacityWrites(layer, computedOpacity)) {
-        this.map.setPaintProperty(runtimeLayerId(info.layerId, layer.id), property, value);
+        this.map.setPaintProperty(layer.id, property, value);
       }
     }
   }
@@ -231,14 +215,14 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     // Any other change redraws the layer: its old style layers and sources go, the new ones come.
     this.drawnLayers.delete(info.layerId);
     if (previous && this.isStyleReady()) {
-      this.eraseLayer(info.layerId, previous, style ?? undefined);
+      this.eraseLayer(previous, style ?? undefined);
     }
     if (style) {
       const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
       this.drawnLayers.set(info.layerId, drawn);
       if (this.isStyleReady()) {
         this.updateTileUrls(previous?.style, style);
-        this.writeLayer(info.layerId, drawn);
+        this.writeLayer(drawn);
         this.restack();
       }
     }
@@ -262,8 +246,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   private readonly handleStyleLoad = (): void => {
     this.loadedStyle = this.map.style;
-    for (const [layerId, drawn] of this.drawnLayers) {
-      this.writeLayer(layerId, drawn);
+    for (const drawn of this.drawnLayers.values()) {
+      this.writeLayer(drawn);
     }
     this.restack();
   };
@@ -278,11 +262,10 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     for (const layerId of [...this.layerOrder].reverse()) {
       const drawn = this.drawnLayers.get(layerId);
       for (const layer of [...(drawn?.style.layers ?? [])].reverse()) {
-        const id = runtimeLayerId(layerId, layer.id);
-        if (this.map.getLayer(id)) {
-          // MapLibre puts `id` directly below `layerAbove`, or on top when it is undefined.
-          this.map.moveLayer(id, layerAbove);
-          layerAbove = id;
+        if (this.map.getLayer(layer.id)) {
+          // MapLibre puts the layer directly below `layerAbove`, or on top when it is undefined.
+          this.map.moveLayer(layer.id, layerAbove);
+          layerAbove = layer.id;
         }
       }
     }
@@ -293,7 +276,12 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (this.drawBelow && this.map.getLayer(this.drawBelow)) {
       return this.drawBelow;
     }
-    return this.map.getLayersOrder().find((id) => !id.startsWith(ID_PREFIX) && this.isLabelLayer(id));
+    const ownIds = this.ownStyleLayerIds();
+    return this.map.getLayersOrder().find((id) => !ownIds.has(id) && this.isLabelLayer(id));
+  }
+
+  private ownStyleLayerIds(): Set<string> {
+    return new Set([...this.drawnLayers.values()].flatMap((drawn) => drawn.style.layers.map((layer) => layer.id)));
   }
 
   // A symbol layer with text, as in MapLibre's examples. Icon-only symbols, such as one-way arrows, are not labels.
@@ -305,7 +293,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
       const before = previous.sources?.[sourceId];
       if (source.type === 'geojson' && before?.type === 'geojson' && source.data !== before.data) {
-        void this.map.getSource<GeoJSONSource>(runtimeSourceId(sourceId))?.setData(source.data);
+        void this.map.getSource<GeoJSONSource>(sourceId)?.setData(source.data);
       }
     }
   }
@@ -313,7 +301,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   private updateTileUrls(previous: MapLibreLayerStyle | undefined, next: MapLibreLayerStyle): void {
     for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
       const before = previous?.sources?.[sourceId];
-      const tileSource = this.map.getSource<RasterTileSource | VectorTileSource>(runtimeSourceId(sourceId));
+      const tileSource = this.map.getSource<RasterTileSource | VectorTileSource>(sourceId);
       if (!before || !isTileSource(source) || !isTileSource(before) || !tileSource) {
         continue;
       }
@@ -327,16 +315,15 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // Removes the layer's style layers, then the sources no other layer reads and `next` does not keep as they are.
-  private eraseLayer(layerId: string, drawn: DrawnLayer, next?: MapLibreLayerStyle): void {
+  private eraseLayer(drawn: DrawnLayer, next?: MapLibreLayerStyle): void {
     for (const layer of drawn.style.layers) {
-      const id = runtimeLayerId(layerId, layer.id);
-      if (this.map.getLayer(id)) {
-        this.map.removeLayer(id);
+      if (this.map.getLayer(layer.id)) {
+        this.map.removeLayer(layer.id);
       }
     }
     for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
       if (!this.isSourceShared(sourceId) && !canUpdateInPlace(source, next?.sources?.[sourceId])) {
-        this.removeSource(runtimeSourceId(sourceId));
+        this.removeSource(sourceId);
       }
     }
   }
@@ -358,19 +345,17 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // Adds the layer's sources and style layers that the map is missing.
-  private writeLayer(layerId: string, drawn: DrawnLayer): void {
+  private writeLayer(drawn: DrawnLayer): void {
     for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
-      const id = runtimeSourceId(sourceId);
-      if (!this.map.getSource(id)) {
-        this.map.addSource(id, source);
+      if (!this.map.getSource(sourceId)) {
+        this.map.addSource(sourceId, source);
       }
     }
     for (const layer of drawn.style.layers) {
-      const runtimeLayer = toRuntimeLayer(layerId, layer, drawn);
-      if (!this.map.getLayer(runtimeLayer.id)) {
-        this.map.addLayer(runtimeLayer);
+      if (!this.map.getLayer(layer.id)) {
+        this.map.addLayer(withVisibility(layer, drawn.visible));
         for (const [property, value] of opacityWrites(layer, drawn.opacity)) {
-          this.map.setPaintProperty(runtimeLayer.id, property, value);
+          this.map.setPaintProperty(layer.id, property, value);
         }
       }
     }

@@ -92,8 +92,8 @@ function rivers(): LayerData {
   return {
     sources: { rivers: { type: 'geojson', data: EMPTY } },
     layers: [
-      { id: 'casing', type: 'line', source: 'rivers' },
-      { id: 'line', type: 'line', source: 'rivers' },
+      { id: 'rivers-casing', type: 'line', source: 'rivers' },
+      { id: 'rivers-line', type: 'line', source: 'rivers' },
     ],
   };
 }
@@ -102,7 +102,7 @@ function rivers(): LayerData {
 function riverNames(): LayerData {
   return {
     sources: { rivers: { type: 'geojson', data: EMPTY } },
-    layers: [{ id: 'names', type: 'symbol', source: 'rivers' }],
+    layers: [{ id: 'river-names', type: 'symbol', source: 'rivers' }],
   };
 }
 
@@ -115,8 +115,8 @@ function lakes(): LayerData {
   return {
     sources: { lakes: { type: 'geojson', data: EMPTY } },
     layers: [
-      { id: 'water', type: 'fill', source: 'lakes', paint: { 'fill-opacity': 0.6 } },
-      { id: 'shore', type: 'line', source: 'lakes', paint: { 'line-opacity': 0.8 } },
+      { id: 'lakes-water', type: 'fill', source: 'lakes', paint: { 'fill-opacity': 0.6 } },
+      { id: 'lakes-shore', type: 'line', source: 'lakes', paint: { 'line-opacity': 0.8 } },
     ],
   };
 }
@@ -124,7 +124,7 @@ function lakes(): LayerData {
 function points(paint: CirclePaint = {}): LayerData {
   return {
     sources: { points: { type: 'geojson', data: EMPTY } },
-    layers: [{ id: 'dots', type: 'circle', source: 'points', paint }],
+    layers: [{ id: 'points', type: 'circle', source: 'points', paint }],
   };
 }
 
@@ -185,14 +185,14 @@ function paintOf(map: maplibregl.Map, layerId: string, properties: PaintProperty
 }
 
 describe('mapLibreLayerManagerAdapter', () => {
-  it('adds a layer\'s source and style layers to the map, under prefixed IDs', async () => {
+  it('adds a layer\'s source and style layers to the map, under the IDs the factory gave them', async () => {
     const { map, manager } = await setup();
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
     expect(overlay(map)).toEqual({
-      sources: ['ulm:rivers'],
-      layers: ['ulm:rivers:casing', 'ulm:rivers:line'],
+      sources: ['rivers'],
+      layers: ['rivers-casing', 'rivers-line'],
     });
   });
 
@@ -204,8 +204,8 @@ describe('mapLibreLayerManagerAdapter', () => {
     await map.once('style.load');
 
     expect(overlay(map)).toEqual({
-      sources: ['ulm:rivers'],
-      layers: ['ulm:rivers:casing', 'ulm:rivers:line'],
+      sources: ['rivers'],
+      layers: ['rivers-casing', 'rivers-line'],
     });
   });
 
@@ -214,8 +214,8 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: false });
 
-    expect(overlay(map).layers).toEqual(['ulm:rivers:casing', 'ulm:rivers:line']);
-    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['none', 'none']);
+    expect(overlay(map).layers).toEqual(['rivers-casing', 'rivers-line']);
+    expect(visibilityOf(map, ['rivers-casing', 'rivers-line'])).toEqual(['none', 'none']);
   });
 
   it('shows a hidden layer\'s style layers when it is switched on', async () => {
@@ -224,7 +224,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setEnabled('rivers', true);
 
-    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['visible', 'visible']);
+    expect(visibilityOf(map, ['rivers-casing', 'rivers-line'])).toEqual(['visible', 'visible']);
   });
 
   it('hides a group\'s layers while the group is switched off', async () => {
@@ -233,10 +233,10 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('rivers', rivers(), 'water'), visible: true });
 
     manager.setEnabled('water', false);
-    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['none', 'none']);
+    expect(visibilityOf(map, ['rivers-casing', 'rivers-line'])).toEqual(['none', 'none']);
 
     manager.setEnabled('water', true);
-    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['visible', 'visible']);
+    expect(visibilityOf(map, ['rivers-casing', 'rivers-line'])).toEqual(['visible', 'visible']);
   });
 
   it('fades a line layer with line-layer-opacity and leaves its line-opacity alone', async () => {
@@ -245,7 +245,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('lakes', 0.5);
 
-    expect(paintOf(map, 'ulm:lakes:shore', ['line-layer-opacity', 'line-opacity'])).toEqual([0.5, 0.8]);
+    expect(paintOf(map, 'lakes-shore', ['line-layer-opacity', 'line-opacity'])).toEqual([0.5, 0.8]);
   });
 
   it('fades a fill layer with fill-layer-opacity and leaves its fill-opacity alone', async () => {
@@ -254,7 +254,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('lakes', 0.5);
 
-    expect(paintOf(map, 'ulm:lakes:water', ['fill-layer-opacity', 'fill-opacity'])).toEqual([0.5, 0.6]);
+    expect(paintOf(map, 'lakes-water', ['fill-layer-opacity', 'fill-opacity'])).toEqual([0.5, 0.6]);
   });
 
   it('fades a layer by its opacity combined with its group\'s as soon as it is added', async () => {
@@ -263,7 +263,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ layerConfig: { ...layerParams('lakes', lakes(), 'water').layerConfig, opacity: 0.8 }, visible: true });
 
-    expect(map.getPaintProperty('ulm:lakes:shore', 'line-layer-opacity')).toBeCloseTo(0.4);
+    expect(map.getPaintProperty('lakes-shore', 'line-layer-opacity')).toBeCloseTo(0.4);
   });
 
   it('fades a circle layer by scaling its circle-opacity and circle-stroke-opacity', async () => {
@@ -272,7 +272,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('points', 0.5);
 
-    expect(paintOf(map, 'ulm:points:dots', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.4, 0.5]);
+    expect(paintOf(map, 'points', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.4, 0.5]);
   });
 
   it('puts a circle layer\'s own opacity back when it is fully opaque again', async () => {
@@ -282,7 +282,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('points', 1);
 
-    expect(paintOf(map, 'ulm:points:dots', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.8, undefined]);
+    expect(paintOf(map, 'points', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.8, undefined]);
   });
 
   it('scales the outputs of a zoom interpolate and keeps it the outermost expression', async () => {
@@ -294,7 +294,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('points', 0.5);
 
-    expect(map.getPaintProperty('ulm:points:dots', 'circle-opacity')).toEqual(['interpolate', ['linear'], ['zoom'], 5, 0.1, 10, 0.4]);
+    expect(map.getPaintProperty('points', 'circle-opacity')).toEqual(['interpolate', ['linear'], ['zoom'], 5, 0.1, 10, 0.4]);
   });
 
   it('scales the outputs of a zoom step and keeps it the outermost expression', async () => {
@@ -306,7 +306,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('points', 0.5);
 
-    expect(map.getPaintProperty('ulm:points:dots', 'circle-opacity')).toEqual(['step', ['zoom'], 0.2, 8, 0.4]);
+    expect(map.getPaintProperty('points', 'circle-opacity')).toEqual(['step', ['zoom'], 0.2, 8, 0.4]);
   });
 
   it('multiplies a data-driven opacity by the layer\'s opacity', async () => {
@@ -315,7 +315,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('points', 0.5);
 
-    expect(map.getPaintProperty('ulm:points:dots', 'circle-opacity')).toEqual(['*', 0.5, ['get', 'alpha']]);
+    expect(map.getPaintProperty('points', 'circle-opacity')).toEqual(['*', 0.5, ['get', 'alpha']]);
   });
 
   it.each(OWN_OPACITY_CASES)('fades a $layer.type layer by scaling its own opacity', async ({ layer, source, properties }) => {
@@ -324,7 +324,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('shading', 0.5);
 
-    expect(paintOf(map, 'ulm:shading:shade', properties)).toEqual(properties.map(() => 0.4));
+    expect(paintOf(map, 'shade', properties)).toEqual(properties.map(() => 0.4));
   });
 
   it('scales a circle layer\'s own opacity by its group\'s as soon as it is added', async () => {
@@ -333,7 +333,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('points', points({ 'circle-opacity': 0.8 }), 'places'), visible: true });
 
-    expect(paintOf(map, 'ulm:points:dots', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.4, 0.5]);
+    expect(paintOf(map, 'points', ['circle-opacity', 'circle-stroke-opacity'])).toEqual([0.4, 0.5]);
   });
 
   it('leaves a hillshade layer\'s paint alone when it is faded, as hillshade has no opacity', async () => {
@@ -348,7 +348,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setOpacity('relief', 0.5);
 
-    expect(map.getStyle().layers.find((layer) => layer.id === 'ulm:relief:shade')?.paint).toEqual({ 'hillshade-exaggeration': 0.6 });
+    expect(map.getStyle().layers.find((layer) => layer.id === 'shade')?.paint).toEqual({ 'hillshade-exaggeration': 0.6 });
   });
 
   it('removes a layer\'s style layers and source from the map when it is removed', async () => {
@@ -366,7 +366,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('river-names', riverNames()), visible: true });
 
     manager.removeLayer('rivers');
-    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:river-names:names'] });
+    expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['river-names'] });
 
     manager.removeLayer('river-names');
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
@@ -375,7 +375,7 @@ describe('mapLibreLayerManagerAdapter', () => {
   it('removes the app\'s own style layers that read a layer\'s source along with the source', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
-    map.addLayer({ id: 'app-highlight', type: 'line', source: 'ulm:rivers' });
+    map.addLayer({ id: 'app-highlight', type: 'line', source: 'rivers' });
 
     manager.removeLayer('rivers');
 
@@ -407,7 +407,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+    expect(map.getLayersOrder()).toEqual(['land', 'rivers-casing', 'rivers-line', 'labels']);
   });
 
   it('restacks the style layers in the manager\'s order when a layer moves, keeping each layer\'s together', async () => {
@@ -419,10 +419,10 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayersOrder()).toEqual([
       'land',
-      'ulm:lakes:water',
-      'ulm:lakes:shore',
-      'ulm:rivers:casing',
-      'ulm:rivers:line',
+      'lakes-water',
+      'lakes-shore',
+      'rivers-casing',
+      'rivers-line',
       'labels',
     ]);
   });
@@ -433,7 +433,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['land', 'ulm:river-names:names', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+    expect(map.getLayersOrder()).toEqual(['land', 'river-names', 'rivers-casing', 'rivers-line', 'labels']);
   });
 
   it('draws layers below the drawBelow layer when the map has it', async () => {
@@ -441,7 +441,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['ulm:rivers:casing', 'ulm:rivers:line', 'land', 'labels']);
+    expect(map.getLayersOrder()).toEqual(['rivers-casing', 'rivers-line', 'land', 'labels']);
   });
 
   it('draws layers below the first label layer when the map lacks the drawBelow layer', async () => {
@@ -449,7 +449,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+    expect(map.getLayersOrder()).toEqual(['land', 'rivers-casing', 'rivers-line', 'labels']);
   });
 
   it('draws layers on top when the map has no label layer', async () => {
@@ -459,7 +459,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line']);
+    expect(map.getLayersOrder()).toEqual(['land', 'rivers-casing', 'rivers-line']);
   });
 
   it('stacks layers added while the style is loading in the manager\'s order once it loads', async () => {
@@ -472,10 +472,10 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayersOrder()).toEqual([
       'land',
-      'ulm:lakes:water',
-      'ulm:lakes:shore',
-      'ulm:rivers:casing',
-      'ulm:rivers:line',
+      'lakes-water',
+      'lakes-shore',
+      'rivers-casing',
+      'rivers-line',
       'labels',
     ]);
   });
@@ -491,11 +491,11 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayersOrder()).toEqual([
       'land',
-      'ulm:river-names:names',
-      'ulm:lakes:water',
-      'ulm:lakes:shore',
-      'ulm:rivers:casing',
-      'ulm:rivers:line',
+      'river-names',
+      'lakes-water',
+      'lakes-shore',
+      'rivers-casing',
+      'rivers-line',
       'labels',
     ]);
   });
@@ -508,17 +508,17 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
-    expect(map.getLayersOrder()).toEqual(['land', 'arrows', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+    expect(map.getLayersOrder()).toEqual(['land', 'arrows', 'rivers-casing', 'rivers-line', 'labels']);
   });
 
   it('gives a GeoJSON source new data in place when the layer\'s data changes', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
-    const source = map.getSource<maplibregl.GeoJSONSource>('ulm:rivers');
+    const source = map.getSource<maplibregl.GeoJSONSource>('rivers');
 
     manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: THAMES } } });
 
-    expect(map.getSource('ulm:rivers')).toBe(source);
+    expect(map.getSource('rivers')).toBe(source);
     await expect(source?.getData()).resolves.toEqual(THAMES);
   });
 
@@ -526,12 +526,12 @@ describe('mapLibreLayerManagerAdapter', () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
     manager.addLayer({ ...layerParams('lakes', lakes()), visible: true, position: 'top' });
-    const source = map.getSource('ulm:rivers');
+    const source = map.getSource('rivers');
 
     manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: EMPTY, tolerance: 1 } } });
 
-    expect(map.getSource('ulm:rivers')).not.toBe(source);
-    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'ulm:lakes:water', 'ulm:lakes:shore', 'labels']);
+    expect(map.getSource('rivers')).not.toBe(source);
+    expect(map.getLayersOrder()).toEqual(['land', 'rivers-casing', 'rivers-line', 'lakes-water', 'lakes-shore', 'labels']);
   });
 
   it('recreates a source whose type changes and draws its layer hidden and faded as before', async () => {
@@ -541,14 +541,14 @@ describe('mapLibreLayerManagerAdapter', () => {
     const layers: LayerSpecification[] = [{ id: 'tiles', type: 'raster', source: 'imagery', paint: { 'raster-opacity': 0.8 } }];
     manager.addLayer({ ...layerParams('imagery', { sources: { imagery: picture }, layers }), visible: false });
     manager.setOpacity('imagery', 0.5);
-    const source = map.getSource('ulm:imagery');
+    const source = map.getSource('imagery');
 
     manager.updateLayerData('imagery', { sources: { imagery: tiles }, layers });
 
-    expect(map.getSource('ulm:imagery')).not.toBe(source);
-    expect(map.getSource('ulm:imagery')?.type).toBe('raster');
-    expect(visibilityOf(map, ['ulm:imagery:tiles'])).toEqual(['none']);
-    expect(map.getPaintProperty('ulm:imagery:tiles', 'raster-opacity')).toBe(0.4);
+    expect(map.getSource('imagery')).not.toBe(source);
+    expect(map.getSource('imagery')?.type).toBe('raster');
+    expect(visibilityOf(map, ['tiles'])).toEqual(['none']);
+    expect(map.getPaintProperty('tiles', 'raster-opacity')).toBe(0.4);
   });
 
   it('draws a layer\'s latest data once the style loads when the data changed while it was loading', async () => {
@@ -559,17 +559,17 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     await map.once('style.load');
 
-    await expect(map.getSource<maplibregl.GeoJSONSource>('ulm:rivers')?.getData()).resolves.toEqual(THAMES);
+    await expect(map.getSource<maplibregl.GeoJSONSource>('rivers')?.getData()).resolves.toEqual(THAMES);
   });
 
   it('replaces a layer\'s style layers with the new ones when its data changes', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
-    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
+    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'rivers-line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
 
-    expect(overlay(map).layers).toEqual(['ulm:rivers:line']);
-    expect(map.getPaintProperty('ulm:rivers:line', 'line-color')).toBe('#0000ff');
+    expect(overlay(map).layers).toEqual(['rivers-line']);
+    expect(map.getPaintProperty('rivers-line', 'line-color')).toBe('#0000ff');
   });
 
   it('takes a layer off the map while its factory returns null, and draws it when the factory returns a style again', async () => {
@@ -580,17 +580,17 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
 
     manager.updateLayerData('rivers', rivers());
-    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:rivers:casing', 'ulm:rivers:line'] });
+    expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['rivers-casing', 'rivers-line'] });
   });
 
   it('keeps a layer\'s unchanged source when only its style layers change', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
-    const source = map.getSource('ulm:rivers');
+    const source = map.getSource('rivers');
 
-    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
+    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'rivers-line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
 
-    expect(map.getSource('ulm:rivers')).toBe(source);
+    expect(map.getSource('rivers')).toBe(source);
   });
 
   it('gives a raster source new tile URLs in place, so the old tiles show until the new ones load', async () => {
@@ -600,11 +600,11 @@ describe('mapLibreLayerManagerAdapter', () => {
       layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
     });
     manager.addLayer({ ...layerParams('imagery', imagery(['test://2025/{z}/{x}/{y}.png'])), visible: true });
-    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+    const source = map.getSource<maplibregl.RasterTileSource>('imagery');
 
     manager.updateLayerData('imagery', imagery(['test://2026/{z}/{x}/{y}.png']));
 
-    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(map.getSource('imagery')).toBe(source);
     expect(source?.serialize().tiles).toEqual(['test://2026/{z}/{x}/{y}.png']);
   });
 
@@ -615,11 +615,11 @@ describe('mapLibreLayerManagerAdapter', () => {
       layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
     });
     manager.addLayer({ ...layerParams('imagery', imagery('test://2025.json')), visible: true });
-    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+    const source = map.getSource<maplibregl.RasterTileSource>('imagery');
 
     manager.updateLayerData('imagery', imagery('test://2026.json'));
 
-    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(map.getSource('imagery')).toBe(source);
     expect(source?.serialize().url).toBe('test://2026.json');
   });
 
@@ -629,7 +629,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     map.setStyle(DARK_BASEMAP);
 
-    expect(map.getLayersOrder()).toEqual(['night', 'ulm:rivers:casing', 'ulm:rivers:line', 'place-names']);
+    expect(map.getLayersOrder()).toEqual(['night', 'rivers-casing', 'rivers-line', 'place-names']);
   });
 
   it('draws its layers hidden and faded as before after the app rebuilds the style without a diff', async () => {
@@ -640,9 +640,9 @@ describe('mapLibreLayerManagerAdapter', () => {
     map.setStyle(DARK_BASEMAP, { diff: false });
     await map.once('style.load');
 
-    expect(map.getLayersOrder()).toEqual(['night', 'ulm:lakes:water', 'ulm:lakes:shore', 'place-names']);
-    expect(visibilityOf(map, ['ulm:lakes:water', 'ulm:lakes:shore'])).toEqual(['none', 'none']);
-    expect(map.getPaintProperty('ulm:lakes:water', 'fill-layer-opacity')).toBe(0.5);
+    expect(map.getLayersOrder()).toEqual(['night', 'lakes-water', 'lakes-shore', 'place-names']);
+    expect(visibilityOf(map, ['lakes-water', 'lakes-shore'])).toEqual(['none', 'none']);
+    expect(map.getPaintProperty('lakes-water', 'fill-layer-opacity')).toBe(0.5);
   });
 
   it('adds a layer added while the app rebuilds the style once the new style has loaded', async () => {
@@ -652,7 +652,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
     await map.once('style.load');
 
-    expect(map.getLayersOrder()).toEqual(['night', 'ulm:rivers:casing', 'ulm:rivers:line', 'place-names']);
+    expect(map.getLayersOrder()).toEqual(['night', 'rivers-casing', 'rivers-line', 'place-names']);
   });
 
   it('draws a layer whose data is a MapLibre style when the adapter has no layer factory', async () => {
@@ -663,7 +663,7 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
-    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:rivers:casing', 'ulm:rivers:line'] });
+    expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['rivers-casing', 'rivers-line'] });
   });
 
   it('leaves a layer whose data is not a MapLibre style off the map when the adapter has no layer factory', async () => {
@@ -686,25 +686,25 @@ describe('mapLibreLayerManagerAdapter', () => {
       layerFactory: (info) => imagery(isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : 'latest'),
     });
     manager.addLayer({ ...layerParams('imagery', imagery('latest')), visible: true });
-    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+    const source = map.getSource<maplibregl.RasterTileSource>('imagery');
     const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
 
     manager.setTimeInfo('imagery', newYearsDay);
 
-    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(map.getSource('imagery')).toBe(source);
     expect(source?.serialize().tiles).toEqual(['test://2026-01-01/{z}/{x}/{y}.png']);
   });
 
   it('leaves the map alone when the factory returns the same style for the layer\'s new time', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
-    const source = map.getSource('ulm:rivers');
-    const styleLayer = map.getLayer('ulm:rivers:line');
+    const source = map.getSource('rivers');
+    const styleLayer = map.getLayer('rivers-line');
     const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
 
     manager.setTimeInfo('rivers', newYearsDay);
 
-    expect(map.getSource('ulm:rivers')).toBe(source);
-    expect(map.getLayer('ulm:rivers:line')).toBe(styleLayer);
+    expect(map.getSource('rivers')).toBe(source);
+    expect(map.getLayer('rivers-line')).toBe(styleLayer);
   });
 });
