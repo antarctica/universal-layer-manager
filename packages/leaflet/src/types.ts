@@ -1,4 +1,4 @@
-import type { RenderAdapterOptions, RenderLayer } from '@ulm/core';
+import type { RenderAdapterArgs, RenderAdapterOptions, RenderLayer } from '@ulm/core';
 
 import type L from 'leaflet';
 
@@ -16,3 +16,11 @@ export type LeafletRenderLayer<TLayer> = RenderLayer<TLayer, L.Map, L.Layer>;
 // ============================================================================
 
 export type LeafletAdapterOptions<TLayer> = RenderAdapterOptions<TLayer, L.Map, L.Layer>;
+
+/** The layer data the default renderLayer shows: the Leaflet layer itself. */
+export interface LeafletLayerData {
+  leafletLayer: L.Layer;
+}
+
+/** The adapter's options: optional when every layer's data is {@link LeafletLayerData}, otherwise with `renderLayer`. */
+export type LeafletAdapterArgs<TLayer> = RenderAdapterArgs<TLayer, LeafletAdapterOptions<TLayer>, LeafletLayerData>;
