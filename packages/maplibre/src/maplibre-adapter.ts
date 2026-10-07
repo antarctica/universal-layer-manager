@@ -112,6 +112,17 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.map.on('style.load', this.handleStyleLoad);
   }
 
+  unregister(): void {
+    this.map.off('style.load', this.handleStyleLoad);
+    const drawnLayers = [...this.drawnLayers];
+    this.drawnLayers.clear();
+    if (this.isStyleReady()) {
+      for (const [layerId, drawn] of drawnLayers) {
+        this.eraseLayer(layerId, drawn);
+      }
+    }
+  }
+
   // --------------------------------------------------------------------------
   // Layer lifecycle — called directly by LayerManager (push model)
   // --------------------------------------------------------------------------
@@ -128,6 +139,17 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.drawnLayers.set(info.layerId, drawn);
     if (this.isStyleReady()) {
       this.writeLayer(info.layerId, drawn);
+    }
+  }
+
+  onLayerRemoved(layerId: string): void {
+    const drawn = this.drawnLayers.get(layerId);
+    if (!drawn) {
+      return;
+    }
+    this.drawnLayers.delete(layerId);
+    if (this.isStyleReady()) {
+      this.eraseLayer(layerId, drawn);
     }
   }
 
@@ -173,6 +195,37 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   private isStyleReady(): boolean {
     return this.loadedStyle !== undefined && this.loadedStyle === this.map.style;
+  }
+
+  // Removes the layer's style layers, then the sources no other layer reads.
+  private eraseLayer(layerId: string, drawn: DrawnLayer): void {
+    for (const layer of drawn.style.layers) {
+      const id = runtimeLayerId(layerId, layer.id);
+      if (this.map.getLayer(id)) {
+        this.map.removeLayer(id);
+      }
+    }
+    for (const sourceId of Object.keys(drawn.style.sources ?? {})) {
+      if (!this.isSourceShared(sourceId)) {
+        this.removeSource(runtimeSourceId(sourceId));
+      }
+    }
+  }
+
+  private isSourceShared(sourceId: string): boolean {
+    return [...this.drawnLayers.values()].some((drawn) => drawn.style.sources?.[sourceId]);
+  }
+
+  // MapLibre keeps a source while any style layer reads it, so those go first.
+  private removeSource(id: string): void {
+    for (const layerId of this.map.getLayersOrder()) {
+      if (this.map.getLayer(layerId)?.source === id) {
+        this.map.removeLayer(layerId);
+      }
+    }
+    if (this.map.getSource(id)) {
+      this.map.removeSource(id);
+    }
   }
 
   // Adds the layer's sources and style layers that the map is missing.
