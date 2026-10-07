@@ -34,6 +34,15 @@ function onlyGeoJsonDataChanged(previous: MapLibreLayerStyle, next: MapLibreLaye
   return sameJson(previous.layers, next.layers) && sameJson(withoutGeoJsonData(previous.sources), withoutGeoJsonData(next.sources));
 }
 
+function withoutInPlaceValues(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(sources).map(([id, source]) => [id, { ...source, data: null, tiles: null, url: null }]));
+}
+
+// Whether two styles draw the same, apart from the GeoJSON data and tile URLs that MapLibre updates in place.
+function drawsTheSame(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): boolean {
+  return sameJson(previous.layers, next.layers) && sameJson(withoutInPlaceValues(previous.sources), withoutInPlaceValues(next.sources));
+}
+
 interface DrawnLayer {
   style: MapLibreLayerStyle;
   visible: boolean;
@@ -106,6 +115,7 @@ export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: MapLibreMap;
   private readonly layerFactory: MapLibreLayerFactory<TLayer>;
+  private readonly disposeLayer: MapLibreAdapterOptions<TLayer>['disposeLayer'];
   private readonly drawBelow: string | undefined;
   private readonly drawnLayers = new Map<string, DrawnLayer>();
   // The sources and style layers this adapter added to the current style. It removes and moves only these.
@@ -118,6 +128,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer> = {}) {
     this.map = map;
     this.layerFactory = options.layerFactory ?? createDefaultMapLibreFactory<TLayer>();
+    this.disposeLayer = options.disposeLayer;
     this.drawBelow = options.drawBelow;
   }
 
@@ -135,12 +146,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   unregister(): void {
     this.map.off('style.load', this.handleStyleLoad);
-    const drawnLayers = [...this.drawnLayers.values()];
+    const drawnLayers = [...this.drawnLayers];
     this.drawnLayers.clear();
-    if (this.isStyleReady()) {
-      for (const drawn of drawnLayers) {
+    for (const [layerId, drawn] of drawnLayers) {
+      if (this.isStyleReady()) {
         this.eraseLayer(drawn);
       }
+      this.disposeLayer?.(drawn.style, layerId);
     }
   }
 
@@ -172,6 +184,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (this.isStyleReady()) {
       this.eraseLayer(drawn);
     }
+    this.disposeLayer?.(drawn.style, layerId);
   }
 
   onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
@@ -220,6 +233,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.drawnLayers.delete(info.layerId);
     if (previous && this.isStyleReady()) {
       this.eraseLayer(previous, style ?? undefined);
+    }
+    if (previous && !(style && drawsTheSame(previous.style, style))) {
+      this.disposeLayer?.(previous.style, info.layerId);
     }
     if (style) {
       const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
