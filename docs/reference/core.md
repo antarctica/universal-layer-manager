@@ -61,7 +61,9 @@
 The tree is read-only. The manager returns the same object until something changes, and a layer that didn't change keeps the same info object. That suits React's `useSyncExternalStore`, with no XState needed:
 
 ```ts
-const tree = useSyncExternalStore(manager.subscribe, manager.getTree);
+function useLayerTree() {
+  return useSyncExternalStore(manager.subscribe, manager.getTree);
+}
 ```
 
 ## Add parameters

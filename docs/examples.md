@@ -65,13 +65,16 @@ The list renders `rootIds`, and each group renders its `childIds`. Each row is m
 The example's starting layers are fixed, so it builds them with the manager. When they depend on something only known inside React, such as a prop, the route or data you fetch, keep the manager as a store and add the layers in an effect keyed on those values. The layers then belong to those values, so the effect removes them in its cleanup:
 
 ```tsx
-React.useEffect(() => {
-  if (!products) {
-    return;
-  }
-  addLayersFor(manager, { crs, products });
-  return () => manager.reset();
-}, [manager, crs, products]);
+function useLayersFor(crs, products) {
+  const manager = useLayerManager();
+  React.useEffect(() => {
+    if (!products) {
+      return;
+    }
+    addLayersFor(manager, { crs, products });
+    return () => manager.reset();
+  }, [manager, crs, products]);
+}
 ```
 
 A change of `crs` or `products` then replaces the layers, and the map's adapter receives the removals and additions like any other change. Use simple values as dependencies, so the effect runs again only when they really change.
@@ -89,13 +92,17 @@ The same layer list and map, built on the manager machine and its actors with `@
 `createActorContext` from `@xstate/react` provides the manager machine, run without the `LayerManager` class as in [Working with XState](./xstate#without-the-layermanager-class). Components get the actor with `LayerManagerContext.useActorRef()` and pass it on as an input:
 
 ```tsx
-const managerRef = LayerManagerContext.useActorRef();
+function ManagerSetup({ map }) {
+  const managerRef = LayerManagerContext.useActorRef();
 
-// the starting layers, removed again in the effect's cleanup
-React.useEffect(() => addStartingLayers(managerRef), [managerRef]);
+  // the starting layers, removed again in the effect's cleanup
+  React.useEffect(() => addStartingLayers(managerRef), [managerRef]);
 
-// the map
-React.useEffect(() => connectAdapter(managerRef, new LeafletLayerManagerAdapter<LayerData>(map)), [managerRef, map]);
+  // the map
+  React.useEffect(() => connectAdapter(managerRef, new LeafletLayerManagerAdapter<LayerData>(map)), [managerRef, map]);
+
+  return null;
+}
 ```
 
 Each row gets its layer's actor as a prop, subscribes to it with `useSelector`, and sends it events such as `LAYER.SET_OPACITY`. The add buttons and drag and drop send `LAYER.ADD` and `LAYER.MOVE` to the manager actor.
