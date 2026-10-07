@@ -33,6 +33,13 @@ const DARK_BASEMAP = {
   ],
 } satisfies StyleSpecification;
 
+const mapErrors = new WeakMap<maplibregl.Map, string[]>();
+
+/** The map's errors so far, cleared so that the end of the test does not fail on them. */
+function takeErrors(map: maplibregl.Map): string[] {
+  return mapErrors.get(map)?.splice(0) ?? [];
+}
+
 /** A map whose style is still loading. */
 function createMap(style: StyleSpecification = BASEMAP): maplibregl.Map {
   const container = document.createElement('div');
@@ -43,6 +50,7 @@ function createMap(style: StyleSpecification = BASEMAP): maplibregl.Map {
   const map = new maplibregl.Map({ container, style, center: [0, 0], zoom: 2, attributionControl: false });
   // MapLibre reports a rejected style change as an error event, not a throw.
   const errors: string[] = [];
+  mapErrors.set(map, errors);
   map.on('error', ({ error }) => errors.push(error.message));
   onTestFinished(() => {
     map.remove();
@@ -706,5 +714,52 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getSource('rivers')).toBe(source);
     expect(map.getLayer('rivers-line')).toBe(styleLayer);
+  });
+
+  it('leaves a layer off the map, and reports it, when the map already has a style layer with one of its IDs', async () => {
+    const { map, manager } = await setup();
+
+    manager.addLayer({ ...layerParams('rivers', { ...rivers(), layers: [{ id: 'labels', type: 'line', source: 'rivers' }] }), visible: true });
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+    expect(map.getLayer('labels')?.type).toBe('symbol');
+    expect(takeErrors(map)).toEqual(['Layer "rivers" is not drawn: the map already has a style layer "labels".']);
+  });
+
+  it('leaves the map\'s own style layer alone when a layer refused for using its ID is hidden, faded, moved or removed', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('rivers', { ...rivers(), layers: [{ id: 'labels', type: 'symbol', source: 'rivers' }] }), visible: true, position: 'top' });
+    takeErrors(map);
+
+    manager.setEnabled('rivers', false);
+    manager.setOpacity('rivers', 0.5);
+    manager.moveLayer('rivers', { parentId: null, position: 'bottom' });
+    manager.removeLayer('rivers');
+
+    expect(map.getLayer('labels')?.type).toBe('symbol');
+    expect(visibilityOf(map, ['labels'])).toEqual([undefined]);
+    expect(paintOf(map, 'labels', ['text-opacity', 'icon-opacity'])).toEqual([undefined, undefined]);
+    expect(map.getLayersOrder()).toEqual(['land', 'lakes-water', 'lakes-shore', 'labels']);
+  });
+
+  it('leaves a layer off the map, and reports it, when the map already has a source it lists', async () => {
+    const { map, manager } = await setup();
+
+    manager.addLayer({ ...layerParams('rivers', { ...rivers(), sources: { basemap: { type: 'geojson', data: THAMES } } }), visible: true });
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+    expect(takeErrors(map)).toEqual(['Layer "rivers" is not drawn: the map already has a source "basemap".']);
+  });
+
+  it('treats a style layer from a new style as the style\'s own, even when this adapter used its ID before', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    map.setStyle({ ...DARK_BASEMAP, layers: [...DARK_BASEMAP.layers, { id: 'rivers-line', type: 'background' }] }, { diff: false });
+    await map.once('style.load');
+
+    expect(map.getLayer('rivers-line')?.type).toBe('background');
+    expect(takeErrors(map)).toEqual(['Layer "rivers" is not drawn: the map already has a style layer "rivers-line".']);
   });
 });
