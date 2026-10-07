@@ -58,8 +58,16 @@ function overlay(map: maplibregl.Map) {
   };
 }
 
-function layerParams(layerId: string, layerData: LayerData) {
-  return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId: null, layerData } };
+function visibilityOf(map: maplibregl.Map, layerIds: string[]): unknown[] {
+  return layerIds.map((id) => map.getLayoutProperty(id, 'visibility'));
+}
+
+function layerParams(layerId: string, layerData: LayerData, parentId: string | null = null) {
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData } };
+}
+
+function groupParams(layerId: string) {
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const, parentId: null, layerData: undefined } };
 }
 
 function rivers(): LayerData {
@@ -95,5 +103,35 @@ describe('mapLibreLayerManagerAdapter', () => {
       sources: ['ulm:rivers'],
       layers: ['ulm:rivers:casing', 'ulm:rivers:line'],
     });
+  });
+
+  it('keeps a hidden layer\'s style layers in the style, with visibility none', async () => {
+    const { map, manager } = await setup();
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: false });
+
+    expect(overlay(map).layers).toEqual(['ulm:rivers:casing', 'ulm:rivers:line']);
+    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['none', 'none']);
+  });
+
+  it('shows a hidden layer\'s style layers when it is switched on', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: false });
+
+    manager.setEnabled('rivers', true);
+
+    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['visible', 'visible']);
+  });
+
+  it('hides a group\'s layers while the group is switched off', async () => {
+    const { map, manager } = await setup();
+    manager.addGroup({ ...groupParams('water'), visible: true });
+    manager.addLayer({ ...layerParams('rivers', rivers(), 'water'), visible: true });
+
+    manager.setEnabled('water', false);
+    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['none', 'none']);
+
+    manager.setEnabled('water', true);
+    expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['visible', 'visible']);
   });
 });
