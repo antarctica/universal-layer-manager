@@ -25,6 +25,8 @@ export default withMermaid(defineConfig({
           { text: 'About the examples', link: '/examples' },
           { text: 'Simple (live)', link: `${site}examples/simple/`, target: '_self' },
           { text: 'Leaflet (live)', link: `${site}examples/leaflet/`, target: '_self' },
+          { text: 'Leaflet XState (live)', link: `${site}examples/leaflet-xstate/`, target: '_self' },
+          { text: 'MapLibre (live)', link: `${site}examples/maplibre/`, target: '_self' },
         ],
       },
       { text: 'Changelog', link: '/changelog' },

@@ -59,6 +59,12 @@ jobs:
           VITE_BASE_PATH: /universal-layer-manager/examples/leaflet-xstate/
         run: npm run build
 
+      - name: Build maplibre example
+        working-directory: ./examples/maplibre
+        env:
+          VITE_BASE_PATH: /universal-layer-manager/examples/maplibre/
+        run: npm run build
+
       - name: Prepare GitHub Pages structure
         run: |
           mkdir -p gh-pages
@@ -71,6 +77,8 @@ jobs:
           cp -r examples/leaflet/dist/* gh-pages/examples/leaflet/
           mkdir -p gh-pages/examples/leaflet-xstate
           cp -r examples/leaflet-xstate/dist/* gh-pages/examples/leaflet-xstate/
+          mkdir -p gh-pages/examples/maplibre
+          cp -r examples/maplibre/dist/* gh-pages/examples/maplibre/
 
       - name: Verify build output
         run: |
@@ -92,6 +100,10 @@ jobs:
           fi
           if [ ! -f "gh-pages/examples/leaflet-xstate/index.html" ]; then
             echo "Error: leaflet XState example not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/examples/maplibre/index.html" ]; then
+            echo "Error: maplibre example not found"
             exit 1
           fi
 

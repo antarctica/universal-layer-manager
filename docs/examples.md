@@ -1,6 +1,6 @@
 # Examples
 
-The repository includes two example applications. Each takes a different approach to building a user interface on top of the layer manager, so they are useful starting points for your own. To run them locally, see [From a local clone](./installation#from-a-local-clone).
+The repository includes example applications that take different approaches to building a user interface on top of the layer manager, so they are useful starting points for your own. To run them locally, see [From a local clone](./installation#from-a-local-clone).
 
 ## Simple: vanilla TypeScript
 
@@ -80,6 +80,26 @@ function useLayersFor(crs, products) {
 A change of `crs` or `products` then replaces the layers, and the map's adapter receives the removals and additions like any other change. Use simple values as dependencies, so the effect runs again only when they really change.
 
 Parameters known before React starts, such as the page's URL parameters, don't need this: pass them to the setup in `layers/manager.ts`. And to change layers that already exist, for example switching one on from the URL, call methods such as `setEnabled` instead of rebuilding.
+
+## MapLibre and React
+
+[Live demo](https://antarctica.github.io/universal-layer-manager/examples/maplibre/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/maplibre)
+
+A React layer list alongside a MapLibre GL JS map, with raster and vector tile layers, nested groups, and a basemap switcher. The layer list is the same shape as the Leaflet example: it reads the manager's layer tree with `useSyncExternalStore` and changes layers through manager methods.
+
+### The approach
+
+The manager and list work as in the Leaflet example. The differences are on the map side:
+
++ Each layer's `layerData` is a MapLibre style (sources and style layers). The adapter draws that by default, so it needs no `renderLayer` option.
++ Managed layers sit below the basemap's labels, in the manager's order. Vector layers can share one OpenFreeMap source so its tiles load once.
++ The basemap is the map's style, not a manager layer. A fixed row at the bottom of the list calls `map.setStyle`, and the adapter puts the managed layers back below the new labels.
+
+```ts
+manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map));
+```
+
+See the [MapLibre guide](./adapters/maplibre) for shared sources, stacking and opacity.
 
 ## Leaflet and React with XState (advanced)
 

@@ -81,7 +81,7 @@ Next, read [Getting started](https://antarctica.github.io/universal-layer-manage
 | [`examples/simple`](./examples/simple/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/simple/)) | Minimal vanilla TypeScript — demonstrates `LayerManager` with plain DOM |
 | [`examples/leaflet`](./examples/leaflet/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet/)) | React + Leaflet — `@ulm/leaflet` adapter, nested groups, layer list UI with drag-and-drop reordering, read from the layer tree |
 | [`examples/leaflet-xstate`](./examples/leaflet-xstate/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/)) | Advanced: the same example built on the layer actors with `@xstate/react` |
-| [`examples/maplibre`](./examples/maplibre/README.md) | React + MapLibre — `@ulm/maplibre` adapter, raster and vector tile layers below the basemap's labels, and a basemap switcher |
+| [`examples/maplibre`](./examples/maplibre/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/maplibre/)) | React + MapLibre — `@ulm/maplibre` adapter, raster and vector tile layers below the basemap's labels, and a basemap switcher |
 
 To run them locally:
 
