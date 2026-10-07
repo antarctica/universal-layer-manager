@@ -225,11 +225,10 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     if (previous) {
-      this.setGeoJsonData(previous, style);
-    }
-    this.updateTileUrls(previous, style);
-    if (previous && drawsTheSame(previous, style)) {
-      return;
+      this.updateSourcesInPlace(previous, style);
+      if (drawsTheSame(previous, style)) {
+        return;
+      }
     }
     this.writeLayer(info.layerId, style, { visible: info.visible, computedOpacity: info.computedOpacity });
     // A layer being added is not in the order yet, and onOrderChanged stacks it.
@@ -295,27 +294,21 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     return this.map.getLayer(id)?.type === 'symbol' && this.map.getLayoutProperty(id, 'text-field') !== undefined;
   }
 
-  private setGeoJsonData(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): void {
+  // Gives the map's sources the GeoJSON data and tile URLs that changed from `previous` to `next`.
+  private updateSourcesInPlace(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): void {
     for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
       const before = previous.sources?.[sourceId];
       if (source.type === 'geojson' && before?.type === 'geojson' && source.data !== before.data) {
         void this.map.getSource<GeoJSONSource>(sourceId)?.setData(source.data);
       }
-    }
-  }
-
-  private updateTileUrls(previous: MapLibreLayerStyle | undefined, next: MapLibreLayerStyle): void {
-    for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
-      const before = previous?.sources?.[sourceId];
-      const tileSource = this.map.getSource<RasterTileSource | VectorTileSource>(sourceId);
-      if (!before || !isTileSource(source) || !isTileSource(before) || !tileSource) {
-        continue;
-      }
-      if (source.tiles && !sameJson(source.tiles, before.tiles)) {
-        tileSource.setTiles(source.tiles);
-      }
-      if (source.url && source.url !== before.url) {
-        tileSource.setUrl(source.url);
+      if (before && isTileSource(source) && isTileSource(before)) {
+        const tileSource = this.map.getSource<RasterTileSource | VectorTileSource>(sourceId);
+        if (source.tiles && !sameJson(source.tiles, before.tiles)) {
+          tileSource?.setTiles(source.tiles);
+        }
+        if (source.url && source.url !== before.url) {
+          tileSource?.setUrl(source.url);
+        }
       }
     }
   }
