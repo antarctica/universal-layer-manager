@@ -112,11 +112,20 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo): void {
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (info.layerType !== 'layer' || !leafletLayer) {
+    if (info.layerType !== 'layer') {
       return;
     }
-    this.options.hooks?.onTimeInfoChanged?.(info, timeInfo, leafletLayer);
+    const previous = this.leafletLayers.get(info.layerId);
+    const leafletLayer = this.layerFactory(info, this.map, previous);
+    if (leafletLayer !== previous) {
+      this.eraseLayer(info.layerId);
+      if (leafletLayer) {
+        this.drawLayer(info, leafletLayer);
+      }
+    }
+    if (leafletLayer) {
+      this.options.hooks?.onTimeInfoChanged?.(info, timeInfo, leafletLayer);
+    }
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {

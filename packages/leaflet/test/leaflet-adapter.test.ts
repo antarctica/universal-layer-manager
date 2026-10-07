@@ -414,4 +414,29 @@ describe('leafletLayerManagerAdapter', () => {
 
     expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay, leafletLayer);
   });
+
+  it('draws the Leaflet layer the factory builds for a layer\'s new time', () => {
+    const newYearsDayLayer = circle();
+    const { map, manager } = setup({ layerFactory: (info) => (info.timeInfo ? newYearsDayLayer : info.layerData.leafletLayer) });
+    const before = circle();
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('layer-1', newYearsDay);
+
+    expect([map.hasLayer(before), map.hasLayer(newYearsDayLayer)]).toEqual([false, true]);
+  });
+
+  it('keeps a layer on the map when the factory returns it for the new time', () => {
+    const { manager } = setup({ layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    const removed = vi.fn();
+    leafletLayer.on('remove', removed);
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('layer-1', newYearsDay);
+
+    expect(removed).not.toHaveBeenCalled();
+  });
 });
