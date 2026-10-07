@@ -28,7 +28,7 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 |--------|-------------|
 | `getContext()` | Returns the Leaflet map |
 
-`LayerManager` calls the adapter's other methods as layers change. When the adapter is detached, replaced, or the manager is destroyed, it removes every layer it added from the map.
+`LayerManager` calls the adapter's other methods as layers change. When the adapter is detached, replaced, or the manager is destroyed, it removes every layer and pane it added from the map.
 
 ## `createDefaultLeafletFactory<TLayer>()`
 
