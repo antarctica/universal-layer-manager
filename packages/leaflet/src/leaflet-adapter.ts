@@ -117,10 +117,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.fadeLayerPane(info.layerId, computedOpacity);
   }
 
+  // The factory can read the time, so a new time redraws the layer as new data does.
   onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    if (info.layerType === 'layer') {
-      this.drawFromFactory(info);
-    }
+    this.onLayerDataChanged(info);
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
