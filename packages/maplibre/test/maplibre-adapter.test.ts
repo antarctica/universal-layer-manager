@@ -601,6 +601,20 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(map.getSource('rivers')).toBe(source);
   });
 
+  it('gives a GeoJSON source new data in place when the layer\'s style layers change too', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    const source = map.getSource<maplibregl.GeoJSONSource>('rivers');
+
+    manager.updateLayerData('rivers', {
+      sources: { rivers: { type: 'geojson', data: THAMES } },
+      layers: [{ id: 'rivers-line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }],
+    });
+
+    expect(map.getSource('rivers')).toBe(source);
+    await expect(source?.getData()).resolves.toEqual(THAMES);
+  });
+
   it('gives a raster source new tile URLs in place, so the old tiles show until the new ones load', async () => {
     const { map, manager } = await setup();
     const imagery = (tiles: string[]): LayerData => ({
