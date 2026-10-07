@@ -25,96 +25,83 @@ manager.addLayer({
     layerId: 'osm',
     layerName: 'OpenStreetMap',
     layerType: 'layer',
-    parentId: null,
     layerData: { leafletLayer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png') },
   },
   visible: true,
 });
 ```
 
-## Creating layers with a factory
+## Showing layers with renderLayer
 
-If you'd rather keep plain settings in `layerData`, such as a URL, give the adapter a `layerFactory`. It is called for each layer added, and again whenever a layer's data is replaced. It returns the Leaflet layer to use, or `null` to leave that layer off the map.
+To keep plain settings in `layerData`, such as a URL, give the adapter a `renderLayer` function. It returns the Leaflet layer to show, or `null` to leave the layer off the map. It runs when a layer is added, and again when its `layerData` or `timeInfo` changes.
+
+Here some layers keep a URL, and the rest keep their Leaflet layer, which the default shows:
 
 ```ts
-interface LayerData {
-  url: string;
-}
+import type { LeafletLayerData } from '@ulm/leaflet';
+import { defaultLeafletRenderLayer } from '@ulm/leaflet';
+
+type LayerData = { url: string } | LeafletLayerData;
 
 manager.setAdapter(
   new LeafletLayerManagerAdapter<LayerData>(map, {
-    layerFactory(info) {
-      return L.tileLayer(info.layerData.url);
+    renderLayer(info) {
+      if ('url' in info.layerData) {
+        return L.tileLayer(info.layerData.url);
+      }
+      return defaultLeafletRenderLayer(info);
     },
   }),
 );
 ```
 
-### When a layer's data changes
+### Keeping the layer already shown
 
-When you replace a layer's data with `updateLayerData`, the adapter calls the factory again. This time it also passes the Leaflet layer it already drew, as `current`. If the factory returns that same layer, the map is left alone. If it returns a different one, the adapter draws the new layer in place of the old one, in the same place in the order, at the same opacity and visibility.
-
-So a factory can update the layer it already has, instead of building a new one. Here each layer is a WMS layer, and `layerData` holds its settings. Changing `layers` or `styles` asks the same Leaflet layer for new images, so its popups, tooltips and event handlers stay in place. Leaflet only reads a layer's attribution when the layer is added to the map, so a new `attribution` builds a new layer instead:
+When it runs again, `renderLayer` gets the Leaflet layer already on the map as `current`. Return it, updated if needed, to keep its popups and handlers. Return a new layer to replace it. Here a WMS layer takes its time from the layer's `timeInfo`:
 
 ```ts
 interface LayerData {
   url: string;
   layers: string;
-  styles: string;
-  attribution: string;
 }
 
 manager.setAdapter(
   new LeafletLayerManagerAdapter<LayerData>(map, {
-    layerFactory(info, _map, current) {
-      const { url, layers, styles, attribution } = info.layerData;
-      if (current instanceof L.TileLayer.WMS && current.options.attribution === attribution) {
-        return current.setParams({ layers, styles });
+    renderLayer(info, _map, current) {
+      const time = isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : '';
+      if (current instanceof L.TileLayer.WMS) {
+        const params = { ...current.wmsParams, time };
+        return current.setParams(params);
       }
-      return L.tileLayer.wms(url, { layers, styles, attribution });
+      const options = { layers: info.layerData.layers, time };
+      return L.tileLayer.wms(info.layerData.url, options).bindTooltip(info.layerName);
     },
   }),
 );
 ```
 
-`setParams` returns the same layer, so the adapter leaves it in place. A new layer is drawn in place of the old one, and Leaflet's attribution control shows its attribution.
+## Settings and data from outside the layer
 
-If you keep the Leaflet layer itself in `layerData`, as in the first example, there is nothing to do: changing other data keeps the same Leaflet layer, so the map is left alone.
+Put anything else a layer's look depends on, such as a theme or a language, in its `layerData` with `updateLayerData`. `renderLayer` then runs again.
 
-## Running your own code with hooks
+For data you have to fetch, such as the data for a new date, start the fetch in the manager's `onTimeInfoChanged` callback and write the result into `layerData`. Until it arrives, return `current`.
 
-To do more with a Leaflet layer after the adapter has updated it, pass `hooks`. Each hook receives the layer's info and its Leaflet layer. For example, to give every layer a tooltip with its name when it is created:
+## Cleaning up with disposeLayer
+
+`disposeLayer` undoes anything you set up outside the Leaflet layer. It runs when the adapter discards a layer `renderLayer` returned: when the layer is removed, when `renderLayer` returns a different one, and when the adapter is detached. Hiding a layer doesn't count.
 
 ```ts
 manager.setAdapter(
   new LeafletLayerManagerAdapter<LayerData>(map, {
-    hooks: {
-      onLayerAdded(info, leafletLayer) {
-        leafletLayer.bindTooltip(info.layerName);
-      },
+    renderLayer,
+    disposeLayer(leafletLayer, layerId) {
+      registry.delete(layerId);
     },
   }),
 );
 ```
 
-The adapter doesn't change the map when a layer's time changes, because what time means depends on your data. Use the `onTimeInfoChanged` hook to apply it. For example, to send a WMS layer's date as its `TIME` parameter:
-
-```ts
-manager.setAdapter(
-  new LeafletLayerManagerAdapter<LayerData>(map, {
-    hooks: {
-      onTimeInfoChanged(_info, timeInfo, leafletLayer) {
-        if (leafletLayer instanceof L.TileLayer.WMS && isSingleTimeInfo(timeInfo)) {
-          const params = { ...leafletLayer.wmsParams, time: timeInfo.value.toString() };
-          leafletLayer.setParams(params);
-        }
-      },
-    },
-  }),
-);
-```
-
-See the [`@ulm/leaflet` reference](../reference/leaflet) for every hook.
+For other changes, such as opacity, use the `LayerManager` callbacks. See the [`@ulm/leaflet` reference](../reference/leaflet) for every option.
 
 ## How stacking works
 
@@ -133,3 +120,4 @@ Opacity is applied to each layer's pane, using the layer's computed opacity. Thi
 + Only layers are drawn. Groups have no Leaflet layer of their own, but hiding or fading a group hides or fades the layers inside it.
 + The adapter sets each layer's `pane` option, replacing any pane you set yourself. It also sets `shadowPane` on markers, and the pane of every layer inside an `L.LayerGroup`, such as an `L.GeoJSON`.
 + With `preferCanvas: true`, each vector layer gets its own canvas, and only the top one receives mouse events. Use Leaflet's default SVG renderer if you need to click on overlapping vector layers.
++ Reject an invalid date before calling `setTimeInfo`, so the map always shows the time the manager holds.

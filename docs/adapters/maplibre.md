@@ -4,7 +4,7 @@ The `@ulm/maplibre` package connects a layer manager to a [MapLibre GL JS](https
 
 ## Minimal usage
 
-The simplest approach is to keep each layer's MapLibre style in `layerData`: the sources it reads, and its style layers from the bottom up. The adapter draws it from there by default.
+The simplest approach is to keep each layer's MapLibre style in `layerData`: the sources it reads, and its style layers from the bottom up. The adapter shows it from there by default.
 
 ```ts
 import type { MapLibreLayerStyle } from '@ulm/maplibre';
@@ -30,11 +30,11 @@ manager.addLayer({
     layerName: 'Railways',
     layerType: 'layer',
     layerData: {
-      sources: { openfreemap: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+      sources: { railways: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
       layers: [{
-        'id': 'rails',
+        'id': 'railways',
         'type': 'line',
-        'source': 'openfreemap',
+        'source': 'railways',
         'source-layer': 'transportation',
         'filter': ['==', ['get', 'class'], 'rail'],
         'paint': { 'line-color': '#e65100', 'line-width': 2 },
@@ -45,56 +45,84 @@ manager.addLayer({
 });
 ```
 
-You can attach the adapter as soon as the map is created. It waits for the style to load before it draws.
+You can attach the adapter as soon as the map is created. It waits for the style to load before it shows anything.
 
-## Creating styles with a factory
+## Showing layers with renderLayer
 
-If you'd rather keep other data in `layerData`, such as a URL, give the adapter a `layerFactory`. It is called for each layer added, and again whenever a layer's data is replaced. It returns the sources and style layers to draw, or `null` to leave that layer off the map.
+To keep other data in `layerData`, such as a URL, give the adapter a `renderLayer` function. It returns the sources and style layers to show, or `null` to leave the layer off the map. It runs when a layer is added, and again when its `layerData` or `timeInfo` changes.
+
+Here some layers keep a GeoJSON URL, and the rest keep a style, which the default shows:
 
 ```ts
-interface LayerData {
-  url: string;
-}
+import type { MapLibreLayerStyle } from '@ulm/maplibre';
+import { defaultMapLibreRenderLayer } from '@ulm/maplibre';
+
+type LayerData = { url: string } | MapLibreLayerStyle;
 
 manager.setAdapter(
   new MapLibreLayerManagerAdapter<LayerData>(map, {
-    layerFactory(info) {
+    renderLayer(info) {
+      if ('url' in info.layerData) {
+        return {
+          sources: { [info.layerId]: { type: 'geojson', data: info.layerData.url } },
+          layers: [{ id: info.layerId, type: 'line', source: info.layerId }],
+        };
+      }
+      return defaultMapLibreRenderLayer(info);
+    },
+  }),
+);
+```
+
+### Updating the style already shown
+
+When it runs again, `renderLayer` gets the style it returned last time as `current`. The adapter changes only what differs: new GeoJSON data goes through `setData`, and new tile URLs through `setTiles` or `setUrl`, without flickering. Return `current` to leave the map alone. Here a layer's tiles come from its date:
+
+```ts
+manager.setAdapter(
+  new MapLibreLayerManagerAdapter<LayerData>(map, {
+    renderLayer(info) {
+      const date = isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : 'latest';
       return {
-        sources: { [info.layerId]: { type: 'geojson', data: info.layerData.url } },
-        layers: [{ id: 'line', type: 'line', source: info.layerId }],
+        sources: { 'sea-ice': { type: 'raster', tiles: [`https://example.com/sea-ice/${date}/{z}/{x}/{y}.png`], tileSize: 256 } },
+        layers: [{ id: 'sea-ice', type: 'raster', source: 'sea-ice' }],
       };
     },
   }),
 );
 ```
 
-To handle some layers yourself and leave the rest to the default, call `createDefaultMapLibreFactory()` from your own factory.
+## Settings and data from outside the layer
 
-### When a layer's data changes
+Put anything else a layer's look depends on, such as a theme or a language, in its `layerData` with `updateLayerData`. `renderLayer` then runs again.
 
-When you replace a layer's data with `updateLayerData`, the adapter calls the factory again and draws the new style in the layer's place. New GeoJSON data is applied with `setData`, and new tile URLs with `setTiles` or `setUrl`, so the map updates without flickering. Sources that haven't changed are kept as they are.
+For data you have to fetch, such as the data for a new date, start the fetch in the manager's `onTimeInfoChanged` callback and write the result into `layerData`. Until it arrives, return `current`.
 
-## Running your own code
+## Cleaning up with disposeLayer
 
-The adapter has no hooks of its own. To run code when a layer changes, pass callbacks such as `onLayerAdded` or `onOpacityChanged` to the `LayerManager`.
+`disposeLayer` undoes anything you set up outside the style. It runs when the adapter discards a style `renderLayer` returned: when the layer is removed, when `renderLayer` returns a different style, and when the adapter is detached. Hiding a layer, or new GeoJSON data or tile URLs, don't count.
 
-The adapter doesn't change the map when a layer's time changes, because what time means depends on your data. Use the manager's `onTimeInfoChanged` callback to apply it. For example, to show a raster layer's imagery for its date, replace its data with a new tile URL:
+For other changes, such as opacity, use the `LayerManager` callbacks. See the [`@ulm/maplibre` reference](../reference/maplibre) for every option.
+
+## Sources and style layer IDs
+
+Sources and style layers keep the IDs `renderLayer` gives them, so you can use them with the map directly:
 
 ```ts
-const manager = new LayerManager<LayerData>({
-  onTimeInfoChanged(info, timeInfo) {
-    if (isSingleTimeInfo(timeInfo)) {
-      manager.updateLayerData(info.layerId, seaIce(timeInfo.value.toString()));
-    }
-  },
+map.on('click', 'sea-ice', (event) => {
+  console.log(event.features);
 });
 ```
 
-Here `seaIce(date)` returns the layer's style, with the date in its tile URL. The old image stays on screen until the new one loads.
++ A listener like this keeps working when its style layer is removed and comes back.
++ Give each style layer its own ID. Include `info.layerId` when more than one layer would otherwise use the same one, such as `line`.
++ If the map already has an ID you gave, such as from the basemap, the adapter leaves the layer off the map and reports a MapLibre `error` event.
++ Layers that list the same source share it.
++ To read a basemap source, name it in a style layer and leave it out of `sources`.
 
 ## How stacking works
 
-The adapter draws every layer in one block, in the manager's order, directly below the basemap's first label layer. So your layers sit above the basemap's land, water and roads, and below its labels. If the basemap has no labels, they go on top.
+The adapter draws your layers in one block, in the manager's order, directly below the basemap's first label layer. So they sit above the land, water and roads, and below the labels. With no labels, they go on top.
 
 To place them somewhere else, name the style layer to draw below. On OpenFreeMap Bright, this puts them below the roads:
 
@@ -112,7 +140,7 @@ Other kinds of style layer have no whole-layer opacity, so the adapter scales th
 
 ## Switching the basemap
 
-In MapLibre, the basemap is the map's style, so it isn't a layer in the manager. Switch it with `map.setStyle`. Once the new style has loaded, the adapter adds your layers back below its labels, as they were.
+In MapLibre the basemap is the map's style, not a layer in the manager. Switch it with `map.setStyle`, and the adapter adds your layers back once the new style has loaded.
 
 ```ts
 map.setStyle('https://tiles.openfreemap.org/styles/dark');
@@ -121,7 +149,6 @@ map.setStyle('https://tiles.openfreemap.org/styles/dark');
 ## Things to know
 
 + Only layers are drawn. Groups have no style layers of their own, but hiding or fading a group hides or fades the layers inside it.
-+ Layers that name the same source share it, so its data loads once. It keeps the settings it was first added with, and is removed with the last layer that reads it.
-+ The adapter adds each source as `ulm:<sourceId>` and each style layer as `ulm:<layerId>:<styleLayerId>`, such as `ulm:railways:rails`. Use these IDs to work with the map directly, for example in `map.on('click', 'ulm:railways:rails', …)`.
 + Custom layers, which draw with their own WebGL code, are not supported. Add them to the map yourself.
-+ Images that style layers use, such as icons and fill patterns, are yours to add with `map.addImage`.
++ Provide images, such as icons and fill patterns, with `map.setMissingStyleImageResolver`. Images added with `map.addImage` are lost when the basemap changes.
++ Reject an invalid date before calling `setTimeInfo`, so the map always shows the time the manager holds.

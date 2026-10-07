@@ -175,6 +175,16 @@ Send these events to the manager actor, typed as `LayerManagerEvent<TLayer, TGro
 
 A command that cannot be carried out, such as an opacity outside 0 to 1 or an unknown layer ID, is ignored. The manager then emits `LAYER.REJECTED` with the reason.
 
+## Types for adapters that render layers
+
+The Leaflet and MapLibre adapters share these types, so their options take the same shape. They are types only, and are not part of `LayerManagerAdapter`. Use them if you write an adapter of your own that shows each layer with a `renderLayer` function.
+
+| Type | Description |
+|------|-------------|
+| `RenderLayer<TLayer, TMap, TRendered>` | `(info, map, current?) => TRendered \| null`: returns what the adapter shows for a layer, or `null` to leave it off the map. Called when a layer is added, and again when its `layerData` or `timeInfo` changes, with what it returned last time as `current` |
+| `RenderAdapterArgs<TLayer, TOptions, TDefaultData>` | The adapter constructor's options argument: optional when every layer's data is `TDefaultData`, the shape its default `renderLayer` shows, and required with `renderLayer` otherwise, so a mismatch fails to compile |
+| `RenderAdapterOptions<TLayer, TMap, TRendered>` | `{ renderLayer?, disposeLayer? }`. `disposeLayer(rendered, layerId)` undoes setup for something `renderLayer` returned, once the adapter discards it: when its layer is removed, when `renderLayer` returns something different, and when the adapter is detached |
+
 ## Helper functions
 
 `isSingleTimeInfo` and `isRangeTimeInfo` are stable. The other helpers work with the actors, and are experimental.
