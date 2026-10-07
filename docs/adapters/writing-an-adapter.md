@@ -2,7 +2,7 @@
 
 There are two main reasons to write your own adapter:
 
-+ to support a map library we don't provide an adapter for, such as OpenLayers or MapLibre;
++ to support a map library we don't provide an adapter for, such as OpenLayers;
 + to add your own behaviour, such as synthetic layers that filter the features of a single map layer instead of adding and removing layers.
 
 ## The adapter interface
@@ -135,6 +135,60 @@ show osm
 set osm opacity to 0.5
 remove osm
 ```
+
+## Showing layers with `renderLayer`
+
+The Leaflet and MapLibre adapters turn each layer into something the map shows with a `renderLayer` function, which the app can replace. If your adapter works the same way, `RenderedLayers` from `@ulm/core` does the bookkeeping. It calls `renderLayer` when a layer is added, and again with the last result as `current` when the layer's data or time changes. It leaves the map alone when `renderLayer` returns `current`, and calls `disposeLayer` when a result is removed, replaced or detached. Your adapter says how to put a result on the map and take it off:
+
+```ts
+import type { LayerManagerAdapter, RenderAdapterOptions } from '@ulm/core';
+import type { MapView } from 'my-map-library';
+import { RenderedLayers } from '@ulm/core';
+import { TileLayer } from 'my-map-library';
+
+interface LayerData {
+  url: string;
+}
+
+export function createMyAdapter(map: MapView, options: RenderAdapterOptions<LayerData, MapView, TileLayer> = {}): LayerManagerAdapter<LayerData> {
+  const tileLayers = new RenderedLayers({
+    map,
+    renderLayer: options.renderLayer ?? ((info) => new TileLayer(info.layerData.url)),
+    disposeLayer: options.disposeLayer,
+    place(info, tileLayer) {
+      tileLayer.visible = info.visible;
+      tileLayer.opacity = info.computedOpacity;
+      map.add(tileLayer);
+    },
+    erase(_layerId, tileLayer) {
+      map.remove(tileLayer);
+    },
+  });
+
+  return {
+    onLayerAdded: (info) => tileLayers.add(info),
+    onLayerRemoved: (layerId) => tileLayers.remove(layerId),
+    onLayerDataChanged: (info) => tileLayers.update(info),
+    onTimeInfoChanged: (info) => tileLayers.update(info),
+    onVisibilityChanged(info, visible) {
+      const tileLayer = tileLayers.get(info.layerId);
+      if (tileLayer) {
+        tileLayer.visible = visible;
+      }
+    },
+    onOpacityChanged(info, computedOpacity) {
+      const tileLayer = tileLayers.get(info.layerId);
+      if (tileLayer) {
+        tileLayer.opacity = computedOpacity;
+      }
+    },
+    // restack in onOrderChanged as in the minimal adapter
+    unregister: () => tileLayers.clear(),
+  };
+}
+```
+
+`RenderedLayers` skips groups, so the hooks above don't check `layerType`. When a new result can update the map in place, `place` receives the result it replaces and `erase` the result that replaces it. Pass `isSame` to keep a replaced result from `disposeLayer`. The MapLibre adapter does this for styles that differ only in GeoJSON data or tile URLs. See the [`@ulm/core` reference](../reference/core#for-adapters-that-render-layers) for every option.
 
 ## Custom behaviour
 

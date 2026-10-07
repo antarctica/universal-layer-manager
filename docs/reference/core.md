@@ -175,15 +175,36 @@ Send these events to the manager actor, typed as `LayerManagerEvent<TLayer, TGro
 
 A command that cannot be carried out, such as an opacity outside 0 to 1 or an unknown layer ID, is ignored. The manager then emits `LAYER.REJECTED` with the reason.
 
-## Types for adapters that render layers
+## For adapters that render layers
 
-The Leaflet and MapLibre adapters share these types, so their options take the same shape. They are types only, and are not part of `LayerManagerAdapter`. Use them if you write an adapter of your own that shows each layer with a `renderLayer` function.
+The Leaflet and MapLibre adapters share these types and the `RenderedLayers` class, so their options take the same shape and follow the same rules. They are not part of `LayerManagerAdapter`. Use them if you write an adapter of your own that shows each layer with a `renderLayer` function. See [Writing an adapter](../adapters/writing-an-adapter#showing-layers-with-renderlayer).
 
 | Type | Description |
 |------|-------------|
 | `RenderLayer<TLayer, TMap, TRendered>` | `(info, map, current?) => TRendered \| null`: returns what the adapter shows for a layer, or `null` to leave it off the map. Called when a layer is added, and again when its `layerData` or `timeInfo` changes, with what it returned last time as `current` |
 | `RenderAdapterArgs<TLayer, TOptions, TDefaultData>` | The adapter constructor's options argument: optional when every layer's data is `TDefaultData`, the shape its default `renderLayer` shows, and required with `renderLayer` otherwise, so a mismatch fails to compile |
 | `RenderAdapterOptions<TLayer, TMap, TRendered>` | `{ renderLayer?, disposeLayer? }`. `disposeLayer(rendered, layerId)` undoes setup for something `renderLayer` returned, once the adapter discards it: when its layer is removed, when `renderLayer` returns something different, and when the adapter is detached |
+
+### `new RenderedLayers<TLayer, TMap, TRendered>(options)`
+
+Keeps what `renderLayer` returned for each layer, and calls `renderLayer` and `disposeLayer` by the rules above. Groups are skipped.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `map` | `TMap` | Passed to `renderLayer` |
+| `renderLayer` | `RenderLayer<TLayer, TMap, TRendered>` | Required. Pass the adapter's default when the app gives none |
+| `disposeLayer` | `(rendered, layerId) => void` | Optional. Pass on the app's option |
+| `place` | `(info, rendered, previous?) => void` | Puts a result on the map. `previous` is the result it replaces, if any |
+| `erase` | `(layerId, rendered, next?) => void` | Takes a result off the map. `next` is the result that replaces it, if any |
+| `isSame` | `(previous, next) => boolean` | Optional. Whether `next` stands in for `previous`, so `previous` is not disposed of. Without it, only the same object counts |
+
+| Method | Description |
+|--------|-------------|
+| `add(info)` | Call from `onLayerAdded`. Calls `renderLayer`, then `place` |
+| `update(info)` | Call from `onLayerDataChanged` and `onTimeInfoChanged`. Calls `renderLayer` with `current`, then `erase` and `place` unless it returned `current` |
+| `remove(layerId)` | Call from `onLayerRemoved`. Calls `erase`, then `disposeLayer` |
+| `clear()` | Call from `unregister`. Removes every layer |
+| `get(layerId)` | What `renderLayer` last returned for a layer, or `undefined`. While `erase` runs it no longer returns the result being erased; while `place` runs it returns the result being placed |
 
 ## Helper functions
 
