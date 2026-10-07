@@ -51,13 +51,13 @@ src/
 
 ### Layer data
 
-Each layer's `layerData` is a MapLibre style: the sources it reads and its style layers, bottom first. That is what the adapter's default layer factory draws, so the adapter needs no options:
+Each layer's `layerData` is a MapLibre style: the sources it reads and its style layers, bottom first. That is what the adapter draws by default, so it needs no options:
 
 ```ts
 manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map));
 ```
 
-To keep other data in `layerData`, such as a URL, pass a `layerFactory` that builds the style from it. It can hand any layer it does not handle to `createDefaultMapLibreFactory()`. See `MapLibreLayerFactory` in `@ulm/maplibre` for an example.
+To keep other data in `layerData`, such as a URL, pass a `renderLayer` that builds the style from it. It can hand any layer it does not handle to `createDefaultMapLibreRenderLayer()`. See `MapLibreRenderLayer` in `@ulm/maplibre` for an example.
 
 The adapter adds the sources and style layers under the IDs the style gives them, hides layers with `visibility`, fades them with their opacity, and moves them as the manager's order changes. Each style layer's ID is its layer's ID, so no two clash.
 
