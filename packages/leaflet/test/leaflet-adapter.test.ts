@@ -179,6 +179,28 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(leafletLayer)).toBe(false);
   });
 
+  it('removes a layer\'s pane from the map when the layer is removed', () => {
+    const { map, manager } = setup();
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    const pane = paneOf(map, leafletLayer);
+
+    manager.removeLayer('layer-1');
+
+    expect(map.getContainer().contains(pane)).toBe(false);
+  });
+
+  it('draws a layer added again with the ID of a removed layer', () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    manager.removeLayer('layer-1');
+    const leafletLayer = circle();
+
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+
+    expect(map.getContainer().contains(leafletLayer.getElement() ?? null)).toBe(true);
+  });
+
   it('takes every layer off the map when the manager is reset', () => {
     const { map, manager } = setup();
     const first = circle();
@@ -200,6 +222,28 @@ describe('leafletLayerManagerAdapter', () => {
     detach();
 
     expect(map.hasLayer(leafletLayer)).toBe(false);
+  });
+
+  it('removes every pane it added when the adapter is detached', () => {
+    const { map, manager, detach } = setup();
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    const panes = [paneOf(map, leafletLayer), paneOf(map, leafletLayer).parentElement];
+
+    detach();
+
+    expect(panes.map((pane) => map.getContainer().contains(pane))).toEqual([false, false]);
+  });
+
+  it('draws the layers again when a new adapter is attached to the same map', () => {
+    const { map, manager, detach } = setup();
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    detach();
+
+    manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map));
+
+    expect(map.getContainer().contains(leafletLayer.getElement() ?? null)).toBe(true);
   });
 
   it('draws layers in the manager\'s order, from the bottom up', () => {

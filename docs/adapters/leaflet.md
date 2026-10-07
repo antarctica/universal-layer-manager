@@ -74,6 +74,8 @@ Leaflet normally stacks layers by kind, using its built-in panes: tile layers at
 
 To do this, the adapter draws each layer in its own [pane](https://leafletjs.com/reference.html#map-pane), named `ulm-<layerId>`, and sets each pane's `z-index` whenever the order changes. All of these panes sit inside one container pane, `ulmPane`, at `z-index` 450. That places it above Leaflet's overlay pane (400) and below its shadow, marker, tooltip and popup panes (500 to 700). Popups, tooltips and markers you add outside the manager stay on top.
 
+When a layer is removed, its pane is removed with it. When the adapter is detached, it removes the container pane and every pane inside it.
+
 ## How opacity works
 
 Opacity is applied to each layer's pane, using the layer's computed opacity. This works the same way for every kind of layer, including markers and vectors such as circles. The adapter doesn't change the layer's own style, so settings such as a polygon's `fillOpacity` still apply on top.
