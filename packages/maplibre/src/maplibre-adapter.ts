@@ -78,25 +78,13 @@ function opacityWrites(layer: LayerSpecification, opacity: number): PaintWrite[]
   }
 }
 
-function withOpacity(layer: LayerSpecification, opacity: number): LayerSpecification {
-  switch (layer.type) {
-    case 'fill':
-      return { ...layer, paint: { ...layer.paint, 'fill-layer-opacity': opacity } };
-    case 'line':
-      return { ...layer, paint: { ...layer.paint, 'line-layer-opacity': opacity } };
-    default:
-      return layer;
-  }
-}
-
 function toRuntimeLayer(layerId: string, layer: LayerSpecification, drawn: DrawnLayer): LayerSpecification {
-  const faded = withOpacity(layer, drawn.opacity);
   const id = runtimeLayerId(layerId, layer.id);
-  const layout = { ...faded.layout, visibility: visibilityOf(drawn.visible) };
-  if (!('source' in faded) || !drawn.style.sources?.[faded.source]) {
-    return { ...faded, id, layout };
+  const layout = { ...layer.layout, visibility: visibilityOf(drawn.visible) };
+  if (!('source' in layer) || !drawn.style.sources?.[layer.source]) {
+    return { ...layer, id, layout };
   }
-  return { ...faded, id, layout, source: runtimeSourceId(faded.source) };
+  return { ...layer, id, layout, source: runtimeSourceId(layer.source) };
 }
 
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
