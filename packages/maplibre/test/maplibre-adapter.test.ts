@@ -80,6 +80,22 @@ function rivers(): LayerData {
   };
 }
 
+function lakes(): LayerData {
+  return {
+    sources: { lakes: { type: 'geojson', data: EMPTY } },
+    layers: [
+      { id: 'water', type: 'fill', source: 'lakes', paint: { 'fill-opacity': 0.6 } },
+      { id: 'shore', type: 'line', source: 'lakes', paint: { 'line-opacity': 0.8 } },
+    ],
+  };
+}
+
+type PaintProperty = Parameters<maplibregl.Map['getPaintProperty']>[1];
+
+function paintOf(map: maplibregl.Map, layerId: string, properties: PaintProperty[]): unknown[] {
+  return properties.map((property) => map.getPaintProperty(layerId, property));
+}
+
 describe('mapLibreLayerManagerAdapter', () => {
   it('adds a layer\'s source and style layers to the map, under prefixed IDs', async () => {
     const { map, manager } = await setup();
@@ -133,5 +149,32 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     manager.setEnabled('water', true);
     expect(visibilityOf(map, ['ulm:rivers:casing', 'ulm:rivers:line'])).toEqual(['visible', 'visible']);
+  });
+
+  it('fades a line layer with line-layer-opacity and leaves its line-opacity alone', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true });
+
+    manager.setOpacity('lakes', 0.5);
+
+    expect(paintOf(map, 'ulm:lakes:shore', ['line-layer-opacity', 'line-opacity'])).toEqual([0.5, 0.8]);
+  });
+
+  it('fades a fill layer with fill-layer-opacity and leaves its fill-opacity alone', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true });
+
+    manager.setOpacity('lakes', 0.5);
+
+    expect(paintOf(map, 'ulm:lakes:water', ['fill-layer-opacity', 'fill-opacity'])).toEqual([0.5, 0.6]);
+  });
+
+  it('fades a layer by its opacity combined with its group\'s as soon as it is added', async () => {
+    const { map, manager } = await setup();
+    manager.addGroup({ layerConfig: { ...groupParams('water').layerConfig, opacity: 0.5 }, visible: true });
+
+    manager.addLayer({ layerConfig: { ...layerParams('lakes', lakes(), 'water').layerConfig, opacity: 0.8 }, visible: true });
+
+    expect(map.getPaintProperty('ulm:lakes:shore', 'line-layer-opacity')).toBeCloseTo(0.4);
   });
 });

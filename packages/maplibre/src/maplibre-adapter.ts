@@ -17,19 +17,44 @@ function runtimeLayerId(layerId: string, styleLayerId: string): string {
 interface DrawnLayer {
   style: MapLibreLayerStyle;
   visible: boolean;
+  opacity: number;
 }
 
 function visibilityOf(visible: boolean): 'visible' | 'none' {
   return visible ? 'visible' : 'none';
 }
 
-function toRuntimeLayer(layerId: string, layer: LayerSpecification, drawn: DrawnLayer): LayerSpecification {
-  const id = runtimeLayerId(layerId, layer.id);
-  const layout = { ...layer.layout, visibility: visibilityOf(drawn.visible) };
-  if (!('source' in layer) || !drawn.style.sources?.[layer.source]) {
-    return { ...layer, id, layout };
+// The paint property that fades a whole style layer, where MapLibre has one.
+function layerOpacityProperty(layer: LayerSpecification): 'fill-layer-opacity' | 'line-layer-opacity' | undefined {
+  switch (layer.type) {
+    case 'fill':
+      return 'fill-layer-opacity';
+    case 'line':
+      return 'line-layer-opacity';
+    default:
+      return undefined;
   }
-  return { ...layer, id, layout, source: runtimeSourceId(layer.source) };
+}
+
+function withOpacity(layer: LayerSpecification, opacity: number): LayerSpecification {
+  switch (layer.type) {
+    case 'fill':
+      return { ...layer, paint: { ...layer.paint, 'fill-layer-opacity': opacity } };
+    case 'line':
+      return { ...layer, paint: { ...layer.paint, 'line-layer-opacity': opacity } };
+    default:
+      return layer;
+  }
+}
+
+function toRuntimeLayer(layerId: string, layer: LayerSpecification, drawn: DrawnLayer): LayerSpecification {
+  const faded = withOpacity(layer, drawn.opacity);
+  const id = runtimeLayerId(layerId, layer.id);
+  const layout = { ...faded.layout, visibility: visibilityOf(drawn.visible) };
+  if (!('source' in faded) || !drawn.style.sources?.[faded.source]) {
+    return { ...faded, id, layout };
+  }
+  return { ...faded, id, layout, source: runtimeSourceId(faded.source) };
 }
 
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
@@ -69,7 +94,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (!style) {
       return;
     }
-    const drawn = { style, visible: info.visible };
+    const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
     this.drawnLayers.set(info.layerId, drawn);
     if (this.isStyleReady()) {
       this.writeLayer(info.layerId, drawn);
@@ -85,6 +110,23 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (this.isStyleReady()) {
       for (const layer of drawn.style.layers) {
         this.map.setLayoutProperty(runtimeLayerId(info.layerId, layer.id), 'visibility', visibilityOf(visible));
+      }
+    }
+  }
+
+  onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
+    const drawn = this.drawnLayers.get(info.layerId);
+    if (!drawn) {
+      return;
+    }
+    drawn.opacity = computedOpacity;
+    if (!this.isStyleReady()) {
+      return;
+    }
+    for (const layer of drawn.style.layers) {
+      const property = layerOpacityProperty(layer);
+      if (property) {
+        this.map.setPaintProperty(runtimeLayerId(info.layerId, layer.id), property, computedOpacity);
       }
     }
   }
