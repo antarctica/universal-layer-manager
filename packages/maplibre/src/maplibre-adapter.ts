@@ -14,19 +14,29 @@ function runtimeLayerId(layerId: string, styleLayerId: string): string {
   return `${ID_PREFIX}${layerId}:${styleLayerId}`;
 }
 
-function toRuntimeLayer(layerId: string, layer: LayerSpecification, style: MapLibreLayerStyle): LayerSpecification {
+interface DrawnLayer {
+  style: MapLibreLayerStyle;
+  visible: boolean;
+}
+
+function visibilityOf(visible: boolean): 'visible' | 'none' {
+  return visible ? 'visible' : 'none';
+}
+
+function toRuntimeLayer(layerId: string, layer: LayerSpecification, drawn: DrawnLayer): LayerSpecification {
   const id = runtimeLayerId(layerId, layer.id);
-  if (!('source' in layer) || !style.sources?.[layer.source]) {
-    return { ...layer, id };
+  const layout = { ...layer.layout, visibility: visibilityOf(drawn.visible) };
+  if (!('source' in layer) || !drawn.style.sources?.[layer.source]) {
+    return { ...layer, id, layout };
   }
-  return { ...layer, id, source: runtimeSourceId(layer.source) };
+  return { ...layer, id, layout, source: runtimeSourceId(layer.source) };
 }
 
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: MapLibreMap;
   private readonly layerFactory: MapLibreLayerFactory<TLayer>;
-  private readonly layerStyles = new Map<string, MapLibreLayerStyle>();
+  private readonly drawnLayers = new Map<string, DrawnLayer>();
   // isStyleLoaded() goes false while tiles load, so this tracks the style that last finished loading.
   private loadedStyle: Style | undefined;
 
@@ -59,9 +69,23 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (!style) {
       return;
     }
-    this.layerStyles.set(info.layerId, style);
+    const drawn = { style, visible: info.visible };
+    this.drawnLayers.set(info.layerId, drawn);
     if (this.isStyleReady()) {
-      this.writeLayer(info.layerId, style);
+      this.writeLayer(info.layerId, drawn);
+    }
+  }
+
+  onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
+    const drawn = this.drawnLayers.get(info.layerId);
+    if (!drawn) {
+      return;
+    }
+    drawn.visible = visible;
+    if (this.isStyleReady()) {
+      for (const layer of drawn.style.layers) {
+        this.map.setLayoutProperty(runtimeLayerId(info.layerId, layer.id), 'visibility', visibilityOf(visible));
+      }
     }
   }
 
@@ -71,8 +95,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   private readonly handleStyleLoad = (): void => {
     this.loadedStyle = this.map.style;
-    for (const [layerId, style] of this.layerStyles) {
-      this.writeLayer(layerId, style);
+    for (const [layerId, drawn] of this.drawnLayers) {
+      this.writeLayer(layerId, drawn);
     }
   };
 
@@ -81,15 +105,15 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   // Adds the layer's sources and style layers that the map is missing.
-  private writeLayer(layerId: string, style: MapLibreLayerStyle): void {
-    for (const [sourceId, source] of Object.entries(style.sources ?? {})) {
+  private writeLayer(layerId: string, drawn: DrawnLayer): void {
+    for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
       const id = runtimeSourceId(sourceId);
       if (!this.map.getSource(id)) {
         this.map.addSource(id, source);
       }
     }
-    for (const layer of style.layers) {
-      const runtimeLayer = toRuntimeLayer(layerId, layer, style);
+    for (const layer of drawn.style.layers) {
+      const runtimeLayer = toRuntimeLayer(layerId, layer, drawn);
       if (!this.map.getLayer(runtimeLayer.id)) {
         this.map.addLayer(runtimeLayer);
       }
