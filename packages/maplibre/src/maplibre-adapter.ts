@@ -24,15 +24,57 @@ function visibilityOf(visible: boolean): 'visible' | 'none' {
   return visible ? 'visible' : 'none';
 }
 
-// The paint property that fades a whole style layer, where MapLibre has one.
-function layerOpacityProperty(layer: LayerSpecification): 'fill-layer-opacity' | 'line-layer-opacity' | undefined {
+type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1];
+type PaintValue = Parameters<MapLibreMap['setPaintProperty']>[2];
+type PaintWrite = [property: PaintProperty, value: PaintValue | undefined];
+
+// For style layers MapLibre cannot fade as a whole, the opacity properties the adapter scales.
+const OWN_OPACITY_PROPERTIES: Partial<Record<LayerSpecification['type'], PaintProperty[]>> = {
+  'raster': ['raster-opacity'],
+  'circle': ['circle-opacity', 'circle-stroke-opacity'],
+  'heatmap': ['heatmap-opacity'],
+  'fill-extrusion': ['fill-extrusion-opacity'],
+  'background': ['background-opacity'],
+  'color-relief': ['color-relief-opacity'],
+  'symbol': ['icon-opacity', 'text-opacity'],
+};
+
+function paintValue(layer: LayerSpecification, property: PaintProperty): PaintValue | undefined {
+  const paint: Partial<Record<PaintProperty, PaintValue>> | undefined = layer.paint;
+  return paint?.[property];
+}
+
+function scaleExpression(value: unknown, opacity: number): unknown {
+  if (typeof value === 'number') {
+    return value * opacity;
+  }
+  // A zoom curve must stay the outermost expression, so its outputs are scaled in place.
+  if (Array.isArray(value) && value[0] === 'interpolate') {
+    return value.map((part, index) => (index >= 4 && index % 2 === 0 ? scaleExpression(part, opacity) : part));
+  }
+  if (Array.isArray(value) && value[0] === 'step') {
+    return value.map((part, index) => (index >= 2 && index % 2 === 0 ? scaleExpression(part, opacity) : part));
+  }
+  return ['*', opacity, value];
+}
+
+function scaleOpacity(value: PaintValue, opacity: number): PaintValue {
+  // Expressions are plain JSON, so the scaled copy is typed back here.
+  return scaleExpression(value, opacity) as PaintValue;
+}
+
+// The paint values that fade a style layer to `opacity`.
+function opacityWrites(layer: LayerSpecification, opacity: number): PaintWrite[] {
   switch (layer.type) {
     case 'fill':
-      return 'fill-layer-opacity';
+      return [['fill-layer-opacity', opacity]];
     case 'line':
-      return 'line-layer-opacity';
+      return [['line-layer-opacity', opacity]];
     default:
-      return undefined;
+      return (OWN_OPACITY_PROPERTIES[layer.type] ?? []).map((property) => {
+        const value = paintValue(layer, property);
+        return [property, opacity === 1 ? value : scaleOpacity(value ?? 1, opacity)];
+      });
   }
 }
 
@@ -124,9 +166,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     for (const layer of drawn.style.layers) {
-      const property = layerOpacityProperty(layer);
-      if (property) {
-        this.map.setPaintProperty(runtimeLayerId(info.layerId, layer.id), property, computedOpacity);
+      for (const [property, value] of opacityWrites(layer, computedOpacity)) {
+        this.map.setPaintProperty(runtimeLayerId(info.layerId, layer.id), property, value);
       }
     }
   }
@@ -158,6 +199,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       const runtimeLayer = toRuntimeLayer(layerId, layer, drawn);
       if (!this.map.getLayer(runtimeLayer.id)) {
         this.map.addLayer(runtimeLayer);
+        for (const [property, value] of opacityWrites(layer, drawn.opacity)) {
+          this.map.setPaintProperty(runtimeLayer.id, property, value);
+        }
       }
     }
   }
