@@ -75,7 +75,6 @@ export function createTestLayerGroupConfig(
   return {
     layerId: 'group-1',
     layerName: 'Test group',
-    layerData: undefined,
     layerType: 'layerGroup',
     parentId: null,
     ...overrides,
