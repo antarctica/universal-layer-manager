@@ -889,4 +889,18 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayer('rivers-line')).toBe(styleLayer);
   });
+
+  it('passes a style to disposeLayer when its image source gets a new URL, as MapLibre adds that source again', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    const picture = (url: string): LayerData => ({
+      sources: { picture: { type: 'image', url, coordinates: [[-1, 1], [1, 1], [1, -1], [-1, -1]] } },
+      layers: [{ id: 'picture', type: 'raster', source: 'picture' }],
+    });
+    manager.addLayer({ ...layerParams('picture', picture(PNG_TILE)), visible: true });
+
+    manager.updateLayerData('picture', picture(`${PNG_TILE}#2026`));
+
+    expect(disposeLayer).toHaveBeenCalledWith(picture(PNG_TILE), 'picture');
+  });
 });
