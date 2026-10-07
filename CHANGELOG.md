@@ -11,6 +11,110 @@ entry names the package that changed.
 Sections are drafted from the commit history with `npm run changelog:draft` and
 edited before release. To see what is pending, run `npm run changelog:preview`.
 
+## [3.0.0] - 2026-10-07
+
+### Migrating from 2.x
+
+**Read layers from `getTree()`.** `LayerManager.layers` and `LayerManager.getLayer()` are removed. `getTree()` returns `{ rootIds, layers }`: the top-level IDs, bottom first, and every layer and group by ID as plain data. It returns the same object until something changes, so it works with `useSyncExternalStore` alongside `subscribe()`.
+
+**`stop()` and `isReady` are removed.** Use `destroy()`, which is now safe to call twice, and `destroyed`.
+
+**The group data type defaults to `undefined`.** It used to default to the layer data type. If your groups carry data, pass its type: `LayerManager<LayerData, GroupData>`. `LayerInfo` and `LayerGroupInfo` now take only their own data type: `LayerInfo<TLayer>` and `LayerGroupInfo<TGroup>`.
+
+**Leaflet: `layerFactory` is now `renderLayer`, and the `hooks` option is removed.** `renderLayer` runs when a layer is added, and again when its `layerData` or `timeInfo` changes, with the Leaflet layer it returned last time as `current`. Return `current` to keep that layer, or return a new one to replace it. Use `disposeLayer` to undo what `renderLayer` set up, and the manager's callbacks for anything else.
+
+```ts
+// 2.x
+new LeafletLayerManagerAdapter(map, {
+  layerFactory: (info) => L.tileLayer(info.layerData.url),
+  hooks: { onLayerDataChanged: (info, layer) => (layer as L.TileLayer).setUrl(info.layerData.url) },
+});
+```
+
+```ts
+// 3.0
+new LeafletLayerManagerAdapter<LayerData>(map, {
+  renderLayer: (info, _map, current) => {
+    if (current instanceof L.TileLayer) {
+      current.setUrl(info.layerData.url);
+      return current;
+    }
+    return L.tileLayer(info.layerData.url);
+  },
+});
+```
+
+The options are now required unless every layer's data is `{ leafletLayer }`, which the default shows. `createDefaultLeafletFactory()` is now `defaultLeafletRenderLayer`, a function you call from your own `renderLayer` for the layers you don't handle. `getContext()` is removed: use the map you passed to the constructor.
+
+**Install `@ulm/core` yourself.** `@ulm/leaflet` lists it as a peer dependency, `^3.0.0`.
+
+**If you write your own adapter:**
+
+- `register()` takes no arguments, and `LayerManagerCallbacks` is no longer exported.
+- A layer added as visible arrives hidden in `onLayerAdded`, then `onVisibilityChanged` shows it.
+- To show each layer with a `renderLayer` function, extend `RenderAdapter` and implement only the map calls.
+
+**If you work with the XState actors directly:**
+
+- `LAYER.ADDED` no longer has a `visible` field. The layer follows with `LAYER.VISIBILITY_CHANGED`.
+- `LayerGroupConfig` takes only the group data type, and the machine types no longer default `TGroup` to `TLayer`.
+- The events, refs, snapshots and context types the actors use between themselves are no longer exported: `ChildEvent`, `ParentEvent`, `LayerEvent`, `LayerGroupEvent`, `LayerEventBase`, `LayerManagerChildEvent`, `LayerManagerRef`, `ParentLayerActor`, `ParentLayerSnapshot`, `ChildLayerActor`, `ChildLayerSnapshot`, `LayerContextBase`, `LayerContext`, `LayerGroupContext`, `LayerManagerContext` and `LayerStartState`. Type commands with `LayerCommandEvent`.
+- `getLayerDataFromLayerId`, `getTopLevelLayersInOrder` and `getLayerGroupChildrenInOrder` are removed. Read `getTree()` or the actor snapshots.
+
+### Added
+
+- **maplibre**: New `@ulm/maplibre` package with `MapLibreLayerManagerAdapter`, which shows each layer as MapLibre sources and style layers
+  - `renderLayer` returns a layer's style, under the source and style layer IDs it chooses. Layers that name the same source share it. Without `renderLayer`, `defaultMapLibreRenderLayer` draws `layerData` that is already a style
+  - A style that changes only GeoJSON data or tile URLs updates its sources in place, so the old features and tiles show until the new ones load
+  - Hides layers with layout visibility. Fades fill and line layers with their layer opacity, and other types by scaling their own opacity properties
+  - Draws layers in the manager's order below the map's first label layer, or below the `drawBelow` style layer
+  - Adds layers added while the style loads once it loads, and draws them again after `map.setStyle()`
+  - Refuses a layer whose IDs the map already has from someone else, such as the basemap, and reports it as a map `error` event. Leaves sources and style layers it did not add on the map
+- **core**: `showLayer(layerId)` switches a layer on along with every group above it
+- **core**: `onEnabledChanged` reports a layer or group being switched on or off, even while a group above hides it
+- **core**: `getTree()` and `subscribe()` to read every layer and group as plain data
+- **core**: Group info has `childIds`, bottom first
+- **core**: `RenderAdapter` base class for adapters that show each layer with a `renderLayer` function. It calls `renderLayer` and `disposeLayer` and tracks visibility, opacity and order, so a subclass only changes the map. Shared types: `RenderLayer`, `RenderAdapterOptions`, `RenderAdapterArgs` and `RenderedLayer`
+- **core**: `LayerManagerHooks`, the hooks shared by adapters and the `LayerManager` options
+- **core**: `LayerCommandEvent`, the commands a layer or group actor accepts
+- **core**: `connectAdapter` attaches an adapter to a manager actor (experimental)
+- **core**: `parentId` is optional and defaults to the top level. `layerData` is optional when its type allows `undefined`. Layers accept `listMode`
+- **leaflet**: `renderLayer` runs again when a layer's `layerData` or `timeInfo` changes, with the Leaflet layer drawn last time as `current`
+- **leaflet**: `disposeLayer` option
+- **examples**: React MapLibre example. The Leaflet example reads the layer tree
+
+### Changed
+
+- **core**: `LayerManager.actor` and `createLayerManagerMachine` are marked experimental
+- **Breaking:** **leaflet**: `layerFactory` is renamed to `renderLayer`, `LeafletLayerFactory` to `LeafletRenderLayer` and `createDefaultLeafletFactory()` to `defaultLeafletRenderLayer`
+- **Breaking:** **leaflet**: Options are required unless every layer's data is `LeafletLayerData`
+- **leaflet**: `@ulm/core` is a peer dependency, `^3.0.0`
+
+### Removed
+
+- **Breaking:** **core**: `LayerManager.layers` and `LayerManager.getLayer()`
+- **Breaking:** **core**: `LayerManager.stop()` and `LayerManager.isReady`
+- **Breaking:** **core**: `LayerManagerCallbacks`, and the arguments to `register()`
+- **Breaking:** **core**: Internal actor types and the helpers listed in the migration notes
+- **Breaking:** **leaflet**: The `hooks` option and `LeafletAdapterHooks`
+- **Breaking:** **leaflet**: `getContext()`
+
+### Fixed
+
+- **Breaking:** **core**: A layer added as visible arrives hidden, then shows with a visibility change, so adapters see one order every time
+- **Breaking:** **core**: The group data type defaults to `undefined`, not the layer data type
+- **core**: `destroy()` can be called twice. `setAdapter()` on a destroyed manager reports through `onError`
+- **core**: Reject opacity outside 0 to 1, when adding a layer and when setting it
+- **core**: Clamp out-of-range layer indexes
+- **core**: Report nothing for a change that leaves a value as it was: the same opacity, equal time info, a computed opacity that did not change, or a move that leaves parent and order unchanged
+- **core**: Report unknown layer IDs through `onError` from every method
+- **core**: Call the options callback even when an adapter hook throws
+- **leaflet**: Remove a layer's pane when the layer is removed, and every pane the adapter added when it is detached
+- **examples**: Use one copy of React in the Leaflet example
+- **examples**: Redraw the simple layer list when a layer is switched on or off
+
+[3.0.0]: https://github.com/antarctica/universal-layer-manager/compare/v2.0.0...v3.0.0
+
 ## [2.0.0] - 2026-10-01
 
 ### Migrating from 1.x
