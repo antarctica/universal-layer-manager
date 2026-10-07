@@ -5,9 +5,9 @@ import type {
 } from '@ulm/core';
 
 import type L from 'leaflet';
-import type { LeafletAdapterOptions, LeafletRenderLayer } from './types';
+import type { LeafletAdapterArgs, LeafletAdapterOptions, LeafletRenderLayer } from './types';
 
-import { createDefaultLeafletRenderLayer } from './default-render-layer';
+import { defaultLeafletRenderLayer } from './default-render-layer';
 
 const CONTAINER_PANE = 'ulmPane';
 // Between Leaflet's overlay pane (400) and shadow pane (500), so popups, tooltips and unmanaged markers stay on top.
@@ -34,10 +34,10 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly render: LeafletRenderLayer<TLayer>;
   private readonly leafletLayers = new Map<string, L.Layer>();
 
-  constructor(map: L.Map, options: LeafletAdapterOptions<TLayer> = {}) {
+  constructor(map: L.Map, ...[options = {}]: LeafletAdapterArgs<TLayer>) {
     this.map = map;
     this.options = options;
-    this.render = options.renderLayer ?? createDefaultLeafletRenderLayer<TLayer>();
+    this.render = options.renderLayer ?? defaultLeafletRenderLayer;
   }
 
   // --------------------------------------------------------------------------

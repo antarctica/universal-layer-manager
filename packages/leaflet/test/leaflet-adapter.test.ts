@@ -4,7 +4,7 @@ import { LayerManager } from '@ulm/core';
 import * as L from 'leaflet';
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { createDefaultLeafletRenderLayer } from '../src/default-render-layer';
+import { defaultLeafletRenderLayer } from '../src/default-render-layer';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 import 'leaflet/dist/leaflet.css';
 
@@ -27,7 +27,7 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
 
   // The Leaflet layer renderLayer last gave the adapter for each layer, so the map can be checked against it.
   const built = new Map<string, L.Layer | null>();
-  const renderLayer = options.renderLayer ?? createDefaultLeafletRenderLayer<LayerData>();
+  const renderLayer = options.renderLayer ?? defaultLeafletRenderLayer;
   manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map, {
     ...options,
     renderLayer: (info, renderMap, current) => {
@@ -481,5 +481,27 @@ describe('leafletLayerManagerAdapter', () => {
     manager.setTimeInfo('layer-1', newYearsDay);
 
     expect(disposeLayer).toHaveBeenCalledWith(before, 'layer-1');
+  });
+
+  it('needs renderLayer for layer data that is not a Leaflet layer', () => {
+    const { map } = setup();
+
+    // @ts-expect-error The default renderLayer shows only `leafletLayer`, so { url } data needs a renderLayer.
+    const adapter = new LeafletLayerManagerAdapter<{ url: string }>(map);
+
+    expect(adapter).toBeInstanceOf(LeafletLayerManagerAdapter);
+  });
+
+  it('shows a layer that renderLayer hands to the default', () => {
+    const map = setup().map;
+    const manager = new LayerManager<{ url: string } | LayerData>();
+    manager.setAdapter(new LeafletLayerManagerAdapter<{ url: string } | LayerData>(map, {
+      renderLayer: (info) => ('url' in info.layerData ? L.tileLayer(info.layerData.url) : defaultLeafletRenderLayer(info)),
+    }));
+    const leafletLayer = circle();
+
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+
+    expect(map.hasLayer(leafletLayer)).toBe(true);
   });
 });
