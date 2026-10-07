@@ -414,12 +414,4 @@ describe('leafletLayerManagerAdapter', () => {
 
     expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay, leafletLayer);
   });
-
-  it('exposes the map it draws on', () => {
-    const map = L.map(document.createElement('div'));
-    const adapter = new LeafletLayerManagerAdapter<LayerData>(map);
-
-    expect(adapter.getContext()).toBe(map);
-    map.remove();
-  });
 });

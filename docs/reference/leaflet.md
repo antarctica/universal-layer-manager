@@ -23,13 +23,7 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 | `onTimeInfoChanged(info, timeInfo, leafletLayer)` | A layer's time info changes. The map doesn't change, so use this to apply the time |
 | `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced, and the factory's Leaflet layer is drawn |
 
-**Methods** you might call yourself:
-
-| Method | Description |
-|--------|-------------|
-| `getContext()` | Returns the Leaflet map |
-
-`LayerManager` calls the adapter's other methods as layers change. When the adapter is detached, replaced, or the manager is destroyed, it removes every layer and pane it added from the map.
+`LayerManager` calls the adapter's methods as layers change, so you don't call them yourself. When the adapter is detached, replaced, or the manager is destroyed, it removes every layer and pane it added from the map.
 
 ## `createDefaultLeafletFactory<TLayer>()`
 
