@@ -46,10 +46,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // --------------------------------------------------------------------------
 
   unregister(): void {
-    for (const layer of this.leafletLayers.values()) {
-      this.map.removeLayer(layer);
+    for (const layerId of [...this.leafletLayers.keys()]) {
+      this.eraseLayer(layerId);
     }
-    this.leafletLayers.clear();
     this.map.getPane(CONTAINER_PANE)?.remove();
   }
 
@@ -169,12 +168,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
-  // Takes a layer's Leaflet layer off the map. The layer's pane stays.
+  // Takes a layer's Leaflet layer off the map and disposes of it. The layer's pane stays.
   private eraseLayer(layerId: string): void {
     const leafletLayer = this.leafletLayers.get(layerId);
     if (leafletLayer) {
       this.map.removeLayer(leafletLayer);
       this.leafletLayers.delete(layerId);
+      this.options.disposeLayer?.(leafletLayer, layerId);
     }
   }
 
