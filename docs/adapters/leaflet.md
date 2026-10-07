@@ -97,6 +97,23 @@ manager.setAdapter(
 );
 ```
 
+The adapter doesn't change the map when a layer's time changes, because what time means depends on your data. Use the `onTimeInfoChanged` hook to apply it. For example, to send a WMS layer's date as its `TIME` parameter:
+
+```ts
+manager.setAdapter(
+  new LeafletLayerManagerAdapter<LayerData>(map, {
+    hooks: {
+      onTimeInfoChanged(_info, timeInfo, leafletLayer) {
+        if (leafletLayer instanceof L.TileLayer.WMS && isSingleTimeInfo(timeInfo)) {
+          const params = { ...leafletLayer.wmsParams, time: timeInfo.value.toString() };
+          leafletLayer.setParams(params);
+        }
+      },
+    },
+  }),
+);
+```
+
 See the [`@ulm/leaflet` reference](../reference/leaflet) for every hook.
 
 ## How stacking works
@@ -116,4 +133,3 @@ Opacity is applied to each layer's pane, using the layer's computed opacity. Thi
 + Only layers are drawn. Groups have no Leaflet layer of their own, but hiding or fading a group hides or fades the layers inside it.
 + The adapter sets each layer's `pane` option, replacing any pane you set yourself. It also sets `shadowPane` on markers, and the pane of every layer inside an `L.LayerGroup`, such as an `L.GeoJSON`.
 + With `preferCanvas: true`, each vector layer gets its own canvas, and only the top one receives mouse events. Use Leaflet's default SVG renderer if you need to click on overlapping vector layers.
-+ The adapter currently doesn't act on time information.

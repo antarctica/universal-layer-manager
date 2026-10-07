@@ -1,6 +1,8 @@
+import type { SingleTimeInfo } from '@ulm/core';
 import type { LeafletAdapterOptions } from '../src/types';
 import { LayerManager } from '@ulm/core';
 import * as L from 'leaflet';
+import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createDefaultLeafletFactory } from '../src/default-factory';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
@@ -399,6 +401,18 @@ describe('leafletLayerManagerAdapter', () => {
 
     expect(onEnabledChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'child-1', enabled: false }), false, leafletLayer);
     expect(map.hasLayer(leafletLayer)).toBe(false);
+  });
+
+  it('tells the onTimeInfoChanged hook when a layer\'s time changes', () => {
+    const onTimeInfoChanged = vi.fn();
+    const { manager } = setup({ hooks: { onTimeInfoChanged } });
+    const leafletLayer = circle();
+    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('layer-1', newYearsDay);
+
+    expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay, leafletLayer);
   });
 
   it('exposes the map it draws on', () => {
