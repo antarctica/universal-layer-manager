@@ -181,7 +181,7 @@ manager.setTimeInfo('sea-ice', {
 });
 ```
 
-The manager stores the time information and reports changes through `onTimeInfoChanged`. What you do with it, such as showing dates in your layer list or driving a time slider, is up to you.
+The manager stores the time information and reports changes through `onTimeInfoChanged`. What you do with it, such as showing dates in your layer list or driving a time slider, is up to you. The Leaflet and MapLibre adapters pass a layer's time to its `renderLayer`, so it can show the data for that date.
 
 ::: tip
 You only need the polyfill until every browser you support has Temporal built in. The manager accepts built-in and polyfilled dates alike, so your layer code stays the same when you drop it.
