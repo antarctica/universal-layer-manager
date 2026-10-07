@@ -2,6 +2,10 @@
 
 The `LayerManager` class is built on [XState](https://stately.ai/docs/xstate) state machines, and XState is installed as a dependency of `@ulm/core`. If you want more direct control, you can work with the underlying actors yourself.
 
+::: warning Experimental
+Everything on this page is experimental, and may change in a minor release. The `LayerManager` methods, its callbacks and the adapter interface do not change outside a major release.
+:::
+
 ## Why work with the actors?
 
 `LayerManager`, its callbacks and adapters suit most uses: you make changes through one object and react to the results in one place.
@@ -45,7 +49,7 @@ if (item?.type === 'layer') {
 
 ## Sending events
 
-`LayerManager` methods are a thin layer over events sent to the actors. You can send these events yourself:
+`LayerManager` methods are a thin layer over events sent to the actors. You can send these events yourself. Their types are `LayerCommandEvent` for a layer or group, and `LayerManagerEvent` for the manager:
 
 ```ts
 item.layerActor.send({ type: 'LAYER.SET_OPACITY', opacity: 0.5 });
@@ -90,7 +94,7 @@ See the [`@ulm/core` reference](./reference/core#emitted-events) for every emitt
 You can also skip the `LayerManager` class and run the manager machine yourself. Create it with `createLayerManagerMachine`, and start it with XState's `createActor`, after installing `xstate`:
 
 ```ts
-import { connectAdapter, createLayerManagerMachine, createLayerTreeReader } from '@ulm/core';
+import { connectAdapter, createLayerManagerMachine } from '@ulm/core';
 import { createActor } from 'xstate';
 
 const managerActor = createActor(createLayerManagerMachine<LayerData>(), {
@@ -106,9 +110,8 @@ managerActor.send({ type: 'LAYER.ADD', params: { layerConfig, visible: true } })
 // rejections, which the class would report through onError
 managerActor.on('LAYER.REJECTED', ({ reason }) => console.warn(reason));
 
-// the layer tree, as LayerManager.getTree() returns it
-const getTree = createLayerTreeReader(managerActor);
-managerActor.subscribe(() => render(getTree()));
+// read state from the manager's snapshot, here the top-level layers, bottom first
+managerActor.subscribe((snapshot) => console.log(snapshot.context.childLayerOrder));
 ```
 
 `connectAdapter` tells the adapter about the layers the manager already holds, reports every change after that, and returns a function that disconnects it.
@@ -151,4 +154,4 @@ The [Leaflet and React with XState example](./examples#leaflet-and-react-with-xs
 
 ## Helper functions
 
-`@ulm/core` also exports helper functions for working with the actors, such as `findManagedLayerById` and `getTopLevelLayersInOrder`. See the [`@ulm/core` reference](./reference/core#helper-functions) for the full list.
+`@ulm/core` also exports helper functions for working with the actors, such as `findManagedLayerById` and `getMoveLayerRejection`. See the [`@ulm/core` reference](./reference/core#helper-functions) for the full list.

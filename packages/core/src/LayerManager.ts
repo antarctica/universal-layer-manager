@@ -1,8 +1,7 @@
 import type { InspectionEvent, Observer } from 'xstate';
-import type { LayerManagerAdapter, LayerManagerHooks } from './adapters/types';
+import type { LayerManagerAdapter, LayerManagerHooks, LayerTree } from './adapters/types';
 
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
-import type { LayerTree } from './layerTree';
 import type { AddGroupLayerParams, AddLayerParams, LayerTimeInfo, ManagedItem, MoveLayerTarget } from './types';
 import { createActor } from 'xstate';
 import { connectAdapter, connectHooks } from './connectAdapter';
@@ -60,6 +59,7 @@ export class LayerManager<TLayer, TGroup = undefined> {
   /**
    * The manager's XState actor, for working with the layer and group actors directly,
    * for example with `useSelector` from `@xstate/react`. See "Working with XState" in the docs.
+   * @experimental
    */
   get actor(): LayerManagerActor<TLayer, TGroup> {
     return this._actor;

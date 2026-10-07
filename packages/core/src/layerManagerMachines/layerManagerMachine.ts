@@ -32,6 +32,10 @@ import {
 export type LayerManagerMachine<TLayer, TGroup = undefined> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
 export type LayerManagerActor<TLayer, TGroup = undefined> = ActorRefFrom<LayerManagerMachine<TLayer, TGroup>>;
 
+/**
+ * Creates the manager machine, to run it without the `LayerManager` class.
+ * @experimental
+ */
 export function createLayerManagerMachine<TLayer, TGroup = undefined>() {
   return setup({
     types: {

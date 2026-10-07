@@ -1,9 +1,10 @@
 import type { LayerTimeInfo } from '../types';
 
 // ============================================================================
-// ADAPTER LAYER INFO
-// Stable, non-XState shape passed to adapter methods and consumer callbacks.
+// LAYER INFO
+// A layer or group as plain data, passed to adapters and the options callbacks.
 // ============================================================================
+
 interface BaseLayerInfo<TData> {
   layerId: string;
   layerName: string;
@@ -34,6 +35,19 @@ export interface LayerGroupInfo<TGroup = undefined> extends BaseLayerInfo<TGroup
 }
 
 export type ManagedLayerInfo<TLayer = unknown, TGroup = undefined> = LayerInfo<TLayer> | LayerGroupInfo<TGroup>;
+
+// ============================================================================
+// LAYER TREE
+// Every layer and group as plain data, read with LayerManager.getTree().
+// ============================================================================
+
+/** The layer tree: every layer and group as plain data. Treat it as read-only: the manager replaces it on each change. */
+export interface LayerTree<TLayer, TGroup = undefined> {
+  /** The IDs of the top-level layers and groups, bottom first. */
+  readonly rootIds: readonly string[];
+  /** Every layer and group by ID. */
+  readonly layers: Readonly<Record<string, ManagedLayerInfo<TLayer, TGroup>>>;
+}
 
 // ============================================================================
 // CHANGE HOOKS

@@ -46,7 +46,7 @@
 
 | Property | Description |
 |----------|-------------|
-| `actor` | The manager's XState actor. See [Working with XState](../xstate) |
+| `actor` | The manager's XState actor. Experimental. See [Working with XState](../xstate) |
 | `destroyed` | `true` after `destroy()` |
 
 ## Layer tree
@@ -135,7 +135,7 @@ Implement `LayerManagerAdapter` and attach it with `manager.setAdapter()`. Every
 
 ## Emitted events
 
-For [working with XState](../xstate) directly. The manager actor emits these events, which you can listen to with `manager.actor.on(type, handler)`:
+Experimental, for [working with XState](../xstate) directly. The manager actor emits these events, typed as `LayerManagerEmittedEvent`. Listen to them with `manager.actor.on(type, handler)`:
 
 | Event | Payload |
 |-------|---------|
@@ -150,18 +150,38 @@ For [working with XState](../xstate) directly. The manager actor emits these eve
 | `LAYER.MOVED` | `layerId`, `parentId`. Emitted after `LAYER.ORDER_CHANGED` |
 | `LAYER.REJECTED` | `layerId`, `reason` |
 
+## Commands
+
+Experimental, for [working with XState](../xstate) directly. Send these events to a layer or group actor, typed as `LayerCommandEvent<TData>`:
+
+| Event | Payload |
+|-------|---------|
+| `LAYER.ENABLED` / `LAYER.DISABLED` | None |
+| `LAYER.SHOW` | None |
+| `LAYER.SET_OPACITY` | `opacity`, from 0 to 1 |
+| `LAYER.SET_TIME_INFO` | `timeInfo` |
+| `LAYER.SET_LAYER_DATA` | `layerData` |
+
+Send these events to the manager actor, typed as `LayerManagerEvent<TLayer, TGroup>`:
+
+| Event | Payload |
+|-------|---------|
+| `LAYER.ADD` | `params`: see [Add parameters](#add-parameters) |
+| `LAYER.REMOVE` | `layerId` |
+| `LAYER.MOVE` | `layerId`, `parentId`, `index?`, `position?` |
+| `RESET` | None |
+
+A command that cannot be carried out, such as an opacity outside 0 to 1 or an unknown layer ID, is ignored. The manager then emits `LAYER.REJECTED` with the reason.
+
 ## Helper functions
+
+`isSingleTimeInfo` and `isRangeTimeInfo` are stable. The other helpers work with the actors, and are experimental.
 
 | Function | Description |
 |----------|-------------|
 | `createLayerManagerMachine()` | Create the manager machine yourself, without the `LayerManager` class |
 | `connectAdapter(managerActor, adapter)` | Attach an adapter to a manager actor: replay its layers, then report every change. Returns a function that disconnects it |
-| `createLayerTreeReader(managerActor)` | Return a function that reads a manager actor's [layer tree](#layer-tree), with the same caching as `getTree()` |
 | `findManagedLayerById(layers, layerId)` | Find a managed item in the manager's `layers`, for example inside a selector |
-| `getLayerDataFromLayerId(layers, layerId)` | Read an item's `layerData` from the manager's `layers` |
-| `getTopLevelLayersInOrder(childLayerOrder, layers)` | Turn the manager's top-level order into a list of managed items |
-| `getLayerGroupChildrenInOrder(childLayerOrder, children)` | Turn a group's order into a list of its child actors |
-| `getFlatLayerOrder(context)` | Every layer ID, bottom to top, with each group followed by its children |
 | `findLayerPlacement(context, layerId)` | Where a layer sits: `{ parentId, index, siblingCount }`, counting from the bottom |
 | `getMoveLayerRejection(context, move)` | Why a move would be rejected, or `undefined` if it would succeed. Useful for checking a drop before making it |
 | `isLayerMachine(actor)` / `isLayerGroupMachine(actor)` | Check whether an actor is a layer or a group |

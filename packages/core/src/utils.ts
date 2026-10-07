@@ -1,5 +1,4 @@
 import type {
-  ChildLayerActor,
   LayerActor,
   LayerConfig,
   LayerGroupConfig,
@@ -29,24 +28,6 @@ export function findManagedLayerById<TLayer, TGroup = undefined>(
   layerId: string,
 ): ManagedItem<TLayer, TGroup> | undefined {
   return layers.find((layer) => layer.layerActor.id === layerId);
-}
-
-/**
- * Extracts the layer data (context) from a specific layer ID.
- *
- * @param layers - The array of managed items.
- * @param layerId - The ID of the target layer.
- * @returns The layer data (TLayer or TGroup) if found, otherwise undefined.
- */
-export function getLayerDataFromLayerId<TLayer, TGroup = undefined>(
-  layers: ManagedItem<TLayer, TGroup>[],
-  layerId: string,
-): TLayer | TGroup | undefined {
-  const layer = findManagedLayerById(layers, layerId);
-  if (!layer) {
-    return undefined;
-  }
-  return layer.layerActor.getSnapshot().context.layerData;
 }
 
 /**
@@ -282,18 +263,6 @@ export function getFlatLayerOrder<TLayer, TGroup = undefined>(
 }
 
 /**
- * Maps the top-level order array of strings to actual ManagedItem objects.
- */
-export function getTopLevelLayersInOrder<TLayer, TGroup = undefined>(
-  layerOrder: string[],
-  layers: ManagedItem<TLayer, TGroup>[],
-): ManagedItem<TLayer, TGroup>[] {
-  return layerOrder
-    .map((layerId) => layers.find((l) => l.layerActor.id === layerId))
-    .filter((layer): layer is ManagedItem<TLayer, TGroup> => layer !== undefined);
-}
-
-/**
  * Builds the event that tells a group which children it has, in the manager's order.
  *
  * @param context - The current Layer Manager context.
@@ -309,18 +278,6 @@ export function getGroupChildrenChangedEvent<TLayer, TGroup = undefined>(
     .map((layerId) => findManagedLayerById(context.layers, layerId)?.layerActor)
     .filter((layerActor): layerActor is LayerActor<TLayer, TGroup> => layerActor !== undefined);
   return { type: 'LAYERS.CHILDREN_CHANGED', children, childLayerOrder };
-}
-
-/**
- * Maps a Group's child order array to actual ChildLayerActor objects.
- */
-export function getLayerGroupChildrenInOrder(
-  childLayerOrder: string[],
-  layers: ChildLayerActor[],
-): ChildLayerActor[] {
-  return childLayerOrder
-    .map((layerId) => layers.find((l) => l.id === layerId))
-    .filter((layer): layer is ChildLayerActor => layer !== undefined);
 }
 
 // ============================================================================
