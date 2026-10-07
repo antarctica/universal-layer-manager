@@ -1,7 +1,6 @@
 import type {
   LayerInfo,
   LayerManagerAdapter,
-  LayerTimeInfo,
   ManagedLayerInfo,
 } from '@ulm/core';
 
@@ -87,19 +86,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     const leafletLayer = this.layerFactory(info, this.map);
     if (leafletLayer) {
       this.drawLayer(info, leafletLayer);
-      this.options.hooks?.onLayerAdded?.(info, leafletLayer);
     }
   }
 
   onLayerRemoved(layerId: string): void {
     this.layerInfos.delete(layerId);
     this.map.getPane(layerPaneName(layerId))?.remove();
-    const leafletLayer = this.leafletLayers.get(layerId);
-    if (!leafletLayer) {
-      return;
-    }
     this.eraseLayer(layerId);
-    this.options.hooks?.onLayerRemoved?.(layerId, leafletLayer);
   }
 
   onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
@@ -113,45 +106,26 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     } else {
       this.map.removeLayer(leafletLayer);
     }
-    this.options.hooks?.onVisibilityChanged?.(info, visible, leafletLayer);
   }
 
-  onEnabledChanged(info: ManagedLayerInfo<TLayer, TGroup>, enabled: boolean): void {
+  onEnabledChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
     this.rememberInfo(info);
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (info.layerType !== 'layer' || !leafletLayer) {
-      return;
-    }
-    this.options.hooks?.onEnabledChanged?.(info, enabled, leafletLayer);
   }
 
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
     this.rememberInfo(info);
     this.fadeLayerPane(info.layerId, computedOpacity);
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (info.layerType !== 'layer' || !leafletLayer) {
-      return;
-    }
-    this.options.hooks?.onOpacityChanged?.(info, info.opacity, computedOpacity, leafletLayer);
   }
 
-  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo): void {
-    if (info.layerType !== 'layer') {
-      return;
-    }
-    const leafletLayer = this.drawFromFactory(info);
-    if (leafletLayer) {
-      this.options.hooks?.onTimeInfoChanged?.(info, timeInfo, leafletLayer);
+  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
+    if (info.layerType === 'layer') {
+      this.drawFromFactory(info);
     }
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    if (info.layerType !== 'layer') {
-      return;
-    }
-    const leafletLayer = this.drawFromFactory(info);
-    if (leafletLayer) {
-      this.options.hooks?.onLayerDataChanged?.(info, leafletLayer);
+    if (info.layerType === 'layer') {
+      this.drawFromFactory(info);
     }
   }
 
