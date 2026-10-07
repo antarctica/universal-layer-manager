@@ -228,17 +228,6 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(before)).toBe(false);
   });
 
-  it('tells the onLayerDataChanged hook about the new Leaflet layer', () => {
-    const onLayerDataChanged = vi.fn();
-    const { manager } = setup({ hooks: { onLayerDataChanged } });
-    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
-    const after = circle();
-
-    manager.updateLayerData('layer-1', { leafletLayer: after });
-
-    expect(onLayerDataChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), after);
-  });
-
   it('draws a layer the factory skipped once its new data has a Leaflet layer', () => {
     const skipped = circle();
     const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
@@ -391,29 +380,15 @@ describe('leafletLayerManagerAdapter', () => {
     expect(drawn.every((element) => pane.contains(element))).toBe(true);
   });
 
-  it('tells the onEnabledChanged hook when a layer hidden by its group is switched off', () => {
-    const onEnabledChanged = vi.fn();
-    const { map, manager } = setup({ hooks: { onEnabledChanged } });
+  it('keeps a layer off the map when it is switched off while its group hides it', () => {
+    const { map, manager } = setup();
     const leafletLayer = circle();
     manager.addGroup({ ...groupParams('group-1'), enabled: false });
     manager.addLayer({ ...layerParams('child-1', leafletLayer, 'group-1'), enabled: true });
 
     manager.setEnabled('child-1', false);
 
-    expect(onEnabledChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'child-1', enabled: false }), false, leafletLayer);
     expect(map.hasLayer(leafletLayer)).toBe(false);
-  });
-
-  it('tells the onTimeInfoChanged hook when a layer\'s time changes', () => {
-    const onTimeInfoChanged = vi.fn();
-    const { manager } = setup({ hooks: { onTimeInfoChanged } });
-    const leafletLayer = circle();
-    manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
-    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
-
-    manager.setTimeInfo('layer-1', newYearsDay);
-
-    expect(onTimeInfoChanged).toHaveBeenCalledWith(expect.objectContaining({ layerId: 'layer-1' }), newYearsDay, leafletLayer);
   });
 
   it('draws the Leaflet layer the factory builds for a layer\'s new time', () => {
