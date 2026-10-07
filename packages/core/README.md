@@ -1,4 +1,4 @@
-<img src="./assets/universal-layer-manager.svg" alt="Universal Layer Manager logo" width="160" />
+<img src="../../docs/public/logo.svg" alt="Universal Layer Manager logo" width="160" />
 
 # @ulm/core
 
