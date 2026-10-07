@@ -1,10 +1,10 @@
 import type { LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
 
 import type { GeoJSONSource, MapLibreMap, RasterTileSource, Style, VectorTileSource } from 'maplibre-gl';
-import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerFactory, MapLibreLayerStyle, SourceSpecification } from './types';
+import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerStyle, MapLibreRenderLayer, SourceSpecification } from './types';
 
 import { ErrorEvent } from 'maplibre-gl';
-import { createDefaultMapLibreFactory } from './default-factory';
+import { createDefaultMapLibreRenderLayer } from './default-render-layer';
 
 // Style specs are plain JSON.
 function sameJson(a: unknown, b: unknown): boolean {
@@ -114,7 +114,7 @@ function withVisibility(layer: LayerSpecification, visible: boolean): LayerSpeci
 export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: MapLibreMap;
-  private readonly layerFactory: MapLibreLayerFactory<TLayer>;
+  private readonly render: MapLibreRenderLayer<TLayer>;
   private readonly disposeLayer: MapLibreAdapterOptions<TLayer>['disposeLayer'];
   private readonly drawBelow: string | undefined;
   private readonly drawnLayers = new Map<string, DrawnLayer>();
@@ -127,7 +127,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer> = {}) {
     this.map = map;
-    this.layerFactory = options.layerFactory ?? createDefaultMapLibreFactory<TLayer>();
+    this.render = options.renderLayer ?? createDefaultMapLibreRenderLayer<TLayer>();
     this.disposeLayer = options.disposeLayer;
     this.drawBelow = options.drawBelow;
   }
@@ -164,7 +164,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const style = this.layerFactory(info, this.map);
+    const style = this.render(info, this.map);
     if (!style) {
       return;
     }
@@ -221,7 +221,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     const previous = this.drawnLayers.get(info.layerId);
-    const style = this.layerFactory(info, this.map, previous?.style);
+    const style = this.render(info, this.map, previous?.style);
     if (previous && style && onlyGeoJsonDataChanged(previous.style, style)) {
       this.drawnLayers.set(info.layerId, { ...previous, style });
       if (this.isStyleReady()) {
@@ -248,7 +248,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
-  // The factory can read the time, so a new time redraws the layer as new data does.
+  // renderLayer can read the time, so a new time draws the layer again as new data does.
   onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
     this.onLayerDataChanged(info);
   }

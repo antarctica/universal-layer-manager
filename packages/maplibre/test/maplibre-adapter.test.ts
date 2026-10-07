@@ -63,7 +63,7 @@ function createMap(style: StyleSpecification = BASEMAP): maplibregl.Map {
 function attachManager(map: maplibregl.Map, options: Partial<MapLibreAdapterOptions<LayerData>> = {}) {
   const manager = new LayerManager<LayerData>();
   manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map, {
-    layerFactory: (info) => info.layerData,
+    renderLayer: (info) => info.layerData,
     ...options,
   }));
   return manager;
@@ -193,7 +193,7 @@ function paintOf(map: maplibregl.Map, layerId: string, properties: PaintProperty
 }
 
 describe('mapLibreLayerManagerAdapter', () => {
-  it('adds a layer\'s source and style layers to the map, under the IDs the factory gave them', async () => {
+  it('adds a layer\'s source and style layers to the map, under the IDs renderLayer gave them', async () => {
     const { map, manager } = await setup();
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
@@ -410,7 +410,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
   });
 
-  it('draws a layer\'s style layers below the basemap\'s first label layer, in the factory\'s order', async () => {
+  it('draws a layer\'s style layers below the basemap\'s first label layer, in the order renderLayer gave them', async () => {
     const { map, manager } = await setup();
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
@@ -580,8 +580,8 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(map.getPaintProperty('rivers-line', 'line-color')).toBe('#0000ff');
   });
 
-  it('takes a layer off the map while its factory returns null, and draws it when the factory returns a style again', async () => {
-    const { map, manager } = await setup({ layerFactory: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
+  it('takes a layer off the map while renderLayer returns null, and draws it when renderLayer returns a style again', async () => {
+    const { map, manager } = await setup({ renderLayer: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
     manager.updateLayerData('rivers', { layers: [] });
@@ -663,7 +663,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(map.getLayersOrder()).toEqual(['night', 'rivers-casing', 'rivers-line', 'place-names']);
   });
 
-  it('draws a layer whose data is a MapLibre style when the adapter has no layer factory', async () => {
+  it('draws a layer whose data is a MapLibre style when the adapter has no renderLayer', async () => {
     const map = createMap();
     await map.once('style.load');
     const manager = new LayerManager<LayerData>();
@@ -674,7 +674,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['rivers-casing', 'rivers-line'] });
   });
 
-  it('leaves a layer whose data is not a MapLibre style off the map when the adapter has no layer factory', async () => {
+  it('leaves a layer whose data is not a MapLibre style off the map when the adapter has no renderLayer', async () => {
     const map = createMap();
     await map.once('style.load');
     const manager = new LayerManager<{ url: string }>();
@@ -685,13 +685,13 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
   });
 
-  it('gives a tile source the URLs the factory builds for the layer\'s new time, in place', async () => {
+  it('gives a tile source the URLs renderLayer builds for the layer\'s new time, in place', async () => {
     const imagery = (date: string): LayerData => ({
       sources: { imagery: { type: 'raster', tiles: [`test://${date}/{z}/{x}/{y}.png`], tileSize: 256 } },
       layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
     });
     const { map, manager } = await setup({
-      layerFactory: (info) => imagery(isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : 'latest'),
+      renderLayer: (info) => imagery(isSingleTimeInfo(info.timeInfo) ? info.timeInfo.value.toString() : 'latest'),
     });
     manager.addLayer({ ...layerParams('imagery', imagery('latest')), visible: true });
     const source = map.getSource<maplibregl.RasterTileSource>('imagery');
@@ -703,7 +703,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(source?.serialize().tiles).toEqual(['test://2026-01-01/{z}/{x}/{y}.png']);
   });
 
-  it('leaves the map alone when the factory returns the same style for the layer\'s new time', async () => {
+  it('leaves the map alone when renderLayer returns the same style for the layer\'s new time', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
     const source = map.getSource('rivers');
@@ -803,7 +803,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
   });
 
-  it('passes the style the factory replaces to disposeLayer', async () => {
+  it('passes the style renderLayer replaces to disposeLayer', async () => {
     const disposeLayer = vi.fn();
     const { manager } = await setup({ disposeLayer });
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
@@ -859,9 +859,9 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(disposeLayer).not.toHaveBeenCalled();
   });
 
-  it('passes a layer\'s style to disposeLayer when the factory returns null for its new data', async () => {
+  it('passes a layer\'s style to disposeLayer when renderLayer returns null for its new data', async () => {
     const disposeLayer = vi.fn();
-    const { manager } = await setup({ disposeLayer, layerFactory: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
+    const { manager } = await setup({ disposeLayer, renderLayer: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
     manager.updateLayerData('rivers', { layers: [] });
@@ -869,18 +869,18 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
   });
 
-  it('passes the style the factory drew last time to it as current when the layer\'s data changes', async () => {
-    const layerFactory = vi.fn((info: { layerData: LayerData }) => info.layerData);
-    const { manager } = await setup({ layerFactory });
+  it('passes the style renderLayer drew last time to it as current when the layer\'s data changes', async () => {
+    const renderLayer = vi.fn((info: { layerData: LayerData }) => info.layerData);
+    const { manager } = await setup({ renderLayer });
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
     manager.updateLayerData('rivers', lakes());
 
-    expect(layerFactory).toHaveBeenLastCalledWith(expect.objectContaining({ layerId: 'rivers' }), expect.anything(), rivers());
+    expect(renderLayer).toHaveBeenLastCalledWith(expect.objectContaining({ layerId: 'rivers' }), expect.anything(), rivers());
   });
 
-  it('leaves the map alone when the factory returns current for the layer\'s new time', async () => {
-    const { map, manager } = await setup({ layerFactory: (info, _map, current) => current ?? info.layerData });
+  it('leaves the map alone when renderLayer returns current for the layer\'s new time', async () => {
+    const { map, manager } = await setup({ renderLayer: (info, _map, current) => current ?? info.layerData });
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
     const styleLayer = map.getLayer('rivers-line');
     const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };

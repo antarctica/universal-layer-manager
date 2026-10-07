@@ -1,7 +1,7 @@
 import type { LayerInfo } from '@ulm/core';
 
 import type { MapLibreMap, TransformStyleFunction } from 'maplibre-gl';
-import type { createDefaultMapLibreFactory } from './default-factory';
+import type { createDefaultMapLibreRenderLayer } from './default-render-layer';
 
 // maplibre-gl does not export the style spec types, so they are read off its API.
 export type StyleSpecification = ReturnType<TransformStyleFunction>;
@@ -26,25 +26,25 @@ export interface MapLibreLayerStyle {
  * The adapter calls it when a layer is added, and again when its `layerData` or `timeInfo` changes, with the style it
  * returned last time as `current`. Return `current` to leave the map as it is.
  *
- * Without one, the adapter uses {@link createDefaultMapLibreFactory}, which draws `layerData` that is already a
+ * Without one, the adapter uses {@link createDefaultMapLibreRenderLayer}, which draws `layerData` that is already a
  * {@link MapLibreLayerStyle}. Write your own to keep other data in `layerData`, such as a URL, and fall back to the
  * default for the rest:
  *
  * ```ts
- * const drawStyle = createDefaultMapLibreFactory<LayerData>();
+ * const renderStyle = createDefaultMapLibreRenderLayer<LayerData>();
  *
- * const layerFactory: MapLibreLayerFactory<LayerData> = (info, map) => {
+ * const renderLayer: MapLibreRenderLayer<LayerData> = (info, map) => {
  *   if ('geojsonUrl' in info.layerData) {
  *     return {
  *       sources: { [info.layerId]: { type: 'geojson', data: info.layerData.geojsonUrl } },
  *       layers: [{ id: 'line', type: 'line', source: info.layerId }],
  *     };
  *   }
- *   return drawStyle(info, map);
+ *   return renderStyle(info, map);
  * };
  * ```
  */
-export type MapLibreLayerFactory<TLayer> = (
+export type MapLibreRenderLayer<TLayer> = (
   info: LayerInfo<TLayer>,
   map: MapLibreMap,
   current?: MapLibreLayerStyle,
@@ -55,11 +55,11 @@ export type MapLibreLayerFactory<TLayer> = (
 // ============================================================================
 
 export interface MapLibreAdapterOptions<TLayer> {
-  /** Builds each layer's style. Defaults to {@link createDefaultMapLibreFactory}. */
-  layerFactory?: MapLibreLayerFactory<TLayer>;
+  /** Returns the style that shows each layer. Defaults to {@link createDefaultMapLibreRenderLayer}. */
+  renderLayer?: MapLibreRenderLayer<TLayer>;
   /**
    * Undoes what was set up for a layer's style once the adapter discards it: when the layer is removed, when the
-   * factory returns a different style, and when the adapter is detached. A style that differs only in GeoJSON data or
+   * `renderLayer` returns a different style, and when the adapter is detached. A style that differs only in GeoJSON data or
    * tile URLs is updated in place, not discarded, and hiding a layer does not discard its style.
    */
   disposeLayer?: (style: MapLibreLayerStyle, layerId: string) => void;
