@@ -652,4 +652,26 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getLayersOrder()).toEqual(['night', 'ulm:rivers:casing', 'ulm:rivers:line', 'place-names']);
   });
+
+  it('draws a layer whose data is a MapLibre style when the adapter has no layer factory', async () => {
+    const map = createMap();
+    await map.once('style.load');
+    const manager = new LayerManager<LayerData>();
+    manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map));
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:rivers:casing', 'ulm:rivers:line'] });
+  });
+
+  it('leaves a layer whose data is not a MapLibre style off the map when the adapter has no layer factory', async () => {
+    const map = createMap();
+    await map.once('style.load');
+    const manager = new LayerManager<{ url: string }>();
+    manager.setAdapter(new MapLibreLayerManagerAdapter<{ url: string }>(map));
+
+    manager.addLayer({ layerConfig: { layerId: 'rivers', layerName: 'Rivers', layerType: 'layer', layerData: { url: 'rivers.geojson' } }, visible: true });
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
 });
