@@ -1,15 +1,7 @@
 import type { SnapshotFrom } from 'xstate';
-import type { ManagedLayerInfo } from './adapters/types';
+import type { LayerTree, ManagedLayerInfo } from './adapters/types';
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
 import type { LayerActor, LayerManagerContext, ManagedItem } from './types';
-
-/** The layer tree: every layer and group as plain data. Treat it as read-only: the manager replaces it on each change. */
-export interface LayerTree<TLayer, TGroup = undefined> {
-  /** The IDs of the top-level layers and groups, bottom first. */
-  readonly rootIds: readonly string[];
-  /** Every layer and group by ID. */
-  readonly layers: Readonly<Record<string, ManagedLayerInfo<TLayer, TGroup>>>;
-}
 
 /**
  * Returns a function that reads the layer tree of a manager actor from its XState snapshots.

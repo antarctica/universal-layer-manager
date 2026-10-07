@@ -1,11 +1,11 @@
-import type { LayerManagerAdapter, LayerManagerHooks, ManagedLayerInfo } from './adapters/types';
+import type { LayerManagerAdapter, LayerManagerHooks, LayerTree, ManagedLayerInfo } from './adapters/types';
 import type { LayerManagerActor } from './layerManagerMachines/layerManagerMachine';
-import type { LayerTree } from './layerTree';
 import { createLayerTreeReader } from './layerTree';
 
 /**
  * Attaches `adapter` to a manager actor: tells it about the layers the manager already holds,
  * then reports every change. Returns a function that disconnects it again.
+ * @experimental
  */
 export function connectAdapter<TLayer, TGroup>(
   manager: LayerManagerActor<TLayer, TGroup>,
