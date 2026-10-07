@@ -1,4 +1,4 @@
-import type { LayerManagerAdapter } from '../src/adapters/types';
+import type { DrawingAdapterOptions, LayerInfo, LayerManagerAdapter } from '../src/adapters/types';
 import type { LayerManagerOptions } from '../src/LayerManager';
 import type { LayerConfig, SingleTimeInfo } from '../src/types';
 import type { TestLayerData } from './utils/layer-manager-helpers';
@@ -1432,6 +1432,28 @@ describe('layerManager', () => {
   });
 
   describe('adapter', () => {
+    it('types a drawing adapter\'s options with what it draws, so its factory and disposeLayer share one type', () => {
+      const info: LayerInfo<TestLayerData> = {
+        layerId: 'layer-1',
+        layerName: 'Layer',
+        layerType: 'layer',
+        listMode: 'show',
+        parentId: null,
+        layerData: { test: 'sea-ice' },
+        enabled: true,
+        visible: true,
+        opacity: 1,
+        computedOpacity: 1,
+      };
+      const options: DrawingAdapterOptions<TestLayerData, { name: string }, string> = {
+        layerFactory: (layer, map, current) => current ?? `${map.name}:${layer.layerData.test}`,
+        disposeLayer: vi.fn(),
+      };
+
+      expect(options.layerFactory?.(info, { name: 'polar' })).toBe('polar:sea-ice');
+      expect(options.layerFactory?.(info, { name: 'polar' }, 'drawn')).toBe('drawn');
+    });
+
     it('tells the adapter about a change before the options callback', () => {
       const calls: string[] = [];
       const manager = new LayerManager<TestLayerData>({ onVisibilityChanged: () => calls.push('options') });
