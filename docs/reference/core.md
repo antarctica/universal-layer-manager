@@ -197,7 +197,7 @@ A subclass implements these methods. Each `layer` is a `RenderedLayer<TRendered>
 | `eraseLayer(layerId, rendered, next?)` | A result is to come off the map: when its layer is removed, when it is replaced, and when the adapter is detached. `next` is the result that replaces it, if any |
 | `setLayerVisible(layer)` | A layer starts or stops showing |
 | `setLayerOpacity(layer)` | A layer's computed opacity changes |
-| `restackLayers(bottomToTop)` | The order changes, and after a replaced result is placed. Lists only the layers with a result |
+| `restackLayers(bottomToTop)` | The order changes, and after `renderLayer` returns something new for a layer, unless `isSame` says it stands in for the old result. Lists only the layers with a result |
 
 | Protected member | Description |
 |------------------|-------------|
