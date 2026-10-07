@@ -8,7 +8,7 @@ export function pointStyle(id: string, [lng, lat]: [number, number]): LayerData 
   return {
     sources: { [id]: { type: 'geojson', data: { type: 'Point', coordinates: [lng, lat] } } },
     layers: [{
-      id: 'point',
+      id,
       type: 'circle',
       source: id,
       paint: { 'circle-radius': 8, 'circle-color': '#ff6f00', 'circle-stroke-color': 'white', 'circle-stroke-width': 2 },
@@ -31,8 +31,8 @@ export function areaStyle(id: string, centre: [number, number], colour: string):
   return {
     sources: { [id]: { type: 'geojson', data: circle(centre, AREA_RADIUS_KM) } },
     layers: [
-      { id: 'fill', type: 'fill', source: id, paint: { 'fill-color': colour, 'fill-opacity': 0.5 } },
-      { id: 'outline', type: 'line', source: id, paint: { 'line-color': colour, 'line-width': 2 } },
+      { id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': colour, 'fill-opacity': 0.5 } },
+      { id: `${id}-outline`, type: 'line', source: id, paint: { 'line-color': colour, 'line-width': 2 } },
     ],
   };
 }

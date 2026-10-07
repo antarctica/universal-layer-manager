@@ -1,7 +1,8 @@
 import type { MapLibreLayerStyle, SourceSpecification } from '@ulm/maplibre';
 
-// Each layer is a MapLibre style: the sources it reads and its style layers, bottom first.
-// The vector layers all name the OpenFreeMap source, so they share it and load its tiles once.
+// Each layer is a MapLibre style: the sources it reads and its style layers, bottom first. A style layer's ID is its
+// layer's ID, so it can't clash with another layer's. The vector layers all name the OpenFreeMap source, so they share
+// it and load its tiles once.
 
 const OPENFREEMAP: SourceSpecification = {
   type: 'vector',
@@ -17,7 +18,7 @@ export const satellite: MapLibreLayerStyle = {
       attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
     },
   },
-  layers: [{ id: 'imagery', type: 'raster', source: 'imagery' }],
+  layers: [{ id: 'satellite', type: 'raster', source: 'imagery' }],
 };
 
 export const elevation: MapLibreLayerStyle = {
@@ -25,7 +26,7 @@ export const elevation: MapLibreLayerStyle = {
     terrain: { type: 'raster-dem', url: 'https://tiles.mapterhorn.com/tilejson.json', tileSize: 512, encoding: 'terrarium' },
   },
   layers: [{
-    id: 'relief',
+    id: 'elevation',
     type: 'color-relief',
     source: 'terrain',
     paint: {
