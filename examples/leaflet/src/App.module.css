@@ -20,3 +20,34 @@
   flex: 1;
   position: relative;
 }
+
+@media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  .panel {
+    order: 1;
+    flex: 1;
+    min-height: 0;
+    width: auto;
+    padding: 12px;
+    border-right: none;
+    border-top: 1px solid #ccc;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .intro {
+    font-size: 0.875rem;
+  }
+
+  .map {
+    flex: none;
+    height: 50dvh;
+  }
+}

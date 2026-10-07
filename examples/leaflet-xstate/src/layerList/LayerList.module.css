@@ -1,5 +1,6 @@
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   align-items: center;
   margin-bottom: 0.5rem;
@@ -9,6 +10,7 @@
 .layerItem {
   padding: 0.5rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   cursor: pointer;
   user-select: none;
@@ -108,4 +110,28 @@
 
 .addButton:active {
   background-color: #e0e0e0;
+}
+
+@media (pointer: coarse) {
+  .layerItem {
+    padding: 0.625rem 0.5rem;
+  }
+
+  .label input[type='checkbox'] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .dragHandle {
+    padding: 0.25rem 0.5rem;
+    font-size: 1.25rem;
+  }
+
+  .opacitySlider {
+    width: 120px;
+  }
+
+  .addButton {
+    padding: 0.5rem 0.875rem;
+  }
 }
