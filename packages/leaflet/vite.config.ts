@@ -1,4 +1,5 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import camelCase from 'camelcase';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
@@ -6,10 +7,7 @@ import packageJson from './package.json' with { type: 'json' };
 
 const packageName = packageJson.name.split('/').pop() ?? packageJson.name;
 
-const externalDeps = [
-  ...Object.keys(packageJson.dependencies ?? {}),
-  ...Object.keys(packageJson.peerDependencies ?? {}),
-];
+const externalDeps = Object.keys(packageJson.peerDependencies);
 
 export default defineConfig({
   build: {
@@ -26,4 +24,9 @@ export default defineConfig({
   plugins: [
     dts({ bundleTypes: true }),
   ],
+  test: {
+    alias: {
+      '@ulm/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
+    },
+  },
 });
