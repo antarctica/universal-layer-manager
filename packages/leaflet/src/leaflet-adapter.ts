@@ -5,9 +5,9 @@ import type {
 } from '@ulm/core';
 
 import type L from 'leaflet';
-import type { LeafletAdapterOptions, LeafletLayerFactory } from './types';
+import type { LeafletAdapterOptions, LeafletRenderLayer } from './types';
 
-import { createDefaultLeafletFactory } from './default-factory';
+import { createDefaultLeafletRenderLayer } from './default-render-layer';
 
 const CONTAINER_PANE = 'ulmPane';
 // Between Leaflet's overlay pane (400) and shadow pane (500), so popups, tooltips and unmanaged markers stay on top.
@@ -31,13 +31,13 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: L.Map;
   private readonly options: LeafletAdapterOptions<TLayer>;
-  private readonly layerFactory: LeafletLayerFactory<TLayer>;
+  private readonly render: LeafletRenderLayer<TLayer>;
   private readonly leafletLayers = new Map<string, L.Layer>();
 
   constructor(map: L.Map, options: LeafletAdapterOptions<TLayer> = {}) {
     this.map = map;
     this.options = options;
-    this.layerFactory = options.layerFactory ?? createDefaultLeafletFactory<TLayer>();
+    this.render = options.renderLayer ?? createDefaultLeafletRenderLayer<TLayer>();
   }
 
   // --------------------------------------------------------------------------
@@ -62,9 +62,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.createLayerPane(info.layerId);
     this.fadeLayerPane(info.layerId, info.computedOpacity);
 
-    const leafletLayer = this.layerFactory(info, this.map);
+    const leafletLayer = this.render(info, this.map);
     if (leafletLayer) {
-      this.drawLayer(info, leafletLayer);
+      this.placeLayer(info, leafletLayer);
     }
   }
 
@@ -89,14 +89,14 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     this.fadeLayerPane(info.layerId, computedOpacity);
   }
 
-  // The factory can read the time, so a new time redraws the layer as new data does.
+  // renderLayer can read the time, so a new time draws the layer again as new data does.
   onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
     this.onLayerDataChanged(info);
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
     if (info.layerType === 'layer') {
-      this.drawFromFactory(info);
+      this.renderAgain(info);
     }
   }
 
@@ -115,21 +115,21 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // Private helpers
   // --------------------------------------------------------------------------
 
-  // Runs the factory with the Leaflet layer already drawn, and draws what it returns in that layer's place.
-  private drawFromFactory(info: LayerInfo<TLayer>): L.Layer | null {
+  // Runs renderLayer with the Leaflet layer already drawn, and places what it returns in that layer's place.
+  private renderAgain(info: LayerInfo<TLayer>): L.Layer | null {
     const previous = this.leafletLayers.get(info.layerId);
-    const leafletLayer = this.layerFactory(info, this.map, previous);
+    const leafletLayer = this.render(info, this.map, previous);
     if (leafletLayer !== previous) {
       this.eraseLayer(info.layerId);
       if (leafletLayer) {
-        this.drawLayer(info, leafletLayer);
+        this.placeLayer(info, leafletLayer);
       }
     }
     return leafletLayer;
   }
 
   // Draws a layer's Leaflet layer in the layer's pane, and on the map if the layer is showing.
-  private drawLayer(info: LayerInfo<TLayer>, leafletLayer: L.Layer): void {
+  private placeLayer(info: LayerInfo<TLayer>, leafletLayer: L.Layer): void {
     this.leafletLayers.set(info.layerId, leafletLayer);
     placeInPane(leafletLayer, layerPaneName(info.layerId));
     if (info.visible) {

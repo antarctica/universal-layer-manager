@@ -4,7 +4,7 @@ import { LayerManager } from '@ulm/core';
 import * as L from 'leaflet';
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { createDefaultLeafletFactory } from '../src/default-factory';
+import { createDefaultLeafletRenderLayer } from '../src/default-render-layer';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,13 +25,13 @@ function setup(options: LeafletAdapterOptions<LayerData> = {}) {
   const map = L.map(container, { center: LONDON, zoom: 13 });
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
 
-  // The Leaflet layer the factory last gave the adapter for each layer, so the map can be checked against it.
+  // The Leaflet layer renderLayer last gave the adapter for each layer, so the map can be checked against it.
   const built = new Map<string, L.Layer | null>();
-  const layerFactory = options.layerFactory ?? createDefaultLeafletFactory<LayerData>();
+  const renderLayer = options.renderLayer ?? createDefaultLeafletRenderLayer<LayerData>();
   manager.setAdapter(new LeafletLayerManagerAdapter<LayerData>(map, {
     ...options,
-    layerFactory: (info, factoryMap, current) => {
-      const leafletLayer = layerFactory(info, factoryMap, current);
+    renderLayer: (info, renderMap, current) => {
+      const leafletLayer = renderLayer(info, renderMap, current);
       built.set(info.layerId, leafletLayer);
       return leafletLayer;
     },
@@ -206,8 +206,8 @@ describe('leafletLayerManagerAdapter', () => {
     expect(removed).not.toHaveBeenCalled();
   });
 
-  it('keeps the current Leaflet layer when the layer factory returns it', () => {
-    const { map, manager } = setup({ layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+  it('keeps the current Leaflet layer when renderLayer returns it', () => {
+    const { map, manager } = setup({ renderLayer: (info, _map, current) => current ?? info.layerData.leafletLayer });
     const before = circle();
     manager.addLayer({ ...layerParams('layer-1', before), visible: true });
 
@@ -218,7 +218,7 @@ describe('leafletLayerManagerAdapter', () => {
 
   it('takes a layer off the map when its new data has no Leaflet layer', () => {
     const skipped = circle();
-    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    const { map, manager } = setup({ renderLayer: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
     const before = circle();
     manager.addLayer({ ...layerParams('layer-1', before), visible: true });
 
@@ -227,9 +227,9 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(before)).toBe(false);
   });
 
-  it('draws a layer the factory skipped once its new data has a Leaflet layer', () => {
+  it('draws a layer renderLayer skipped once its new data has a Leaflet layer', () => {
     const skipped = circle();
-    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    const { map, manager } = setup({ renderLayer: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
     manager.addLayer({ ...layerParams('bottom', circle()), visible: true });
     manager.addLayer({ ...layerParams('layer-1', skipped), visible: true, position: 'top' });
     const after = circle();
@@ -239,9 +239,9 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(after)).toBe(true);
   });
 
-  it('draws a layer the factory skipped at the opacity it was given while skipped', () => {
+  it('draws a layer renderLayer skipped at the opacity it was given while skipped', () => {
     const skipped = circle();
-    const { map, manager } = setup({ layerFactory: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
+    const { map, manager } = setup({ renderLayer: (info) => (info.layerData.leafletLayer === skipped ? null : info.layerData.leafletLayer) });
     manager.addLayer({ ...layerParams('layer-1', skipped), visible: true });
     manager.setOpacity('layer-1', 0.5);
     const after = circle();
@@ -390,9 +390,9 @@ describe('leafletLayerManagerAdapter', () => {
     expect(map.hasLayer(leafletLayer)).toBe(false);
   });
 
-  it('draws the Leaflet layer the factory builds for a layer\'s new time', () => {
+  it('draws the Leaflet layer renderLayer builds for a layer\'s new time', () => {
     const newYearsDayLayer = circle();
-    const { map, manager } = setup({ layerFactory: (info) => (info.timeInfo ? newYearsDayLayer : info.layerData.leafletLayer) });
+    const { map, manager } = setup({ renderLayer: (info) => (info.timeInfo ? newYearsDayLayer : info.layerData.leafletLayer) });
     const before = circle();
     manager.addLayer({ ...layerParams('layer-1', before), visible: true });
     const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
@@ -402,8 +402,8 @@ describe('leafletLayerManagerAdapter', () => {
     expect([map.hasLayer(before), map.hasLayer(newYearsDayLayer)]).toEqual([false, true]);
   });
 
-  it('keeps a layer on the map when the factory returns it for the new time', () => {
-    const { manager } = setup({ layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+  it('keeps a layer on the map when renderLayer returns it for the new time', () => {
+    const { manager } = setup({ renderLayer: (info, _map, current) => current ?? info.layerData.leafletLayer });
     const leafletLayer = circle();
     manager.addLayer({ ...layerParams('layer-1', leafletLayer), visible: true });
     const removed = vi.fn();
@@ -426,7 +426,7 @@ describe('leafletLayerManagerAdapter', () => {
     expect(disposeLayer).toHaveBeenCalledWith(leafletLayer, 'layer-1');
   });
 
-  it('passes the Leaflet layer the factory replaces to disposeLayer', () => {
+  it('passes the Leaflet layer renderLayer replaces to disposeLayer', () => {
     const disposeLayer = vi.fn();
     const { manager } = setup({ disposeLayer });
     const before = circle();
@@ -461,9 +461,9 @@ describe('leafletLayerManagerAdapter', () => {
     expect(disposeLayer).not.toHaveBeenCalled();
   });
 
-  it('keeps a Leaflet layer from disposeLayer when the factory returns it again', () => {
+  it('keeps a Leaflet layer from disposeLayer when renderLayer returns it again', () => {
     const disposeLayer = vi.fn();
-    const { manager } = setup({ disposeLayer, layerFactory: (info, _map, current) => current ?? info.layerData.leafletLayer });
+    const { manager } = setup({ disposeLayer, renderLayer: (info, _map, current) => current ?? info.layerData.leafletLayer });
     manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
 
     manager.updateLayerData('layer-1', { leafletLayer: circle() });
@@ -471,9 +471,9 @@ describe('leafletLayerManagerAdapter', () => {
     expect(disposeLayer).not.toHaveBeenCalled();
   });
 
-  it('passes the Leaflet layer the factory replaces for a new time to disposeLayer', () => {
+  it('passes the Leaflet layer renderLayer replaces for a new time to disposeLayer', () => {
     const disposeLayer = vi.fn();
-    const { manager } = setup({ disposeLayer, layerFactory: (info) => (info.timeInfo ? circle() : info.layerData.leafletLayer) });
+    const { manager } = setup({ disposeLayer, renderLayer: (info) => (info.timeInfo ? circle() : info.layerData.leafletLayer) });
     const before = circle();
     manager.addLayer({ ...layerParams('layer-1', before), visible: true });
     const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };

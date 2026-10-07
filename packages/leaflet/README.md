@@ -44,7 +44,7 @@ manager.addLayer({
 
 ## Learn more
 
-- [Leaflet guide](https://antarctica.github.io/universal-layer-manager/adapters/leaflet): layer factories, and how stacking and opacity work
+- [Leaflet guide](https://antarctica.github.io/universal-layer-manager/adapters/leaflet): drawing layers with renderLayer, and how stacking and opacity work
 - [API reference](https://antarctica.github.io/universal-layer-manager/reference/leaflet)
 - [`@ulm/core` documentation](https://antarctica.github.io/universal-layer-manager/)
 
