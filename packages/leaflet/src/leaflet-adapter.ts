@@ -1,4 +1,5 @@
 import type {
+  LayerInfo,
   LayerManagerAdapter,
   ManagedLayerInfo,
 } from '@ulm/core';
@@ -63,30 +64,23 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    const leafletLayer = this.layerFactory(info, this.map);
-    if (!leafletLayer) {
-      return;
-    }
-
-    this.leafletLayers.set(info.layerId, leafletLayer);
-    placeInPane(leafletLayer, this.createLayerPane(info.layerId));
+    this.createLayerPane(info.layerId);
     this.fadeLayerPane(info.layerId, info.computedOpacity);
 
-    if (info.visible) {
-      leafletLayer.addTo(this.map);
+    const leafletLayer = this.layerFactory(info, this.map);
+    if (leafletLayer) {
+      this.drawLayer(info, leafletLayer);
+      this.options.hooks?.onLayerAdded?.(info, leafletLayer);
     }
-
-    this.options.hooks?.onLayerAdded?.(info, leafletLayer);
   }
 
   onLayerRemoved(layerId: string): void {
+    this.map.getPane(layerPaneName(layerId))?.remove();
     const leafletLayer = this.leafletLayers.get(layerId);
     if (!leafletLayer) {
       return;
     }
-    this.map.removeLayer(leafletLayer);
-    this.map.getPane(layerPaneName(layerId))?.remove();
-    this.leafletLayers.delete(layerId);
+    this.eraseLayer(layerId);
     this.options.hooks?.onLayerRemoved?.(layerId, leafletLayer);
   }
 
@@ -112,20 +106,29 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
+    this.fadeLayerPane(info.layerId, computedOpacity);
     const leafletLayer = this.leafletLayers.get(info.layerId);
     if (info.layerType !== 'layer' || !leafletLayer) {
       return;
     }
-    this.fadeLayerPane(info.layerId, computedOpacity);
     this.options.hooks?.onOpacityChanged?.(info, info.opacity, computedOpacity, leafletLayer);
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    const leafletLayer = this.leafletLayers.get(info.layerId);
-    if (info.layerType !== 'layer' || !leafletLayer) {
+    if (info.layerType !== 'layer') {
       return;
     }
-    this.options.hooks?.onLayerDataChanged?.(info, leafletLayer);
+    const previous = this.leafletLayers.get(info.layerId);
+    const leafletLayer = this.layerFactory(info, this.map, previous);
+    if (leafletLayer !== previous) {
+      this.eraseLayer(info.layerId);
+      if (leafletLayer) {
+        this.drawLayer(info, leafletLayer);
+      }
+    }
+    if (leafletLayer) {
+      this.options.hooks?.onLayerDataChanged?.(info, leafletLayer);
+    }
   }
 
   onOrderChanged(layerOrder: string[]): void {
@@ -143,10 +146,26 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // Private helpers
   // --------------------------------------------------------------------------
 
-  private createLayerPane(layerId: string): string {
-    const name = layerPaneName(layerId);
-    this.attachPane(name, this.getContainerPane());
-    return name;
+  // Draws a layer's Leaflet layer in the layer's pane, and on the map if the layer is showing.
+  private drawLayer(info: LayerInfo<TLayer>, leafletLayer: L.Layer): void {
+    this.leafletLayers.set(info.layerId, leafletLayer);
+    placeInPane(leafletLayer, layerPaneName(info.layerId));
+    if (info.visible) {
+      leafletLayer.addTo(this.map);
+    }
+  }
+
+  // Takes a layer's Leaflet layer off the map. The layer's pane stays.
+  private eraseLayer(layerId: string): void {
+    const leafletLayer = this.leafletLayers.get(layerId);
+    if (leafletLayer) {
+      this.map.removeLayer(leafletLayer);
+      this.leafletLayers.delete(layerId);
+    }
+  }
+
+  private createLayerPane(layerId: string): void {
+    this.attachPane(layerPaneName(layerId), this.getContainerPane());
   }
 
   private fadeLayerPane(layerId: string, computedOpacity: number): void {

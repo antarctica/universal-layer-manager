@@ -34,7 +34,7 @@ manager.addLayer({
 
 ## Creating layers with a factory
 
-If you'd rather keep plain settings in `layerData`, such as a URL, give the adapter a `layerFactory`. It is called once for each layer added, and returns the Leaflet layer to use, or `null` to leave that layer off the map.
+If you'd rather keep plain settings in `layerData`, such as a URL, give the adapter a `layerFactory`. It is called for each layer added, and again whenever a layer's data is replaced. It returns the Leaflet layer to use, or `null` to leave that layer off the map.
 
 ```ts
 interface LayerData {
@@ -49,6 +49,37 @@ manager.setAdapter(
   }),
 );
 ```
+
+### When a layer's data changes
+
+When you replace a layer's data with `updateLayerData`, the adapter calls the factory again. This time it also passes the Leaflet layer it already drew, as `current`. If the factory returns that same layer, the map is left alone. If it returns a different one, the adapter draws the new layer in place of the old one, in the same place in the order, at the same opacity and visibility.
+
+So a factory can update the layer it already has, instead of building a new one. Here each layer is a WMS layer, and `layerData` holds its settings. Changing `layers` or `styles` asks the same Leaflet layer for new images, so its popups, tooltips and event handlers stay in place. Leaflet only reads a layer's attribution when the layer is added to the map, so a new `attribution` builds a new layer instead:
+
+```ts
+interface LayerData {
+  url: string;
+  layers: string;
+  styles: string;
+  attribution: string;
+}
+
+manager.setAdapter(
+  new LeafletLayerManagerAdapter<LayerData>(map, {
+    layerFactory(info, _map, current) {
+      const { url, layers, styles, attribution } = info.layerData;
+      if (current instanceof L.TileLayer.WMS && current.options.attribution === attribution) {
+        return current.setParams({ layers, styles });
+      }
+      return L.tileLayer.wms(url, { layers, styles, attribution });
+    },
+  }),
+);
+```
+
+`setParams` returns the same layer, so the adapter leaves it in place. A new layer is drawn in place of the old one, and Leaflet's attribution control shows its attribution.
+
+If you keep the Leaflet layer itself in `layerData`, as in the first example, there is nothing to do: changing other data keeps the same Leaflet layer, so the map is left alone.
 
 ## Running your own code with hooks
 
