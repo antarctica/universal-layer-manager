@@ -34,8 +34,14 @@ function onlyGeoJsonDataChanged(previous: MapLibreLayerStyle, next: MapLibreLaye
   return sameJson(previous.layers, next.layers) && sameJson(withoutGeoJsonData(previous.sources), withoutGeoJsonData(next.sources));
 }
 
+// A source's spec without the values MapLibre updates in place: GeoJSON data, and a tile source's tiles and url.
 function withoutInPlaceValues(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(sources).map(([id, source]) => [id, { ...source, data: null, tiles: null, url: null }]));
+  return Object.fromEntries(Object.entries(sources).map(([id, source]) => {
+    if (source.type === 'geojson') {
+      return [id, { ...source, data: null }];
+    }
+    return [id, isTileSource(source) ? { ...source, tiles: null, url: null } : source];
+  }));
 }
 
 // Whether two styles draw the same, apart from the GeoJSON data and tile URLs that MapLibre updates in place.
