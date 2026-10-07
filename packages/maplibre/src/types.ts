@@ -1,7 +1,7 @@
-import type { RenderAdapterOptions, RenderLayer } from '@ulm/core';
+import type { RenderAdapterArgs, RenderAdapterOptions, RenderLayer } from '@ulm/core';
 
 import type { MapLibreMap, TransformStyleFunction } from 'maplibre-gl';
-import type { createDefaultMapLibreRenderLayer } from './default-render-layer';
+import type { defaultMapLibreRenderLayer } from './default-render-layer';
 
 // maplibre-gl does not export the style spec types, so they are read off its API.
 export type StyleSpecification = ReturnType<TransformStyleFunction>;
@@ -26,21 +26,19 @@ export interface MapLibreLayerStyle {
  * The adapter calls it when a layer is added, and again when its `layerData` or `timeInfo` changes, with the style it
  * returned last time as `current`. Return `current` to leave the map as it is.
  *
- * Without one, the adapter uses {@link createDefaultMapLibreRenderLayer}, which draws `layerData` that is already a
+ * Without one, the adapter uses {@link defaultMapLibreRenderLayer}, which draws `layerData` that is already a
  * {@link MapLibreLayerStyle}. Write your own to keep other data in `layerData`, such as a URL, and fall back to the
  * default for the rest:
  *
  * ```ts
- * const renderStyle = createDefaultMapLibreRenderLayer<LayerData>();
- *
- * const renderLayer: MapLibreRenderLayer<LayerData> = (info, map) => {
+ * const renderLayer: MapLibreRenderLayer<LayerData> = (info) => {
  *   if ('geojsonUrl' in info.layerData) {
  *     return {
  *       sources: { [info.layerId]: { type: 'geojson', data: info.layerData.geojsonUrl } },
  *       layers: [{ id: 'line', type: 'line', source: info.layerId }],
  *     };
  *   }
- *   return renderStyle(info, map);
+ *   return defaultMapLibreRenderLayer(info);
  * };
  * ```
  */
@@ -51,7 +49,7 @@ export type MapLibreRenderLayer<TLayer> = RenderLayer<TLayer, MapLibreMap, MapLi
 // ============================================================================
 
 export interface MapLibreAdapterOptions<TLayer> extends RenderAdapterOptions<TLayer, MapLibreMap, MapLibreLayerStyle> {
-  /** Returns the style that shows each layer. Defaults to {@link createDefaultMapLibreRenderLayer}. */
+  /** Returns the style that shows each layer. Defaults to {@link defaultMapLibreRenderLayer}. */
   renderLayer?: MapLibreRenderLayer<TLayer>;
   /**
    * Undoes what was set up for a layer's style once the adapter discards it: when the layer is removed, when
@@ -65,3 +63,6 @@ export interface MapLibreAdapterOptions<TLayer> extends RenderAdapterOptions<TLa
    */
   drawBelow?: string;
 }
+
+/** The adapter's options: optional when every layer's data is a {@link MapLibreLayerStyle}, otherwise with `renderLayer`. */
+export type MapLibreAdapterArgs<TLayer> = RenderAdapterArgs<TLayer, MapLibreAdapterOptions<TLayer>, MapLibreLayerStyle>;

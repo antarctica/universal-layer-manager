@@ -1,10 +1,10 @@
 import type { LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
 
 import type { GeoJSONSource, MapLibreMap, RasterTileSource, Style, VectorTileSource } from 'maplibre-gl';
-import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerStyle, MapLibreRenderLayer, SourceSpecification } from './types';
+import type { LayerSpecification, MapLibreAdapterArgs, MapLibreAdapterOptions, MapLibreLayerStyle, MapLibreRenderLayer, SourceSpecification } from './types';
 
 import { ErrorEvent } from 'maplibre-gl';
-import { createDefaultMapLibreRenderLayer } from './default-render-layer';
+import { defaultMapLibreRenderLayer } from './default-render-layer';
 
 // Style specs are plain JSON.
 function sameJson(a: unknown, b: unknown): boolean {
@@ -131,9 +131,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // isStyleLoaded() goes false while tiles load, so this tracks the style that last finished loading.
   private loadedStyle: Style | undefined;
 
-  constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer> = {}) {
+  constructor(map: MapLibreMap, ...[options = {}]: MapLibreAdapterArgs<TLayer>) {
     this.map = map;
-    this.render = options.renderLayer ?? createDefaultMapLibreRenderLayer<TLayer>();
+    this.render = options.renderLayer ?? defaultMapLibreRenderLayer;
     this.disposeLayer = options.disposeLayer;
     this.drawBelow = options.drawBelow;
   }

@@ -678,6 +678,7 @@ describe('mapLibreLayerManagerAdapter', () => {
     const map = createMap();
     await map.once('style.load');
     const manager = new LayerManager<{ url: string }>();
+    // @ts-expect-error The default renderLayer shows only a MapLibre style, so { url } data needs a renderLayer.
     manager.setAdapter(new MapLibreLayerManagerAdapter<{ url: string }>(map));
 
     manager.addLayer({ layerConfig: { layerId: 'rivers', layerName: 'Rivers', layerType: 'layer', layerData: { url: 'rivers.geojson' } }, visible: true });
