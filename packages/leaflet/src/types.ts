@@ -1,4 +1,4 @@
-import type { LayerInfo } from '@ulm/core';
+import type { LayerInfo, LayerTimeInfo } from '@ulm/core';
 
 import type L from 'leaflet';
 
@@ -37,6 +37,11 @@ export interface LeafletAdapterHooks<TLayer> {
     info: LayerInfo<TLayer>,
     opacity: number,
     computedOpacity: number,
+    leafletLayer: L.Layer,
+  ) => void;
+  onTimeInfoChanged?: (
+    info: LayerInfo<TLayer>,
+    timeInfo: LayerTimeInfo,
     leafletLayer: L.Layer,
   ) => void;
   onLayerDataChanged?: (

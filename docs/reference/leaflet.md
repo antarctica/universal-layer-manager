@@ -20,6 +20,7 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 | `onVisibilityChanged(info, visible, leafletLayer)` | A layer is added to or removed from the map |
 | `onEnabledChanged(info, enabled, leafletLayer)` | A layer is switched on or off. The map doesn't change, because visibility decides what is drawn |
 | `onOpacityChanged(info, opacity, computedOpacity, leafletLayer)` | A layer's computed opacity changes and its pane has been faded |
+| `onTimeInfoChanged(info, timeInfo, leafletLayer)` | A layer's time info changes. The map doesn't change, so use this to apply the time |
 | `onLayerDataChanged(info, leafletLayer)` | A layer's `layerData` is replaced, and the factory's Leaflet layer is drawn |
 
 **Methods** you might call yourself:

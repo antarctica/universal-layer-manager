@@ -1,6 +1,7 @@
 import type {
   LayerInfo,
   LayerManagerAdapter,
+  LayerTimeInfo,
   ManagedLayerInfo,
 } from '@ulm/core';
 
@@ -112,6 +113,14 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     this.options.hooks?.onOpacityChanged?.(info, info.opacity, computedOpacity, leafletLayer);
+  }
+
+  onTimeInfoChanged(info: ManagedLayerInfo<TLayer, TGroup>, timeInfo: LayerTimeInfo): void {
+    const leafletLayer = this.leafletLayers.get(info.layerId);
+    if (info.layerType !== 'layer' || !leafletLayer) {
+      return;
+    }
+    this.options.hooks?.onTimeInfoChanged?.(info, timeInfo, leafletLayer);
   }
 
   onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
