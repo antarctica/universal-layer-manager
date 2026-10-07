@@ -22,6 +22,15 @@ const BASEMAP = {
   ],
 } satisfies StyleSpecification;
 
+// A second basemap to switch to, with its own label layer.
+const DARK_BASEMAP = {
+  ...BASEMAP,
+  layers: [
+    { id: 'night', type: 'background', paint: { 'background-color': '#111111' } },
+    { id: 'place-names', type: 'symbol', source: 'basemap', layout: { 'text-field': ['get', 'name'] } },
+  ],
+} satisfies StyleSpecification;
+
 /** A map whose style is still loading. */
 function createMap(style: StyleSpecification = BASEMAP): maplibregl.Map {
   const container = document.createElement('div');
@@ -610,5 +619,37 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(map.getSource('ulm:imagery')).toBe(source);
     expect(source?.serialize().url).toBe('test://2026.json');
+  });
+
+  it('draws its layers below the new basemap\'s labels after the app changes the style', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    map.setStyle(DARK_BASEMAP);
+
+    expect(map.getLayersOrder()).toEqual(['night', 'ulm:rivers:casing', 'ulm:rivers:line', 'place-names']);
+  });
+
+  it('draws its layers hidden and faded as before after the app rebuilds the style without a diff', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: false, position: 'top' });
+    manager.setOpacity('lakes', 0.5);
+
+    map.setStyle(DARK_BASEMAP, { diff: false });
+    await map.once('style.load');
+
+    expect(map.getLayersOrder()).toEqual(['night', 'ulm:lakes:water', 'ulm:lakes:shore', 'place-names']);
+    expect(visibilityOf(map, ['ulm:lakes:water', 'ulm:lakes:shore'])).toEqual(['none', 'none']);
+    expect(map.getPaintProperty('ulm:lakes:water', 'fill-layer-opacity')).toBe(0.5);
+  });
+
+  it('adds a layer added while the app rebuilds the style once the new style has loaded', async () => {
+    const { map, manager } = await setup();
+    map.setStyle(DARK_BASEMAP, { diff: false });
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+    await map.once('style.load');
+
+    expect(map.getLayersOrder()).toEqual(['night', 'ulm:rivers:casing', 'ulm:rivers:line', 'place-names']);
   });
 });
