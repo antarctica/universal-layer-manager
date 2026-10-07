@@ -45,24 +45,26 @@ export function isRangeTimeInfo(timeInfo?: LayerTimeInfo): timeInfo is RangeTime
 
 export type LayerType = 'layer' | 'layerGroup';
 
-export interface BaseLayerConfig<T> {
+/** `layerData` may be left out when its type allows `undefined`, such as groups that carry no data. */
+export type LayerDataField<T> = undefined extends T ? { layerData?: T } : { layerData: T };
+
+export type BaseLayerConfig<T> = LayerDataField<T> & {
   layerId: string;
   layerName: string;
   parentId?: string | null;
-  layerData: T;
   timeInfo?: LayerTimeInfo;
   opacity?: number;
-}
+};
 
-export interface LayerConfig<TLayer> extends BaseLayerConfig<TLayer> {
+export type LayerConfig<TLayer> = BaseLayerConfig<TLayer> & {
   layerType: 'layer';
   listMode?: 'show' | 'hide';
-}
+};
 
-export interface LayerGroupConfig<TGroup = undefined> extends BaseLayerConfig<TGroup> {
+export type LayerGroupConfig<TGroup = undefined> = BaseLayerConfig<TGroup> & {
   layerType: 'layerGroup';
   listMode?: 'show' | 'hide' | 'hide-children';
-}
+};
 
 // ============================================================================
 // ADD AND MOVE PARAMETERS

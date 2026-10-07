@@ -520,6 +520,23 @@ describe('layerManager', () => {
       });
     });
 
+    it('adds a group without layer data while groups carry none', () => {
+      const { manager } = createManager();
+
+      manager.addGroup({ layerConfig: { layerId: 'group-1', layerName: 'Group', layerType: 'layerGroup' } });
+
+      expect(manager.getTree().layers['group-1']).toMatchObject({ layerType: 'layerGroup', layerData: undefined });
+    });
+
+    it('needs layer data for a layer whose data type has no undefined', () => {
+      const { manager } = createManager();
+
+      // @ts-expect-error TestLayerData does not include undefined, so a layer must carry it.
+      manager.addLayer({ layerConfig: { layerId: 'layer-1', layerName: 'Layer', layerType: 'layer' } });
+
+      expect(manager.getTree().layers['layer-1']?.layerData).toBeUndefined();
+    });
+
     it('adds a layer switched off and hidden by default', () => {
       const { manager, map } = createManager();
 
