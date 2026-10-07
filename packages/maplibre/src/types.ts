@@ -56,6 +56,12 @@ export interface MapLibreAdapterOptions<TLayer> {
   /** Builds each layer's style. Defaults to {@link createDefaultMapLibreFactory}. */
   layerFactory?: MapLibreLayerFactory<TLayer>;
   /**
+   * Undoes what was set up for a layer's style once the adapter discards it: when the layer is removed, when the
+   * factory returns a different style, and when the adapter is detached. A style that differs only in GeoJSON data or
+   * tile URLs is updated in place, not discarded, and hiding a layer does not discard its style.
+   */
+  disposeLayer?: (style: MapLibreLayerStyle, layerId: string) => void;
+  /**
    * The ID of a style layer to draw every layer below. Leave it out to draw them below the
    * map's first label layer, or on top when the map has no labels.
    */

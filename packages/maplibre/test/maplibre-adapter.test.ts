@@ -4,7 +4,7 @@ import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerStyle, So
 import { isSingleTimeInfo, LayerManager } from '@ulm/core';
 import * as maplibregl from 'maplibre-gl';
 import { Temporal } from 'temporal-polyfill';
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { MapLibreLayerManagerAdapter } from '../src/maplibre-adapter';
 
 type LayerData = MapLibreLayerStyle;
@@ -791,5 +791,81 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
 
     expect(overlay(map)).toEqual({ sources: ['rivers'], layers: ['rivers-casing', 'rivers-line', 'app-highlight'] });
+  });
+
+  it('passes a removed layer\'s style to disposeLayer', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.removeLayer('rivers');
+
+    expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
+  });
+
+  it('passes the style the factory replaces to disposeLayer', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', lakes());
+
+    expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
+  });
+
+  it('keeps a style from disposeLayer when only its tile URLs change, as the source takes them in place', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    const imagery = (tiles: string[]): LayerData => ({
+      sources: { imagery: { type: 'raster', tiles, tileSize: 256 } },
+      layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
+    });
+    manager.addLayer({ ...layerParams('imagery', imagery(['test://2025/{z}/{x}/{y}.png'])), visible: true });
+
+    manager.updateLayerData('imagery', imagery(['test://2026/{z}/{x}/{y}.png']));
+
+    expect(disposeLayer).not.toHaveBeenCalled();
+  });
+
+  it('passes every layer\'s style to disposeLayer when the adapter is detached', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: false });
+
+    manager.setAdapter(null);
+
+    expect(disposeLayer.mock.calls).toEqual(expect.arrayContaining([[rivers(), 'rivers'], [lakes(), 'lakes']]));
+    expect(disposeLayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a hidden layer\'s style from disposeLayer, as it comes back when shown', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.setEnabled('rivers', false);
+
+    expect(disposeLayer).not.toHaveBeenCalled();
+  });
+
+  it('keeps a style from disposeLayer when only its GeoJSON data changes', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: THAMES } } });
+
+    expect(disposeLayer).not.toHaveBeenCalled();
+  });
+
+  it('passes a layer\'s style to disposeLayer when the factory returns null for its new data', async () => {
+    const disposeLayer = vi.fn();
+    const { manager } = await setup({ disposeLayer, layerFactory: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', { layers: [] });
+
+    expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
   });
 });
