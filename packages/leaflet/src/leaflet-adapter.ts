@@ -33,8 +33,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly options: LeafletAdapterOptions<TLayer>;
   private readonly layerFactory: LeafletLayerFactory<TLayer>;
   private readonly leafletLayers = new Map<string, L.Layer>();
-  // The latest info for each layer, for the factory when a layer is redrawn.
-  private readonly layerInfos = new Map<string, LayerInfo<TLayer>>();
 
   constructor(map: L.Map, options: LeafletAdapterOptions<TLayer> = {}) {
     this.map = map;
@@ -50,25 +48,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     for (const layerId of [...this.leafletLayers.keys()]) {
       this.eraseLayer(layerId);
     }
-    this.layerInfos.clear();
     this.map.getPane(CONTAINER_PANE)?.remove();
-  }
-
-  // --------------------------------------------------------------------------
-  // Called by the app
-  // --------------------------------------------------------------------------
-
-  /**
-   * Runs the layer factory again for one layer, or for every layer when `layerId` is left out, with the Leaflet layer
-   * already drawn as `current`. Use it when something the factory reads outside the manager changes, such as a theme.
-   */
-  redraw(layerId?: string): void {
-    for (const id of layerId === undefined ? [...this.layerInfos.keys()] : [layerId]) {
-      const info = this.layerInfos.get(id);
-      if (info) {
-        this.drawFromFactory(info);
-      }
-    }
   }
 
   // --------------------------------------------------------------------------
@@ -79,7 +59,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType !== 'layer') {
       return;
     }
-    this.rememberInfo(info);
     this.createLayerPane(info.layerId);
     this.fadeLayerPane(info.layerId, info.computedOpacity);
 
@@ -90,13 +69,11 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   }
 
   onLayerRemoved(layerId: string): void {
-    this.layerInfos.delete(layerId);
     this.map.getPane(layerPaneName(layerId))?.remove();
     this.eraseLayer(layerId);
   }
 
   onVisibilityChanged(info: ManagedLayerInfo<TLayer, TGroup>, visible: boolean): void {
-    this.rememberInfo(info);
     const leafletLayer = this.leafletLayers.get(info.layerId);
     if (info.layerType !== 'layer' || !leafletLayer) {
       return;
@@ -108,12 +85,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
-  onEnabledChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    this.rememberInfo(info);
-  }
-
   onOpacityChanged(info: ManagedLayerInfo<TLayer, TGroup>, computedOpacity: number): void {
-    this.rememberInfo(info);
     this.fadeLayerPane(info.layerId, computedOpacity);
   }
 
@@ -126,10 +98,6 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (info.layerType === 'layer') {
       this.drawFromFactory(info);
     }
-  }
-
-  onLayerMoved(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    this.rememberInfo(info);
   }
 
   onOrderChanged(layerOrder: string[]): void {
@@ -147,15 +115,8 @@ implements LayerManagerAdapter<TLayer, TGroup> {
   // Private helpers
   // --------------------------------------------------------------------------
 
-  private rememberInfo(info: ManagedLayerInfo<TLayer, TGroup>): void {
-    if (info.layerType === 'layer') {
-      this.layerInfos.set(info.layerId, info);
-    }
-  }
-
   // Runs the factory with the Leaflet layer already drawn, and draws what it returns in that layer's place.
   private drawFromFactory(info: LayerInfo<TLayer>): L.Layer | null {
-    this.layerInfos.set(info.layerId, info);
     const previous = this.leafletLayers.get(info.layerId);
     const leafletLayer = this.layerFactory(info, this.map, previous);
     if (leafletLayer !== previous) {
