@@ -122,3 +122,12 @@ export interface RenderAdapterOptions<TLayer, TMap, TRendered> {
    */
   disposeLayer?: (rendered: TRendered, layerId: string) => void;
 }
+
+/**
+ * An adapter's options argument. It is optional when every layer's data has the shape the adapter's default
+ * `renderLayer` shows (`TDefaultData`), and must include `renderLayer` otherwise, so a mismatch fails to compile
+ * rather than leaving the map empty.
+ */
+export type RenderAdapterArgs<TLayer, TOptions extends { renderLayer?: unknown }, TDefaultData> = [TLayer] extends [TDefaultData]
+  ? [options?: TOptions]
+  : [options: TOptions & Required<Pick<TOptions, 'renderLayer'>>];
