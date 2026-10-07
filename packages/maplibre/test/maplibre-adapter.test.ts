@@ -28,9 +28,13 @@ function createMap(): maplibregl.Map {
   document.body.append(container);
 
   const map = new maplibregl.Map({ container, style: BASEMAP, center: [0, 0], zoom: 2, attributionControl: false });
+  // MapLibre reports a rejected style change as an error event, not a throw.
+  const errors: string[] = [];
+  map.on('error', ({ error }) => errors.push(error.message));
   onTestFinished(() => {
     map.remove();
     container.remove();
+    expect(errors, 'MapLibre errors').toEqual([]);
   });
   return map;
 }
@@ -78,6 +82,14 @@ function rivers(): LayerData {
       { id: 'casing', type: 'line', source: 'rivers' },
       { id: 'line', type: 'line', source: 'rivers' },
     ],
+  };
+}
+
+// Reads the same source as rivers().
+function riverNames(): LayerData {
+  return {
+    sources: { rivers: { type: 'geojson', data: EMPTY } },
+    layers: [{ id: 'names', type: 'symbol', source: 'rivers' }],
   };
 }
 
@@ -310,5 +322,56 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.setOpacity('relief', 0.5);
 
     expect(map.getStyle().layers.find((layer) => layer.id === 'ulm:relief:shade')?.paint).toEqual({ 'hillshade-exaggeration': 0.6 });
+  });
+
+  it('removes a layer\'s style layers and source from the map when it is removed', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.removeLayer('rivers');
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('keeps a shared source on the map until the last layer that reads it is removed', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    manager.addLayer({ ...layerParams('river-names', riverNames()), visible: true });
+
+    manager.removeLayer('rivers');
+    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:river-names:names'] });
+
+    manager.removeLayer('river-names');
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('removes the app\'s own style layers that read a layer\'s source along with the source', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    map.addLayer({ id: 'app-highlight', type: 'line', source: 'ulm:rivers' });
+
+    manager.removeLayer('rivers');
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('removes every source and style layer it added when the adapter is detached', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true });
+
+    manager.setAdapter(null);
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('removes every source and style layer it added when the manager is reset', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    manager.addLayer({ ...layerParams('river-names', riverNames()), visible: true });
+
+    manager.reset();
+
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
   });
 });
