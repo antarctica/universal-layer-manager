@@ -9,7 +9,7 @@ export type LayerSpecification = StyleSpecification['layers'][number];
 export type SourceSpecification = StyleSpecification['sources'][string];
 
 // ============================================================================
-// LAYER FACTORY
+// RENDER LAYER
 // Describes a layer as MapLibre sources and style layers. Return null to skip.
 // Layers that name the same source share it.
 // ============================================================================
