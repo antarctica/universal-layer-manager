@@ -1,0 +1,121 @@
+.controls {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.layerItem {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.layerItem.visible {
+  background-color: #d4edda;
+}
+
+.layerItem.hidden {
+  background-color: #f8d7da;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.labelText {
+  margin-left: 0.3125rem;
+}
+
+.opacityControls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.opacitySlider {
+  width: 100px;
+}
+
+.opacityValue {
+  min-width: 40px;
+}
+
+.dragHandle {
+  cursor: grab;
+  color: #666;
+}
+
+.drop-above {
+  box-shadow: inset 0 3px 0 #1f77b4;
+}
+
+.drop-below {
+  box-shadow: inset 0 -3px 0 #1f77b4;
+}
+
+.drop-into {
+  outline: 2px dashed #1f77b4;
+  outline-offset: -2px;
+}
+
+.treeItem {
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.group {
+  margin: 0.75rem 0;
+}
+
+.groupChildren {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #9aa5b1;
+}
+
+.groupChildren > .treeItem::before {
+  content: '';
+  position: absolute;
+  top: 1.1rem;
+  left: -0.75rem;
+  width: 0.6rem;
+  border-top: 2px solid #9aa5b1;
+}
+
+.addButton {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.addButton:hover {
+  background-color: #f5f5f5;
+  border-color: #999;
+}
+
+.addButton:active {
+  background-color: #e0e0e0;
+}
+
+.basemap {
+  margin-top: 0.5rem;
+  background-color: #e9ecef;
+  cursor: default;
+}
+
+.basemapSelect {
+  margin-left: auto;
+}
