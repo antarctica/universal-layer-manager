@@ -19,7 +19,8 @@ const BASEMAP = {
   ],
 } satisfies StyleSpecification;
 
-async function setup(options: Partial<MapLibreAdapterOptions<LayerData>> = {}) {
+/** A map whose style is still loading. */
+function createMap(): maplibregl.Map {
   const container = document.createElement('div');
   container.style.width = '400px';
   container.style.height = '400px';
@@ -30,14 +31,23 @@ async function setup(options: Partial<MapLibreAdapterOptions<LayerData>> = {}) {
     map.remove();
     container.remove();
   });
-  await map.once('style.load');
+  return map;
+}
 
+function attachManager(map: maplibregl.Map, options: Partial<MapLibreAdapterOptions<LayerData>> = {}) {
   const manager = new LayerManager<LayerData>();
   manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map, {
     layerFactory: (info) => info.layerData,
     ...options,
   }));
-  return { map, manager };
+  return manager;
+}
+
+/** A manager attached to a map whose style has loaded. */
+async function setup(options: Partial<MapLibreAdapterOptions<LayerData>> = {}) {
+  const map = createMap();
+  await map.once('style.load');
+  return { map, manager: attachManager(map, options) };
 }
 
 /** The sources and style layers on the map that the basemap did not bring, layers from the bottom up. */
@@ -67,6 +77,19 @@ describe('mapLibreLayerManagerAdapter', () => {
     const { map, manager } = await setup();
 
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    expect(overlay(map)).toEqual({
+      sources: ['ulm:rivers'],
+      layers: ['ulm:rivers:casing', 'ulm:rivers:line'],
+    });
+  });
+
+  it('adds a layer added while the style is loading once the style has loaded', async () => {
+    const map = createMap();
+    const manager = attachManager(map);
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    await map.once('style.load');
 
     expect(overlay(map)).toEqual({
       sources: ['ulm:rivers'],
