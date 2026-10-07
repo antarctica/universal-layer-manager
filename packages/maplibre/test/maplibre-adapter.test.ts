@@ -95,6 +95,11 @@ function riverNames(): LayerData {
   };
 }
 
+const THAMES: FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-0.5, 51.5], [0.1, 51.5]] } }],
+};
+
 function lakes(): LayerData {
   return {
     sources: { lakes: { type: 'geojson', data: EMPTY } },
@@ -115,7 +120,16 @@ function points(paint: CirclePaint = {}): LayerData {
 type PaintProperty = Parameters<maplibregl.Map['getPaintProperty']>[1];
 
 // A 1×1 PNG, so raster sources load without the network.
-const PNG_TILE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const PNG_TILE = `data:image/png;base64,${PNG_BASE64}`;
+
+// test:// URLs answer without the network: a .json URL is a TileJSON document, anything else the 1×1 PNG.
+maplibregl.addProtocol('test', async ({ url }) => {
+  if (url.endsWith('.json')) {
+    return { data: { tilejson: '3.0.0', tiles: [url.replace(/\.json$/, '/{z}/{x}/{y}.png')] } };
+  }
+  return { data: Uint8Array.from(atob(PNG_BASE64), (char) => char.charCodeAt(0)).buffer };
+});
 
 interface OwnOpacityCase {
   layer: LayerSpecification;
@@ -484,5 +498,117 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
 
     expect(map.getLayersOrder()).toEqual(['land', 'arrows', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+  });
+
+  it('gives a GeoJSON source new data in place when the layer\'s data changes', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    const source = map.getSource<maplibregl.GeoJSONSource>('ulm:rivers');
+
+    manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: THAMES } } });
+
+    expect(map.getSource('ulm:rivers')).toBe(source);
+    await expect(source?.getData()).resolves.toEqual(THAMES);
+  });
+
+  it('recreates a GeoJSON source when an option other than data changes, and keeps the layer in its place', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true, position: 'top' });
+    const source = map.getSource('ulm:rivers');
+
+    manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: EMPTY, tolerance: 1 } } });
+
+    expect(map.getSource('ulm:rivers')).not.toBe(source);
+    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'ulm:lakes:water', 'ulm:lakes:shore', 'labels']);
+  });
+
+  it('recreates a source whose type changes and draws its layer hidden and faded as before', async () => {
+    const { map, manager } = await setup();
+    const picture: SourceSpecification = { type: 'image', url: PNG_TILE, coordinates: [[-1, 1], [1, 1], [1, -1], [-1, -1]] };
+    const tiles: SourceSpecification = { type: 'raster', tiles: ['test://2026/{z}/{x}/{y}.png'], tileSize: 256 };
+    const layers: LayerSpecification[] = [{ id: 'tiles', type: 'raster', source: 'imagery', paint: { 'raster-opacity': 0.8 } }];
+    manager.addLayer({ ...layerParams('imagery', { sources: { imagery: picture }, layers }), visible: false });
+    manager.setOpacity('imagery', 0.5);
+    const source = map.getSource('ulm:imagery');
+
+    manager.updateLayerData('imagery', { sources: { imagery: tiles }, layers });
+
+    expect(map.getSource('ulm:imagery')).not.toBe(source);
+    expect(map.getSource('ulm:imagery')?.type).toBe('raster');
+    expect(visibilityOf(map, ['ulm:imagery:tiles'])).toEqual(['none']);
+    expect(map.getPaintProperty('ulm:imagery:tiles', 'raster-opacity')).toBe(0.4);
+  });
+
+  it('draws a layer\'s latest data once the style loads when the data changed while it was loading', async () => {
+    const map = createMap();
+    const manager = attachManager(map);
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    manager.updateLayerData('rivers', { ...rivers(), sources: { rivers: { type: 'geojson', data: THAMES } } });
+
+    await map.once('style.load');
+
+    await expect(map.getSource<maplibregl.GeoJSONSource>('ulm:rivers')?.getData()).resolves.toEqual(THAMES);
+  });
+
+  it('replaces a layer\'s style layers with the new ones when its data changes', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
+
+    expect(overlay(map).layers).toEqual(['ulm:rivers:line']);
+    expect(map.getPaintProperty('ulm:rivers:line', 'line-color')).toBe('#0000ff');
+  });
+
+  it('takes a layer off the map while its factory returns null, and draws it when the factory returns a style again', async () => {
+    const { map, manager } = await setup({ layerFactory: (info) => (info.layerData.layers.length > 0 ? info.layerData : null) });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', { layers: [] });
+    expect(overlay(map)).toEqual({ sources: [], layers: [] });
+
+    manager.updateLayerData('rivers', rivers());
+    expect(overlay(map)).toEqual({ sources: ['ulm:rivers'], layers: ['ulm:rivers:casing', 'ulm:rivers:line'] });
+  });
+
+  it('keeps a layer\'s unchanged source when only its style layers change', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    const source = map.getSource('ulm:rivers');
+
+    manager.updateLayerData('rivers', { ...rivers(), layers: [{ id: 'line', type: 'line', source: 'rivers', paint: { 'line-color': '#0000ff' } }] });
+
+    expect(map.getSource('ulm:rivers')).toBe(source);
+  });
+
+  it('gives a raster source new tile URLs in place, so the old tiles show until the new ones load', async () => {
+    const { map, manager } = await setup();
+    const imagery = (tiles: string[]): LayerData => ({
+      sources: { imagery: { type: 'raster', tiles, tileSize: 256 } },
+      layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
+    });
+    manager.addLayer({ ...layerParams('imagery', imagery(['test://2025/{z}/{x}/{y}.png'])), visible: true });
+    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+
+    manager.updateLayerData('imagery', imagery(['test://2026/{z}/{x}/{y}.png']));
+
+    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(source?.serialize().tiles).toEqual(['test://2026/{z}/{x}/{y}.png']);
+  });
+
+  it('gives a tile source a new TileJSON URL in place, so the old tiles show until the new ones load', async () => {
+    const { map, manager } = await setup();
+    const imagery = (url: string): LayerData => ({
+      sources: { imagery: { type: 'raster', url, tileSize: 256 } },
+      layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
+    });
+    manager.addLayer({ ...layerParams('imagery', imagery('test://2025.json')), visible: true });
+    const source = map.getSource<maplibregl.RasterTileSource>('ulm:imagery');
+
+    manager.updateLayerData('imagery', imagery('test://2026.json'));
+
+    expect(map.getSource('ulm:imagery')).toBe(source);
+    expect(source?.serialize().url).toBe('test://2026.json');
   });
 });

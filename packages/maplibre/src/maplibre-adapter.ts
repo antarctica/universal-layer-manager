@@ -1,7 +1,7 @@
 import type { LayerManagerAdapter, ManagedLayerInfo } from '@ulm/core';
 
-import type { MapLibreMap, Style } from 'maplibre-gl';
-import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerFactory, MapLibreLayerStyle } from './types';
+import type { GeoJSONSource, MapLibreMap, RasterTileSource, Style, VectorTileSource } from 'maplibre-gl';
+import type { LayerSpecification, MapLibreAdapterOptions, MapLibreLayerFactory, MapLibreLayerStyle, SourceSpecification } from './types';
 
 // The prefix keeps runtime IDs clear of the basemap's.
 const ID_PREFIX = 'ulm:';
@@ -12,6 +12,34 @@ function runtimeSourceId(sourceId: string): string {
 
 function runtimeLayerId(layerId: string, styleLayerId: string): string {
   return `${ID_PREFIX}${layerId}:${styleLayerId}`;
+}
+
+// Style specs are plain JSON.
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+type TileSourceSpecification = Extract<SourceSpecification, { type: 'vector' | 'raster' | 'raster-dem' }>;
+
+function isTileSource(source: SourceSpecification): source is TileSourceSpecification {
+  return source.type === 'vector' || source.type === 'raster' || source.type === 'raster-dem';
+}
+
+// Whether MapLibre can change a source from `before` to `next` in place. setTiles and setUrl keep the old tiles showing until the new ones load.
+function canUpdateInPlace(before: SourceSpecification, next: SourceSpecification | undefined): boolean {
+  if (next && isTileSource(before) && isTileSource(next)) {
+    return sameJson({ ...before, tiles: null, url: null }, { ...next, tiles: null, url: null });
+  }
+  return sameJson(before, next);
+}
+
+function withoutGeoJsonData(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(sources).map(([id, source]) => [id, source.type === 'geojson' ? { ...source, data: null } : source]));
+}
+
+// When only GeoJSON data changed, setData can update the map without redrawing the layer.
+function onlyGeoJsonDataChanged(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): boolean {
+  return sameJson(previous.layers, next.layers) && sameJson(withoutGeoJsonData(previous.sources), withoutGeoJsonData(next.sources));
 }
 
 interface DrawnLayer {
@@ -185,6 +213,35 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
+  onLayerDataChanged(info: ManagedLayerInfo<TLayer, TGroup>): void {
+    if (info.layerType !== 'layer') {
+      return;
+    }
+    const previous = this.drawnLayers.get(info.layerId);
+    const style = this.layerFactory(info, this.map);
+    if (previous && style && onlyGeoJsonDataChanged(previous.style, style)) {
+      this.drawnLayers.set(info.layerId, { ...previous, style });
+      if (this.isStyleReady()) {
+        this.setGeoJsonData(previous.style, style);
+      }
+      return;
+    }
+    // Any other change redraws the layer: its old style layers and sources go, the new ones come.
+    this.drawnLayers.delete(info.layerId);
+    if (previous && this.isStyleReady()) {
+      this.eraseLayer(info.layerId, previous, style ?? undefined);
+    }
+    if (style) {
+      const drawn = { style, visible: info.visible, opacity: info.computedOpacity };
+      this.drawnLayers.set(info.layerId, drawn);
+      if (this.isStyleReady()) {
+        this.updateTileUrls(previous?.style, style);
+        this.writeLayer(info.layerId, drawn);
+        this.restack();
+      }
+    }
+  }
+
   onOrderChanged(layerOrder: string[]): void {
     this.layerOrder = layerOrder;
     if (this.isStyleReady()) {
@@ -237,16 +294,41 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     return this.map.getLayer(id)?.type === 'symbol' && this.map.getLayoutProperty(id, 'text-field') !== undefined;
   }
 
-  // Removes the layer's style layers, then the sources no other layer reads.
-  private eraseLayer(layerId: string, drawn: DrawnLayer): void {
+  private setGeoJsonData(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): void {
+    for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
+      const before = previous.sources?.[sourceId];
+      if (source.type === 'geojson' && before?.type === 'geojson' && source.data !== before.data) {
+        void this.map.getSource<GeoJSONSource>(runtimeSourceId(sourceId))?.setData(source.data);
+      }
+    }
+  }
+
+  private updateTileUrls(previous: MapLibreLayerStyle | undefined, next: MapLibreLayerStyle): void {
+    for (const [sourceId, source] of Object.entries(next.sources ?? {})) {
+      const before = previous?.sources?.[sourceId];
+      const tileSource = this.map.getSource<RasterTileSource | VectorTileSource>(runtimeSourceId(sourceId));
+      if (!before || !isTileSource(source) || !isTileSource(before) || !tileSource) {
+        continue;
+      }
+      if (source.tiles && !sameJson(source.tiles, before.tiles)) {
+        tileSource.setTiles(source.tiles);
+      }
+      if (source.url && source.url !== before.url) {
+        tileSource.setUrl(source.url);
+      }
+    }
+  }
+
+  // Removes the layer's style layers, then the sources no other layer reads and `next` does not keep as they are.
+  private eraseLayer(layerId: string, drawn: DrawnLayer, next?: MapLibreLayerStyle): void {
     for (const layer of drawn.style.layers) {
       const id = runtimeLayerId(layerId, layer.id);
       if (this.map.getLayer(id)) {
         this.map.removeLayer(id);
       }
     }
-    for (const sourceId of Object.keys(drawn.style.sources ?? {})) {
-      if (!this.isSourceShared(sourceId)) {
+    for (const [sourceId, source] of Object.entries(drawn.style.sources ?? {})) {
+      if (!this.isSourceShared(sourceId) && !canUpdateInPlace(source, next?.sources?.[sourceId])) {
         this.removeSource(runtimeSourceId(sourceId));
       }
     }
