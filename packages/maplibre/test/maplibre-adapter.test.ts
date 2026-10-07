@@ -645,6 +645,20 @@ describe('mapLibreLayerManagerAdapter', () => {
     expect(source?.serialize().url).toBe('test://2026.json');
   });
 
+  it('keeps a layer\'s style layers when only its tile URLs change', async () => {
+    const { map, manager } = await setup();
+    const imagery = (tiles: string[]): LayerData => ({
+      sources: { imagery: { type: 'raster', tiles, tileSize: 256 } },
+      layers: [{ id: 'tiles', type: 'raster', source: 'imagery' }],
+    });
+    manager.addLayer({ ...layerParams('imagery', imagery(['test://2025/{z}/{x}/{y}.png'])), visible: true });
+    const styleLayer = map.getLayer('tiles');
+
+    manager.updateLayerData('imagery', imagery(['test://2026/{z}/{x}/{y}.png']));
+
+    expect(map.getLayer('tiles')).toBe(styleLayer);
+  });
+
   it('draws its layers below the new basemap\'s labels after the app changes the style', async () => {
     const { map, manager } = await setup();
     manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });

@@ -29,15 +29,6 @@ function canUpdateInPlace(before: SourceSpecification, next: SourceSpecification
   return sameJson(before, next);
 }
 
-function withoutGeoJsonData(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(sources).map(([id, source]) => [id, source.type === 'geojson' ? { ...source, data: null } : source]));
-}
-
-// When only GeoJSON data changed, setData can update the map without redrawing the layer.
-function onlyGeoJsonDataChanged(previous: MapLibreLayerStyle, next: MapLibreLayerStyle): boolean {
-  return sameJson(previous.layers, next.layers) && sameJson(withoutGeoJsonData(previous.sources), withoutGeoJsonData(next.sources));
-}
-
 // A source's spec without the values MapLibre updates in place: GeoJSON data, and a tile source's tiles and url.
 function withoutInPlaceValues(sources: MapLibreLayerStyle['sources'] = {}): Record<string, unknown> {
   return Object.fromEntries(Object.entries(sources).map(([id, source]) => {
@@ -239,14 +230,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (!this.isStyleReady()) {
       return;
     }
-    if (previous && onlyGeoJsonDataChanged(previous, style)) {
-      this.setGeoJsonData(previous, style);
-      return;
-    }
     if (previous) {
       this.setGeoJsonData(previous, style);
     }
     this.updateTileUrls(previous, style);
+    if (previous && drawsTheSame(previous, style)) {
+      return;
+    }
     this.writeLayer(info.layerId, style, { visible: info.visible, computedOpacity: info.computedOpacity });
     // A layer being added is not in the order yet, and onOrderChanged stacks it.
     if (this.layerOrder.includes(info.layerId)) {
@@ -256,7 +246,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
 
   // Removes a layer's style from the map, keeping what `next` updates in place.
   private eraseStyle(style: MapLibreLayerStyle, next?: MapLibreLayerStyle): void {
-    if (!this.isStyleReady() || (next && onlyGeoJsonDataChanged(style, next))) {
+    if (!this.isStyleReady() || (next && drawsTheSame(style, next))) {
       return;
     }
     this.eraseLayer(style, next);
