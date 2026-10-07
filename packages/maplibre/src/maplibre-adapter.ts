@@ -23,6 +23,9 @@ function canUpdateInPlace(before: SourceSpecification, next: SourceSpecification
   if (next && isTileSource(before) && isTileSource(next)) {
     return sameJson({ ...before, tiles: null, url: null }, { ...next, tiles: null, url: null });
   }
+  if (next?.type === 'geojson' && before.type === 'geojson') {
+    return sameJson({ ...before, data: null }, { ...next, data: null });
+  }
   return sameJson(before, next);
 }
 
@@ -239,6 +242,9 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     if (previous && onlyGeoJsonDataChanged(previous, style)) {
       this.setGeoJsonData(previous, style);
       return;
+    }
+    if (previous) {
+      this.setGeoJsonData(previous, style);
     }
     this.updateTileUrls(previous, style);
     this.writeLayer(info.layerId, style, { visible: info.visible, computedOpacity: info.computedOpacity });
