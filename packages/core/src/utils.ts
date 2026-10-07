@@ -1,6 +1,7 @@
 import type {
   LayerActor,
   LayerConfig,
+  LayerDataField,
   LayerGroupConfig,
   LayerGroupMachineActor,
   LayerManagerContext,
@@ -10,6 +11,13 @@ import type {
   ParentEvent,
 } from './types';
 import { isLayerGroupMachine, isRangeTimeInfo, isSingleTimeInfo } from './types';
+
+/**
+ * A config's layer data. The field can be missing only when `undefined` is a `T`, so a missing value is still a `T`.
+ */
+export function layerDataOf<T>(config: LayerDataField<T>): T {
+  return config.layerData as T;
+}
 
 // ============================================================================
 // SEARCH & RETRIEVAL (QUERIES)

@@ -27,6 +27,7 @@ import {
   getUpdatedLayerStructureAfterMove,
   getUpdatedLayerStructureAfterRemoval,
   isSamePlacement,
+  layerDataOf,
 } from '../utils';
 
 export type LayerManagerMachine<TLayer, TGroup = undefined> = ReturnType<typeof createLayerManagerMachine<TLayer, TGroup>>;
@@ -72,6 +73,7 @@ export function createLayerManagerMachine<TLayer, TGroup = undefined>() {
                 layerManagerRef: self,
                 parentRef,
                 ...layerConfig,
+                layerData: layerDataOf<TGroup>(layerConfig),
                 startState: getStartState(enabled ?? false, visible ?? false),
                 parentOpacity,
               },
@@ -87,6 +89,7 @@ export function createLayerManagerMachine<TLayer, TGroup = undefined>() {
                 layerManagerRef: self,
                 parentRef,
                 ...layerConfig,
+                layerData: layerDataOf<TLayer>(layerConfig),
                 startState: getStartState(enabled ?? false, visible ?? false),
                 parentOpacity,
               },
