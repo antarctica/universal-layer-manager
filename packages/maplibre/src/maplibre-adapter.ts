@@ -221,7 +221,7 @@ implements LayerManagerAdapter<TLayer, TGroup> {
       return;
     }
     const previous = this.drawnLayers.get(info.layerId);
-    const style = this.layerFactory(info, this.map);
+    const style = this.layerFactory(info, this.map, previous?.style);
     if (previous && style && onlyGeoJsonDataChanged(previous.style, style)) {
       this.drawnLayers.set(info.layerId, { ...previous, style });
       if (this.isStyleReady()) {

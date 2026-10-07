@@ -868,4 +868,25 @@ describe('mapLibreLayerManagerAdapter', () => {
 
     expect(disposeLayer).toHaveBeenCalledWith(rivers(), 'rivers');
   });
+
+  it('passes the style the factory drew last time to it as current when the layer\'s data changes', async () => {
+    const layerFactory = vi.fn((info: { layerData: LayerData }) => info.layerData);
+    const { manager } = await setup({ layerFactory });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+
+    manager.updateLayerData('rivers', lakes());
+
+    expect(layerFactory).toHaveBeenLastCalledWith(expect.objectContaining({ layerId: 'rivers' }), expect.anything(), rivers());
+  });
+
+  it('leaves the map alone when the factory returns current for the layer\'s new time', async () => {
+    const { map, manager } = await setup({ layerFactory: (info, _map, current) => current ?? info.layerData });
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true });
+    const styleLayer = map.getLayer('rivers-line');
+    const newYearsDay: SingleTimeInfo = { type: 'single', precision: 'date', value: Temporal.PlainDate.from('2026-01-01') };
+
+    manager.setTimeInfo('rivers', newYearsDay);
+
+    expect(map.getLayer('rivers-line')).toBe(styleLayer);
+  });
 });

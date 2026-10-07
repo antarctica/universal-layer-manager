@@ -23,7 +23,8 @@ export interface MapLibreLayerStyle {
 
 /**
  * Turns a layer into the MapLibre sources and style layers that draw it, or `null` to leave it off the map.
- * The adapter calls it when a layer is added and again when its `layerData` is replaced.
+ * The adapter calls it when a layer is added, and again when its `layerData` or `timeInfo` changes, with the style it
+ * returned last time as `current`. Return `current` to leave the map as it is.
  *
  * Without one, the adapter uses {@link createDefaultMapLibreFactory}, which draws `layerData` that is already a
  * {@link MapLibreLayerStyle}. Write your own to keep other data in `layerData`, such as a URL, and fall back to the
@@ -46,6 +47,7 @@ export interface MapLibreLayerStyle {
 export type MapLibreLayerFactory<TLayer> = (
   info: LayerInfo<TLayer>,
   map: MapLibreMap,
+  current?: MapLibreLayerStyle,
 ) => MapLibreLayerStyle | null;
 
 // ============================================================================
