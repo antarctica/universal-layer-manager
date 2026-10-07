@@ -91,13 +91,16 @@ export class MapLibreLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 implements LayerManagerAdapter<TLayer, TGroup> {
   private readonly map: MapLibreMap;
   private readonly layerFactory: MapLibreLayerFactory<TLayer>;
+  private readonly drawBelow: string | undefined;
   private readonly drawnLayers = new Map<string, DrawnLayer>();
+  private layerOrder: string[] = [];
   // isStyleLoaded() goes false while tiles load, so this tracks the style that last finished loading.
   private loadedStyle: Style | undefined;
 
   constructor(map: MapLibreMap, options: MapLibreAdapterOptions<TLayer>) {
     this.map = map;
     this.layerFactory = options.layerFactory;
+    this.drawBelow = options.drawBelow;
   }
 
   // --------------------------------------------------------------------------
@@ -182,6 +185,13 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     }
   }
 
+  onOrderChanged(layerOrder: string[]): void {
+    this.layerOrder = layerOrder;
+    if (this.isStyleReady()) {
+      this.restack();
+    }
+  }
+
   // --------------------------------------------------------------------------
   // Private helpers
   // --------------------------------------------------------------------------
@@ -191,10 +201,40 @@ implements LayerManagerAdapter<TLayer, TGroup> {
     for (const [layerId, drawn] of this.drawnLayers) {
       this.writeLayer(layerId, drawn);
     }
+    this.restack();
   };
 
   private isStyleReady(): boolean {
     return this.loadedStyle !== undefined && this.loadedStyle === this.map.style;
+  }
+
+  // Works from the top down, putting each style layer directly below the one placed before it.
+  private restack(): void {
+    let layerAbove = this.layerToDrawBelow();
+    for (const layerId of [...this.layerOrder].reverse()) {
+      const drawn = this.drawnLayers.get(layerId);
+      for (const layer of [...(drawn?.style.layers ?? [])].reverse()) {
+        const id = runtimeLayerId(layerId, layer.id);
+        if (this.map.getLayer(id)) {
+          // MapLibre puts `id` directly below `layerAbove`, or on top when it is undefined.
+          this.map.moveLayer(id, layerAbove);
+          layerAbove = id;
+        }
+      }
+    }
+  }
+
+  // The drawBelow option, else the map's first label layer, else undefined for the top.
+  private layerToDrawBelow(): string | undefined {
+    if (this.drawBelow && this.map.getLayer(this.drawBelow)) {
+      return this.drawBelow;
+    }
+    return this.map.getLayersOrder().find((id) => !id.startsWith(ID_PREFIX) && this.isLabelLayer(id));
+  }
+
+  // A symbol layer with text, as in MapLibre's examples. Icon-only symbols, such as one-way arrows, are not labels.
+  private isLabelLayer(id: string): boolean {
+    return this.map.getLayer(id)?.type === 'symbol' && this.map.getLayoutProperty(id, 'text-field') !== undefined;
   }
 
   // Removes the layer's style layers, then the sources no other layer reads.

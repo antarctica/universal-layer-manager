@@ -11,23 +11,25 @@ type CirclePaint = Extract<LayerSpecification, { type: 'circle' }>['paint'];
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 // An inline basemap, so the tests fetch nothing: a background and a label layer.
+// The source has no features, so the glyphs are never requested.
 const BASEMAP = {
   version: 8,
+  glyphs: 'http://localhost/fonts/{fontstack}/{range}.pbf',
   sources: { basemap: { type: 'geojson', data: EMPTY } },
   layers: [
     { id: 'land', type: 'background', paint: { 'background-color': '#eeeeee' } },
-    { id: 'labels', type: 'symbol', source: 'basemap' },
+    { id: 'labels', type: 'symbol', source: 'basemap', layout: { 'text-field': ['get', 'name'] } },
   ],
 } satisfies StyleSpecification;
 
 /** A map whose style is still loading. */
-function createMap(): maplibregl.Map {
+function createMap(style: StyleSpecification = BASEMAP): maplibregl.Map {
   const container = document.createElement('div');
   container.style.width = '400px';
   container.style.height = '400px';
   document.body.append(container);
 
-  const map = new maplibregl.Map({ container, style: BASEMAP, center: [0, 0], zoom: 2, attributionControl: false });
+  const map = new maplibregl.Map({ container, style, center: [0, 0], zoom: 2, attributionControl: false });
   // MapLibre reports a rejected style change as an error event, not a throw.
   const errors: string[] = [];
   map.on('error', ({ error }) => errors.push(error.message));
@@ -373,5 +375,114 @@ describe('mapLibreLayerManagerAdapter', () => {
     manager.reset();
 
     expect(overlay(map)).toEqual({ sources: [], layers: [] });
+  });
+
+  it('draws a layer\'s style layers below the basemap\'s first label layer, in the factory\'s order', async () => {
+    const { map, manager } = await setup();
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+  });
+
+  it('restacks the style layers in the manager\'s order when a layer moves, keeping each layer\'s together', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true, position: 'top' });
+
+    manager.moveLayer('rivers', { parentId: null, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual([
+      'land',
+      'ulm:lakes:water',
+      'ulm:lakes:shore',
+      'ulm:rivers:casing',
+      'ulm:rivers:line',
+      'labels',
+    ]);
+  });
+
+  it('draws its own symbol layers below the basemap\'s labels with the rest', async () => {
+    const { map, manager } = await setup();
+    manager.addLayer({ ...layerParams('river-names', riverNames()), visible: true, position: 'top' });
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['land', 'ulm:river-names:names', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+  });
+
+  it('draws layers below the drawBelow layer when the map has it', async () => {
+    const { map, manager } = await setup({ drawBelow: 'land' });
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['ulm:rivers:casing', 'ulm:rivers:line', 'land', 'labels']);
+  });
+
+  it('draws layers below the first label layer when the map lacks the drawBelow layer', async () => {
+    const { map, manager } = await setup({ drawBelow: 'missing' });
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
+  });
+
+  it('draws layers on top when the map has no label layer', async () => {
+    const map = createMap({ ...BASEMAP, layers: [BASEMAP.layers[0]] });
+    await map.once('style.load');
+    const manager = attachManager(map);
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['land', 'ulm:rivers:casing', 'ulm:rivers:line']);
+  });
+
+  it('stacks layers added while the style is loading in the manager\'s order once it loads', async () => {
+    const map = createMap();
+    const manager = attachManager(map);
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('lakes', lakes()), visible: true, position: 'bottom' });
+
+    await map.once('style.load');
+
+    expect(map.getLayersOrder()).toEqual([
+      'land',
+      'ulm:lakes:water',
+      'ulm:lakes:shore',
+      'ulm:rivers:casing',
+      'ulm:rivers:line',
+      'labels',
+    ]);
+  });
+
+  it('stacks the layers in a group in the group\'s place and skips the group itself', async () => {
+    const { map, manager } = await setup();
+    manager.addGroup({ ...groupParams('water'), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('lakes', lakes(), 'water'), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('rivers', rivers(), 'water'), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('river-names', riverNames()), visible: true, position: 'top' });
+
+    manager.moveLayer('water', { parentId: null, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual([
+      'land',
+      'ulm:river-names:names',
+      'ulm:lakes:water',
+      'ulm:lakes:shore',
+      'ulm:rivers:casing',
+      'ulm:rivers:line',
+      'labels',
+    ]);
+  });
+
+  it('draws layers above symbol layers without text, such as one-way arrows, and below the first label layer', async () => {
+    const arrows: LayerSpecification = { id: 'arrows', type: 'symbol', source: 'basemap', layout: { 'icon-image': 'arrow' } };
+    const map = createMap({ ...BASEMAP, layers: [BASEMAP.layers[0], arrows, BASEMAP.layers[1]] });
+    await map.once('style.load');
+    const manager = attachManager(map);
+
+    manager.addLayer({ ...layerParams('rivers', rivers()), visible: true, position: 'top' });
+
+    expect(map.getLayersOrder()).toEqual(['land', 'arrows', 'ulm:rivers:casing', 'ulm:rivers:line', 'labels']);
   });
 });
