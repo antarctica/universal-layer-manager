@@ -114,7 +114,7 @@ function layerParams(layerId: string, leafletLayer: L.Layer, parentId: string | 
 }
 
 function groupParams(layerId: string) {
-  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const, parentId: null, layerData: undefined } };
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const } };
 }
 
 describe('leafletLayerManagerAdapter', () => {
