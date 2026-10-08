@@ -11,8 +11,7 @@ interface LayerData {
 
 type Manager = LayerManager<LayerData>;
 
-function setup() {
-  const map = new EsriMap();
+function setup(map = new EsriMap()) {
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
   manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map));
   return { map, manager };
@@ -107,5 +106,17 @@ describe('arcGISLayerManagerAdapter', () => {
     manager.moveLayer('first', { parentId: null, position: 'top' });
 
     expect(drawOrder(map, arcgisLayers)).toEqual(['second', 'third', 'first']);
+  });
+
+  it('draws its layers above the layers already on the map when it is attached', () => {
+    const appLayer = new GraphicsLayer({ id: 'app' });
+    const { map, manager } = setup(new EsriMap({ layers: [appLayer] }));
+    const arcgisLayers = ['first', 'second'].map((id) => new GraphicsLayer({ id }));
+
+    for (const arcgisLayer of arcgisLayers) {
+      manager.addLayer({ ...layerParams(arcgisLayer.id, arcgisLayer), visible: true, position: 'top' });
+    }
+
+    expect(drawOrder(map, [appLayer, ...arcgisLayers])).toEqual(['app', 'first', 'second']);
   });
 });
