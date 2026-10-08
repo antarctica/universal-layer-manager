@@ -25,6 +25,10 @@ export default defineConfig({
   plugins: [
     dts({ bundleTypes: true }),
   ],
+  // Pre-bundled, an ol module first imported mid-run is bundled again, and the map no longer recognises its layer groups.
+  optimizeDeps: {
+    exclude: ['ol'],
+  },
   test: {
     alias: {
       '@ulm/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
