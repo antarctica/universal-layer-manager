@@ -33,6 +33,10 @@ function layerParams(layerId: string, openlayersLayer: BaseLayer, parentId: stri
   return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData: { openlayersLayer } } };
 }
 
+function groupParams(layerId: string) {
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const } };
+}
+
 describe('openLayersLayerManagerAdapter', () => {
   it('puts a visible layer on the map when it is added', () => {
     const { map, manager } = setup();
@@ -70,5 +74,27 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.removeLayer('layer-1');
 
     expect(map.getAllLayers()).not.toContain(openlayersLayer);
+  });
+
+  it('draws a layer at its opacity combined with its group\'s', () => {
+    const { manager } = setup();
+    const openlayersLayer = vectorLayer();
+    manager.addGroup(groupParams('group-1'));
+    manager.addLayer(layerParams('child-1', openlayersLayer, 'group-1'));
+
+    manager.setOpacity('group-1', 0.5);
+    manager.setOpacity('child-1', 0.8);
+
+    expect(openlayersLayer.getOpacity()).toBeCloseTo(0.4);
+  });
+
+  it('draws a layer at its opacity combined with its group\'s as soon as it is added', () => {
+    const { manager } = setup();
+    const openlayersLayer = vectorLayer();
+    manager.addGroup({ layerConfig: { ...groupParams('group-1').layerConfig, opacity: 0.5 } });
+
+    manager.addLayer({ layerConfig: { ...layerParams('child-1', openlayersLayer, 'group-1').layerConfig, opacity: 0.8 } });
+
+    expect(openlayersLayer.getOpacity()).toBeCloseTo(0.4);
   });
 });

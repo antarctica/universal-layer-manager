@@ -12,8 +12,9 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     super(map, { renderLayer: options.renderLayer ?? defaultOpenLayersRenderLayer, disposeLayer: options.disposeLayer });
   }
 
-  protected placeLayer({ rendered, visible }: RenderedLayer<BaseLayer>): void {
+  protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<BaseLayer>): void {
     rendered.setVisible(visible);
+    rendered.setOpacity(computedOpacity);
     this.map.addLayer(rendered);
   }
 
@@ -25,7 +26,9 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     rendered.setVisible(visible);
   }
 
-  protected setLayerOpacity(_layer: RenderedLayer<BaseLayer>): void {}
+  protected setLayerOpacity({ rendered, computedOpacity }: RenderedLayer<BaseLayer>): void {
+    rendered.setOpacity(computedOpacity);
+  }
 
   protected restackLayers(_bottomToTop: RenderedLayer<BaseLayer>[]): void {}
 }
