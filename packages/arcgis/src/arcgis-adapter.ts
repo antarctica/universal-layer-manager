@@ -30,5 +30,7 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     rendered.opacity = computedOpacity;
   }
 
-  protected restackLayers(_bottomToTop: RenderedLayer<Layer>[]): void {}
+  protected restackLayers(bottomToTop: RenderedLayer<Layer>[]): void {
+    bottomToTop.forEach(({ rendered }, index) => this.map.reorder(rendered, index));
+  }
 }

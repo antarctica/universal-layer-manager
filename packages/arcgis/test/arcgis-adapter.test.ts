@@ -23,6 +23,11 @@ function isShowing(map: EsriMap, arcgisLayer: Layer): boolean {
   return map.allLayers.includes(arcgisLayer) && arcgisLayer.visible;
 }
 
+// The IDs of the given layers in the order the map draws them, from the bottom up.
+function drawOrder(map: EsriMap, arcgisLayers: Layer[]): string[] {
+  return map.allLayers.filter((layer) => arcgisLayers.includes(layer)).map(({ id }) => id).toArray();
+}
+
 function layerParams(layerId: string, arcgisLayer: Layer, parentId: string | null = null) {
   return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData: { arcgisLayer } } };
 }
@@ -90,5 +95,17 @@ describe('arcGISLayerManagerAdapter', () => {
     manager.addLayer({ layerConfig: { ...layerParams('child-1', arcgisLayer, 'group-1').layerConfig, opacity: 0.8 } });
 
     expect(arcgisLayer.opacity).toBeCloseTo(0.4);
+  });
+
+  it('draws layers in the manager\'s order, from the bottom up', () => {
+    const { map, manager } = setup();
+    const arcgisLayers = ['first', 'second', 'third'].map((id) => new GraphicsLayer({ id }));
+    for (const arcgisLayer of arcgisLayers) {
+      manager.addLayer({ ...layerParams(arcgisLayer.id, arcgisLayer), visible: true, position: 'top' });
+    }
+
+    manager.moveLayer('first', { parentId: null, position: 'top' });
+
+    expect(drawOrder(map, arcgisLayers)).toEqual(['second', 'third', 'first']);
   });
 });
