@@ -115,6 +115,8 @@ When a layer is removed, its pane is removed with it. When the adapter is detach
 
 Opacity is applied to each layer's pane, using the layer's computed opacity. This works the same way for every kind of layer, including markers and vectors such as circles. The adapter doesn't change the layer's own style, so settings such as a polygon's `fillOpacity` still apply on top.
 
+A layer at opacity `0` takes no clicks or hovers, so they reach the layers below. It stays on the map, and still counts as visible.
+
 ## Things to know
 
 + Only layers are drawn. Groups have no Leaflet layer of their own, but hiding or fading a group hides or fades the layers inside it.
