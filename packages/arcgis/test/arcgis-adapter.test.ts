@@ -145,6 +145,12 @@ describe('arcGISLayerManagerAdapter', () => {
     expect(map.allLayers.toArray()).toEqual([appLayer]);
   });
 
+  it('hides the group it adds itself from ArcGIS layer lists', () => {
+    const { map } = setup(new EsriMap(), { container: undefined });
+
+    expect(map.layers.map(({ listMode }) => listMode).toArray()).toEqual(['hide']);
+  });
+
   it('draws its layers in the group it is given, where the app put that group', () => {
     const [below, above] = ['below', 'above'].map((id) => new GraphicsLayer({ id }));
     const container = new GroupLayer();
