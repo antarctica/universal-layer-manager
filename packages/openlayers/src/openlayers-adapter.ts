@@ -19,6 +19,11 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     this.map.addLayer(this.container);
   }
 
+  override unregister(): void {
+    super.unregister();
+    this.map.removeLayer(this.container);
+  }
+
   protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<BaseLayer>): void {
     rendered.setVisible(visible);
     rendered.setOpacity(computedOpacity);
