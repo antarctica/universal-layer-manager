@@ -1,4 +1,5 @@
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer.js';
+import TileLayer from '@arcgis/core/layers/TileLayer.js';
 import VectorTileLayer from '@arcgis/core/layers/VectorTileLayer.js';
 
 // Every layer is a public feature service on ArcGIS Online, loaded from its portal item so it keeps the style and
@@ -14,8 +15,11 @@ function fromPortalItem(id: string, layerId = 0): FeatureLayer {
   return layer;
 }
 
-// British Antarctic Survey: the latest position of each tracked vehicle, aircraft and ship.
-export const assetLocations = fromPortalItem('54a2070f3d6943a29a635c0761e19301');
+// Bedmap3, the British Antarctic Survey's map of Antarctica under the ice, as tiled images. The grounding line, from
+// NASA MEaSUREs, is where the ice sheet lifts off the bed and starts to float.
+export const bedTopography = new TileLayer({ portalItem: { id: '1aa7697adc624c1590b15592871a2795' } });
+export const iceThickness = new TileLayer({ portalItem: { id: '95fd2a12049647f5804fac27a440a56d' } });
+export const groundingLine = fromPortalItem('066794e7702b485abe6175c82eb17819');
 
 // Antarctic Digital Database, published by the British Antarctic Survey. The contours are high resolution vector
 // tiles with their heights labelled; the other layers are medium resolution.

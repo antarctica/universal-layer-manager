@@ -1,7 +1,7 @@
 import type Layer from '@arcgis/core/layers/Layer.js';
 import type { ArcGISLayerData } from '@ulm/arcgis';
 import { LayerManager } from '@ulm/core';
-import { assetLocations, coastline, contours, lakes, rockOutcrop } from './layers';
+import { bedTopography, coastline, contours, groundingLine, iceThickness, lakes, rockOutcrop } from './layers';
 
 // The data each layer carries in this demo: the ArcGIS layer that shows it.
 export type LayerData = ArcGISLayerData;
@@ -12,31 +12,34 @@ export const manager = new LayerManager<LayerData>({
   onError: (error) => console.warn(error.message),
 });
 
-function addGroup(layerId: string, layerName: string): void {
+function addGroup(layerId: string, layerName: string, enabled = true): void {
   manager.addGroup({
     layerConfig: { layerId, layerName, layerType: 'layerGroup' },
-    visible: true,
+    enabled,
     position: 'top',
   });
 }
 
-function addLayer(parentId: string, layerId: string, layerName: string, arcgisLayer: Layer, visible = true): void {
+// `enabled` switches a layer on without switching on the groups above it, as `visible` would.
+function addLayer(parentId: string, layerId: string, layerName: string, arcgisLayer: Layer, enabled = true): void {
   manager.addLayer({
     layerConfig: { layerId, layerName, layerType: 'layer', parentId, layerData: { arcgisLayer } },
-    visible,
+    enabled,
     position: 'top',
   });
 }
 
 function addStartingLayers(): void {
+  addGroup('ice-sheet', 'Ice sheet (Bedmap3)', false);
+  addLayer('ice-sheet', 'bed-topography', 'Bed topography', bedTopography);
+  addLayer('ice-sheet', 'ice-thickness', 'Ice thickness', iceThickness);
+  addLayer('ice-sheet', 'grounding-line', 'Grounding line', groundingLine);
+
   addGroup('add', 'Digital Database');
   addLayer('add', 'rock-outcrop', 'Rock outcrop', rockOutcrop, false);
   addLayer('add', 'lakes', 'Lakes', lakes, false);
-  addLayer('add', 'contours', 'Contours', contours);
+  addLayer('add', 'contours', 'Contours', contours, false);
   addLayer('add', 'coastline', 'Coastline', coastline);
-
-  addGroup('operations', 'Operations');
-  addLayer('operations', 'asset-locations', 'BAS assets', assetLocations, false);
 }
 
 addStartingLayers();

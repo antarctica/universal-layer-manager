@@ -24,8 +24,8 @@ The example will be available at `http://localhost:5179`
 
 - The British Antarctic Survey basemap, "Antarctica and the Southern Ocean", in Antarctic Polar Stereographic (EPSG:3031)
 - Public ArcGIS Online layers managed as layers and groups:
-  - Operations: the latest positions of British Antarctic Survey vehicles, aircraft and ships
-  - Digital Database: high resolution contours as vector tiles with their heights labelled, and coastline, lakes and rock outcrop at medium resolution (coastline and contours on by default)
+  - Digital Database: high resolution contours as vector tiles with their heights labelled, and coastline, lakes and rock outcrop at medium resolution (only the coastline on at the start)
+  - Ice sheet, off at the start: Bedmap3 bed topography and ice thickness as tiled images, and the grounding line where the ice starts to float
 - The adapter keeping every layer in one group layer of its own, in the manager's order
 - Popups from each layer's portal item, or a default one listing its fields
 
@@ -68,7 +68,8 @@ The basemap is the map's basemap, not a layer, so it is not in the manager. It s
 
 ### Things to try
 
-- Switch on "Lakes" or "Rock outcrop" in the Digital Database group
-- Drag "Rock outcrop" above "Coastline", or "Operations" below the Digital Database
+- Switch on the Ice sheet group, then fade "Ice thickness" to see the bed topography under it
+- Switch on "Contours", "Lakes" or "Rock outcrop" in the Digital Database group
+- Drag "Rock outcrop" above "Coastline", or the Ice sheet group above the Digital Database
 - Fade a group with its slider to fade every layer in it
-- Click an asset or a lake for its details
+- Click a lake or the grounding line for its details
