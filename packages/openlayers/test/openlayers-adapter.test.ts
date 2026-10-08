@@ -130,4 +130,14 @@ describe('openLayersLayerManagerAdapter', () => {
 
     expect(drawOrder(map, [appLayer, ...openlayersLayers])).toEqual(['app', 'first', 'second']);
   });
+
+  it('leaves only the app\'s own layers on the map when it is detached', () => {
+    const appLayer = vectorLayer('app');
+    const { map, manager } = setup(new OlMap({ layers: [appLayer] }));
+    manager.addLayer({ ...layerParams('layer-1', vectorLayer()), visible: true });
+
+    manager.setAdapter(null);
+
+    expect(map.getLayers().getArray()).toEqual([appLayer]);
+  });
 });
