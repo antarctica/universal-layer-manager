@@ -11,6 +11,19 @@ entry names the package that changed.
 Sections are drafted from the commit history with `npm run changelog:draft` and
 edited before release. To see what is pending, run `npm run changelog:preview`.
 
+## [3.1.1] - 2026-10-08
+
+### Added
+
+- **leaflet**: `leafletLayerPane(layerId)` returns the pane the adapter draws a layer in, so a layer that builds an inner layer, such as a leaflet.wms source, can be built in it
+
+### Fixed
+
+- **examples**: Describe the ArcGIS example's layers in its intro
+- **leaflet**: Let clicks through a layer faded to opacity 0
+
+[3.1.1]: https://github.com/antarctica/universal-layer-manager/compare/v3.1.0...v3.1.1
+
 ## [3.1.0] - 2026-10-08
 
 ### Added
