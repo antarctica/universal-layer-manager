@@ -85,6 +85,7 @@ Next, read [Getting started](https://antarctica.github.io/universal-layer-manage
 | [`examples/leaflet-xstate`](./examples/leaflet-xstate/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/)) | Advanced: the same example built on the layer actors with `@xstate/react` |
 | [`examples/maplibre`](./examples/maplibre/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/maplibre/)) | React + MapLibre — `@ulm/maplibre` adapter, raster and vector tile layers below the basemap's labels, and a basemap switcher |
 | [`examples/arcgis`](./examples/arcgis/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/arcgis/)) | React + ArcGIS — `@ulm/arcgis` adapter with `<arcgis-map>`, set in Antarctica, with a time-aware sea ice layer |
+| [`examples/openlayers`](./examples/openlayers/README.md) ([live](https://antarctica.github.io/universal-layer-manager/examples/openlayers/)) | React + OpenLayers — `@ulm/openlayers` adapter, raster and vector tile layers between the basemap and its labels, and a basemap switcher |
 
 To run them locally:
 
@@ -111,6 +112,7 @@ examples/
   leaflet-xstate/  the same example built on the actors (advanced)
   maplibre/        React + MapLibre example
   arcgis/          React + ArcGIS example, set in Antarctica
+  openlayers/      React + OpenLayers example
 docs/         documentation site (VitePress)
 ```
 
