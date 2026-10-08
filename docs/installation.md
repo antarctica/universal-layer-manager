@@ -110,6 +110,26 @@ yarn add @ulm/arcgis @arcgis/core
 
 `@arcgis/core` brings its own TypeScript types. The adapter needs `@arcgis/core` 5, and like it, is published as ES modules only.
 
+### OpenLayers
+
+::: code-group
+
+```sh [npm]
+npm install @ulm/openlayers ol
+```
+
+```sh [pnpm]
+pnpm add @ulm/openlayers ol
+```
+
+```sh [yarn]
+yarn add @ulm/openlayers ol
+```
+
+:::
+
+`ol` brings its own TypeScript types. The adapter needs `ol` 10, and like it, is published as ES modules only.
+
 ### Other map libraries
 
 For other map libraries, you can [write your own adapter](./adapters/writing-an-adapter).

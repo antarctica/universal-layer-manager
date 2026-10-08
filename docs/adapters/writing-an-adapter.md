@@ -2,7 +2,7 @@
 
 There are two main reasons to write your own adapter:
 
-+ to support a map library we don't provide an adapter for, such as OpenLayers;
++ to support a map library we don't provide an adapter for;
 + to add your own behaviour, such as synthetic layers that filter the features of a single map layer instead of adding and removing layers.
 
 ## The adapter interface
