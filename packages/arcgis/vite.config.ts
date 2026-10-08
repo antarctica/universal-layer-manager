@@ -35,7 +35,10 @@ export default defineConfig({
     },
     browser: {
       enabled: true,
-      provider: playwright(),
+      // Angle gives headless Chromium a WebGL context for MapView later.
+      provider: playwright({
+        launchOptions: { args: ['--use-gl=angle'] },
+      }),
       headless: true,
       instances: [{ browser: 'chromium' }],
     },
