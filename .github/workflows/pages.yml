@@ -65,6 +65,12 @@ jobs:
           VITE_BASE_PATH: /universal-layer-manager/examples/maplibre/
         run: npm run build
 
+      - name: Build arcgis example
+        working-directory: ./examples/arcgis
+        env:
+          VITE_BASE_PATH: /universal-layer-manager/examples/arcgis/
+        run: npm run build
+
       - name: Prepare GitHub Pages structure
         run: |
           mkdir -p gh-pages
@@ -79,6 +85,8 @@ jobs:
           cp -r examples/leaflet-xstate/dist/* gh-pages/examples/leaflet-xstate/
           mkdir -p gh-pages/examples/maplibre
           cp -r examples/maplibre/dist/* gh-pages/examples/maplibre/
+          mkdir -p gh-pages/examples/arcgis
+          cp -r examples/arcgis/dist/* gh-pages/examples/arcgis/
 
       - name: Verify build output
         run: |
@@ -104,6 +112,10 @@ jobs:
           fi
           if [ ! -f "gh-pages/examples/maplibre/index.html" ]; then
             echo "Error: maplibre example not found"
+            exit 1
+          fi
+          if [ ! -f "gh-pages/examples/arcgis/index.html" ]; then
+            echo "Error: arcgis example not found"
             exit 1
           fi
 
