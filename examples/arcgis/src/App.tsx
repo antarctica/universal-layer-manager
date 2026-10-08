@@ -15,8 +15,8 @@ export function App(): React.ReactElement {
         <section className={styles.panel}>
           <h1 className={styles.title}>Layer Manager</h1>
           <p className={styles.intro}>
-            Antarctic feature layers on the British Antarctic Survey basemap. Switch layers on and off, fade them, or
-            drag a layer by its ⠿ handle to reorder it. Click a feature for its details.
+            Sea ice, Antarctic Digital Database and Bedmap3 layers on the British Antarctic Survey basemap. Switch
+            layers on and off, fade them, pick a date for the sea ice, or drag a layer by its ⠿ handle to reorder it.
           </p>
           <LayerList />
           <BasemapRow />
