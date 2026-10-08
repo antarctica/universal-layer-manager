@@ -17,6 +17,10 @@ A `LayerManagerAdapter` for Leaflet. Attach it with `manager.setAdapter(adapter)
 
 The default `renderLayer`: it returns `layerData.leafletLayer` when present and otherwise `null`. Call it from your own `renderLayer` for the layers you don't handle.
 
+## `leafletLayerPane(layerId)`
+
+Returns the name of the pane the adapter draws a layer in, `ulm-<layerId>`. Give it as the `pane` option to a Leaflet layer that copies its pane to another layer when it is built, such as a leaflet.wms source. See [Layers that build another layer](../adapters/leaflet#layers-that-build-another-layer).
+
 ## Types
 
 | Type | Description |
