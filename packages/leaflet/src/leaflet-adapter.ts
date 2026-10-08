@@ -39,6 +39,7 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
   protected placeLayer({ layerId, rendered, visible, computedOpacity }: RenderedLayer<L.Layer>): void {
     const pane = this.attachPane(layerPaneName(layerId), this.getContainerPane());
     pane.style.opacity = String(computedOpacity);
+    pane.style.display = computedOpacity === 0 ? 'none' : '';
     placeInPane(rendered, layerPaneName(layerId));
     if (visible) {
       rendered.addTo(this.map);
@@ -64,6 +65,7 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     const pane = this.map.getPane(layerPaneName(layerId));
     if (pane) {
       pane.style.opacity = String(computedOpacity);
+      pane.style.display = computedOpacity === 0 ? 'none' : '';
     }
   }
 
