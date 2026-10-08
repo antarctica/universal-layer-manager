@@ -17,7 +17,9 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     this.map.add(rendered);
   }
 
-  protected eraseLayer(_layerId: string, _rendered: Layer): void {}
+  protected eraseLayer(_layerId: string, rendered: Layer): void {
+    this.map.remove(rendered);
+  }
 
   protected setLayerVisible({ rendered, visible }: RenderedLayer<Layer>): void {
     rendered.visible = visible;
