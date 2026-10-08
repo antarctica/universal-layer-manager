@@ -19,14 +19,24 @@ function setup() {
   return { map, manager };
 }
 
-function vectorLayer(): VectorLayer {
-  return new VectorLayer({ source: new VectorSource() });
+function vectorLayer(id = 'layer'): VectorLayer {
+  return new VectorLayer({ source: new VectorSource(), properties: { id } });
 }
 
 // Whether the map draws the layer: it is on the map, and switched on there.
 function isShowing(map: OlMap, openlayersLayer: BaseLayer): boolean {
   const layersOnMap: BaseLayer[] = map.getAllLayers();
   return layersOnMap.includes(openlayersLayer) && openlayersLayer.getVisible();
+}
+
+function layerId(openlayersLayer: BaseLayer): string {
+  const id: unknown = openlayersLayer.get('id');
+  return typeof id === 'string' ? id : '';
+}
+
+// The IDs of the given layers in the order the map draws them, from the bottom up.
+function drawOrder(map: OlMap, openlayersLayers: BaseLayer[]): string[] {
+  return map.getAllLayers().filter((layer) => openlayersLayers.includes(layer)).map(layerId);
 }
 
 function layerParams(layerId: string, openlayersLayer: BaseLayer, parentId: string | null = null) {
@@ -96,5 +106,17 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.addLayer({ layerConfig: { ...layerParams('child-1', openlayersLayer, 'group-1').layerConfig, opacity: 0.8 } });
 
     expect(openlayersLayer.getOpacity()).toBeCloseTo(0.4);
+  });
+
+  it('draws layers in the manager\'s order, from the bottom up', () => {
+    const { map, manager } = setup();
+    const openlayersLayers = ['first', 'second', 'third'].map((id) => vectorLayer(id));
+    for (const openlayersLayer of openlayersLayers) {
+      manager.addLayer({ ...layerParams(layerId(openlayersLayer), openlayersLayer), visible: true, position: 'top' });
+    }
+
+    manager.moveLayer('first', { parentId: null, position: 'top' });
+
+    expect(drawOrder(map, openlayersLayers)).toEqual(['second', 'third', 'first']);
   });
 });

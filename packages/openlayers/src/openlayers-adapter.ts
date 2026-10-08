@@ -30,5 +30,13 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     rendered.setOpacity(computedOpacity);
   }
 
-  protected restackLayers(_bottomToTop: RenderedLayer<BaseLayer>[]): void {}
+  protected restackLayers(bottomToTop: RenderedLayer<BaseLayer>[]): void {
+    const layers = this.map.getLayers();
+    bottomToTop.forEach(({ rendered }, index) => {
+      if (layers.item(index) !== rendered) {
+        layers.remove(rendered);
+        layers.insertAt(index, rendered);
+      }
+    });
+  }
 }
