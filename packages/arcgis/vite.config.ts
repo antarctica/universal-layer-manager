@@ -25,6 +25,10 @@ export default defineConfig({
   plugins: [
     dts({ bundleTypes: true }),
   ],
+  // Pre-bundled, @arcgis/core is bundled again when a test file changes, and the run in progress fails to load.
+  optimizeDeps: {
+    exclude: ['@arcgis/core'],
+  },
   test: {
     alias: {
       '@ulm/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
