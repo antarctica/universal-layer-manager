@@ -96,6 +96,19 @@ describe('arcGISLayerManagerAdapter', () => {
     expect(arcgisLayer.opacity).toBeCloseTo(0.4);
   });
 
+  it('draws the new ArcGIS layer in the old one\'s place when a layer\'s data changes', () => {
+    const { map, manager } = setup();
+    const [bottom, before, top] = ['bottom', 'before', 'top'].map((id) => new GraphicsLayer({ id }));
+    manager.addLayer({ ...layerParams('bottom', bottom), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('top', top), visible: true, position: 'top' });
+    const after = new GraphicsLayer({ id: 'after' });
+
+    manager.updateLayerData('layer-1', { arcgisLayer: after });
+
+    expect(drawOrder(map, [bottom, before, after, top])).toEqual(['bottom', 'after', 'top']);
+  });
+
   it('draws layers in the manager\'s order, from the bottom up', () => {
     const { map, manager } = setup();
     const arcgisLayers = ['first', 'second', 'third'].map((id) => new GraphicsLayer({ id }));
