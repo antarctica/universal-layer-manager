@@ -111,6 +111,28 @@ To do this, the adapter draws each layer in its own [pane](https://leafletjs.com
 
 When a layer is removed, its pane is removed with it. When the adapter is detached, it removes the container pane and every pane inside it.
 
+### Layers that build another layer
+
+Some Leaflet layers build a second layer when they are created, and copy their `pane` option to it. The adapter sets `pane` only after `renderLayer` returns, so that second layer stays in Leaflet's own pane, and the manager can't stack or fade it. [leaflet.wms](https://github.com/heigeo/leaflet.wms) is one of these. Give such a layer its pane when you build it, with `leafletLayerPane`:
+
+```ts
+import { leafletLayerPane } from '@ulm/leaflet';
+
+manager.setAdapter(
+  new LeafletLayerManagerAdapter<{ url: string; wmsLayers: string }>(map, {
+    renderLayer(info) {
+      return L.WMS.source(info.layerData.url, {
+        layers: info.layerData.wmsLayers,
+        tiled: true,
+        pane: leafletLayerPane(info.layerId),
+      });
+    },
+  }),
+);
+```
+
+Untiled leaflet.wms sources draw their images in Leaflet's overlay pane, whatever `pane` you give, so use `tiled: true` with the manager.
+
 ## How opacity works
 
 Opacity is applied to each layer's pane, using the layer's computed opacity. This works the same way for every kind of layer, including markers and vectors such as circles. The adapter doesn't change the layer's own style, so settings such as a polygon's `fillOpacity` still apply on top.
@@ -120,6 +142,6 @@ A layer at opacity `0` takes no clicks or hovers, so they reach the layers below
 ## Things to know
 
 + Only layers are drawn. Groups have no Leaflet layer of their own, but hiding or fading a group hides or fades the layers inside it.
-+ The adapter sets each layer's `pane` option, replacing any pane you set yourself. It also sets `shadowPane` on markers, and the pane of every layer inside an `L.LayerGroup`, such as an `L.GeoJSON`.
++ The adapter sets each layer's `pane` option, replacing any pane you set yourself. It also sets `shadowPane` on markers, and the pane of every layer inside an `L.LayerGroup`, such as an `L.GeoJSON`. A layer that copies its pane when it is built needs [`leafletLayerPane`](#layers-that-build-another-layer).
 + With `preferCanvas: true`, each vector layer gets its own canvas, and only the top one receives mouse events. Use Leaflet's default SVG renderer if you need to click on overlapping vector layers.
 + Reject an invalid date before calling `setTimeInfo`, so the map always shows the time the manager holds.
