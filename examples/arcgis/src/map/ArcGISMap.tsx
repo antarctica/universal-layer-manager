@@ -6,6 +6,7 @@ import EsriMap from '@arcgis/core/Map.js';
 import { ArcGISLayerManagerAdapter } from '@ulm/arcgis';
 import * as React from 'react';
 import { useLayerManager } from '../layers/LayerManagerProvider';
+import { renderLayer } from './renderLayer';
 import '@arcgis/map-components/components/arcgis-map';
 import '@arcgis/map-components/components/arcgis-zoom';
 
@@ -25,7 +26,7 @@ export function ArcGISMap(): React.ReactElement {
   // <arcgis-map> destroys its map, and every layer on it, once React removes it. A layout effect's cleanup runs
   // before that, so detaching here takes the manager's layers off the map first.
   React.useLayoutEffect(() => {
-    manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map));
+    manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, { renderLayer }));
     return () => manager.setAdapter(null);
   }, [manager, map]);
 

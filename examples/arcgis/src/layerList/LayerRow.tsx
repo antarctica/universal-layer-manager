@@ -1,9 +1,12 @@
+import { isSingleTimeInfo } from '@ulm/core';
 import * as React from 'react';
 import { useLayer, useLayerManager } from '../layers/LayerManagerProvider';
+import { LayerDateInput } from './LayerDateInput';
 import styles from './LayerList.module.css';
 import { useLayerDragAndDrop } from './useLayerDragAndDrop';
 
-// One layer or group: drag handle, switch, name and opacity. A group also lists its children.
+// One layer or group: drag handle, switch, name and opacity, and a date for a time-aware layer. A group also lists
+// its children.
 function LayerRow({ layerId }: { layerId: string }): React.ReactElement | null {
   const manager = useLayerManager();
   const layer = useLayer(layerId);
@@ -36,7 +39,12 @@ function LayerRow({ layerId }: { layerId: string }): React.ReactElement | null {
   );
 
   if (layer.layerType === 'layer') {
-    return <div className={styles.treeItem}>{row}</div>;
+    return (
+      <div className={styles.treeItem}>
+        {row}
+        {isSingleTimeInfo(layer.timeInfo) && <LayerDateInput layerId={layerId} timeInfo={layer.timeInfo} />}
+      </div>
+    );
   }
 
   return (
