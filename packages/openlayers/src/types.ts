@@ -1,5 +1,6 @@
 import type { RenderAdapterArgs, RenderAdapterOptions, RenderLayer } from '@ulm/core';
 import type BaseLayer from 'ol/layer/Base.js';
+import type LayerGroup from 'ol/layer/Group.js';
 import type OlMap from 'ol/Map.js';
 
 // ============================================================================
@@ -15,7 +16,13 @@ export type OpenLayersRenderLayer<TLayer> = RenderLayer<TLayer, OlMap, BaseLayer
 // ADAPTER OPTIONS
 // ============================================================================
 
-export type OpenLayersAdapterOptions<TLayer> = RenderAdapterOptions<TLayer, OlMap, BaseLayer>;
+export interface OpenLayersAdapterOptions<TLayer> extends RenderAdapterOptions<TLayer, OlMap, BaseLayer> {
+  /**
+   * The layer group to draw every layer in, already on the map where the app wants them. Leave it out to draw them in
+   * a group the adapter adds on top of the map.
+   */
+  container?: LayerGroup;
+}
 
 /** The layer data the default renderLayer shows: the OpenLayers layer itself. */
 export interface OpenLayersLayerData {
