@@ -9,19 +9,26 @@ import { defaultOpenLayersRenderLayer } from './default-render-layer';
 
 export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
   extends RenderAdapter<TLayer, TGroup, OlMap, BaseLayer> {
-  private readonly container = new LayerGroup();
+  private readonly container: LayerGroup;
+  private readonly ownsContainer: boolean;
 
   constructor(map: OlMap, ...[options = {}]: OpenLayersAdapterArgs<TLayer>) {
     super(map, { renderLayer: options.renderLayer ?? defaultOpenLayersRenderLayer, disposeLayer: options.disposeLayer });
+    this.container = options.container ?? new LayerGroup();
+    this.ownsContainer = !options.container;
   }
 
   register(): void {
-    this.map.addLayer(this.container);
+    if (this.ownsContainer) {
+      this.map.addLayer(this.container);
+    }
   }
 
   override unregister(): void {
     super.unregister();
-    this.map.removeLayer(this.container);
+    if (this.ownsContainer) {
+      this.map.removeLayer(this.container);
+    }
   }
 
   protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<BaseLayer>): void {
