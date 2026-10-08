@@ -90,6 +90,26 @@ yarn add @ulm/maplibre maplibre-gl
 
 `maplibre-gl` brings its own TypeScript types. The adapter needs `maplibre-gl` 6, and like it, is published as ES modules only.
 
+### ArcGIS
+
+::: code-group
+
+```sh [npm]
+npm install @ulm/arcgis @arcgis/core
+```
+
+```sh [pnpm]
+pnpm add @ulm/arcgis @arcgis/core
+```
+
+```sh [yarn]
+yarn add @ulm/arcgis @arcgis/core
+```
+
+:::
+
+`@arcgis/core` brings its own TypeScript types. The adapter needs `@arcgis/core` 5, and like it, is published as ES modules only.
+
 ### Other map libraries
 
 For other map libraries, you can [write your own adapter](./adapters/writing-an-adapter).

@@ -21,6 +21,7 @@ A state-machine-powered layer management library for map applications. Model you
 | [`@ulm/core`](./packages/core/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/core.svg)](https://www.npmjs.com/package/@ulm/core) | Core state machine library — framework and map-library agnostic |
 | [`@ulm/leaflet`](./packages/leaflet/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/leaflet.svg)](https://www.npmjs.com/package/@ulm/leaflet) | Leaflet adapter — syncs manager state to a Leaflet map |
 | [`@ulm/maplibre`](./packages/maplibre/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/maplibre.svg)](https://www.npmjs.com/package/@ulm/maplibre) | MapLibre GL JS adapter — syncs manager state to a MapLibre map's style |
+| [`@ulm/arcgis`](./packages/arcgis/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/arcgis.svg)](https://www.npmjs.com/package/@ulm/arcgis) | ArcGIS Maps SDK for JavaScript adapter — syncs manager state to an ArcGIS map's layers |
 
 For another map library, [write your own adapter](https://antarctica.github.io/universal-layer-manager/adapters/writing-an-adapter).
 
@@ -70,7 +71,7 @@ manager.addLayer({
 });
 ```
 
-Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet](https://antarctica.github.io/universal-layer-manager/adapters/leaflet) or [MapLibre](https://antarctica.github.io/universal-layer-manager/adapters/maplibre) adapter.
+Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet](https://antarctica.github.io/universal-layer-manager/adapters/leaflet), [MapLibre](https://antarctica.github.io/universal-layer-manager/adapters/maplibre) or [ArcGIS](https://antarctica.github.io/universal-layer-manager/adapters/arcgis) adapter.
 
 ---
 
@@ -100,6 +101,7 @@ packages/
   core/       @ulm/core — state machine library
   leaflet/    @ulm/leaflet — Leaflet adapter
   maplibre/   @ulm/maplibre — MapLibre GL JS adapter
+  arcgis/     @ulm/arcgis — ArcGIS Maps SDK for JavaScript adapter
 examples/
   simple/          vanilla TypeScript example
   leaflet/         React + Leaflet example

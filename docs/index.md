@@ -33,7 +33,7 @@ Across different projects we found ourselves reinventing the same approach to la
 
 + The **layer manager** (`LayerManager`) is the central store. It owns the layer tree and handles cascading rules—for example, automatically enabling parent groups when a hidden layer is switched on.
 + Your **UI** calls the manager to make updates (such as `setEnabled`, `setOpacity`, or `moveLayer`) and subscribes to state changes through callbacks.
-+ An **adapter** applies manager state to the map. `@ulm/leaflet` provides one for Leaflet and `@ulm/maplibre` one for MapLibre, and you can [implement your own](./adapters/writing-an-adapter) for any other map library.
++ An **adapter** applies manager state to the map. `@ulm/leaflet` provides one for Leaflet, `@ulm/maplibre` one for MapLibre and `@ulm/arcgis` one for ArcGIS, and you can [implement your own](./adapters/writing-an-adapter) for any other map library.
 
 Each layer and group is modelled as an [XState](https://stately.ai/docs/xstate) state machine, so the rules governing their behaviour are explicit, predictable, and straightforward to test. You don't need to know XState to use the library, but the underlying actors are available if you [want to work with them directly](./xstate).
 
