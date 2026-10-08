@@ -12,8 +12,9 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     super(map, { renderLayer: options.renderLayer ?? defaultArcGISRenderLayer, disposeLayer: options.disposeLayer });
   }
 
-  protected placeLayer({ rendered, visible }: RenderedLayer<Layer>): void {
+  protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<Layer>): void {
     rendered.visible = visible;
+    rendered.opacity = computedOpacity;
     this.map.add(rendered);
   }
 
@@ -25,7 +26,9 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     rendered.visible = visible;
   }
 
-  protected setLayerOpacity(_layer: RenderedLayer<Layer>): void {}
+  protected setLayerOpacity({ rendered, computedOpacity }: RenderedLayer<Layer>): void {
+    rendered.opacity = computedOpacity;
+  }
 
   protected restackLayers(_bottomToTop: RenderedLayer<Layer>[]): void {}
 }
