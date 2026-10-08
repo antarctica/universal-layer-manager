@@ -4,6 +4,7 @@ import { LayerManager } from '@ulm/core';
 import * as L from 'leaflet';
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { defaultLeafletRenderLayer } from '../src/default-render-layer';
 import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
 import 'leaflet/dist/leaflet.css';
@@ -105,6 +106,23 @@ function drawOrderAt(manager: Manager, map: L.Map, latLng: L.LatLngExpression): 
     .reverse();
 }
 
+// Clicks the map at a point, and returns the IDs of the layers whose Leaflet layer heard the click.
+async function clickAt(manager: Manager, map: L.Map, latLng: L.LatLngExpression): Promise<string[]> {
+  const clicked: string[] = [];
+  const listeners = Object.values(manager.getTree().layers).flatMap((info) => {
+    const { leafletLayer } = info.layerData ?? {};
+    if (!leafletLayer) {
+      return [];
+    }
+    const listener = () => clicked.push(info.layerId);
+    leafletLayer.on('click', listener);
+    return [() => leafletLayer.off('click', listener)];
+  });
+  await userEvent.click(map.getContainer(), { position: map.latLngToContainerPoint(latLng) });
+  listeners.forEach((off) => off());
+  return clicked;
+}
+
 function circle(): L.CircleMarker {
   return L.circleMarker(LONDON, { radius: 20 });
 }
@@ -181,6 +199,58 @@ describe('leafletLayerManagerAdapter', () => {
     manager.addLayer({ layerConfig: { ...layerParams('child-1', leafletLayer, 'group-1').layerConfig, opacity: 0.8 } });
 
     expect(opacityOf(map, leafletLayer)).toBeCloseTo(0.4);
+  });
+
+  it('lets clicks through to the layer below a layer faded out', async () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('bottom', circle()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('top', circle()), visible: true, position: 'top' });
+
+    manager.setOpacity('top', 0);
+
+    expect(await clickAt(manager, map, LONDON)).toEqual(['bottom']);
+  });
+
+  it('takes clicks again on a layer faded back in', async () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('bottom', circle()), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('top', circle()), visible: true, position: 'top' });
+    manager.setOpacity('top', 0);
+
+    manager.setOpacity('top', 0.5);
+
+    expect(await clickAt(manager, map, LONDON)).toEqual(['top']);
+  });
+
+  it('lets clicks through to the layer below a layer added faded out', async () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('bottom', circle()), visible: true, position: 'top' });
+
+    manager.addLayer({ layerConfig: { ...layerParams('top', circle()).layerConfig, opacity: 0 }, visible: true, position: 'top' });
+
+    expect(await clickAt(manager, map, LONDON)).toEqual(['bottom']);
+  });
+
+  it('lets clicks through to the layer below a group faded out', async () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('bottom', circle()), visible: true, position: 'top' });
+    manager.addGroup({ ...groupParams('group-1'), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('child-1', circle(), 'group-1'), visible: true });
+
+    manager.setOpacity('group-1', 0);
+
+    expect(await clickAt(manager, map, LONDON)).toEqual(['bottom']);
+  });
+
+  it('takes clicks in the right place on a layer faded back in after the map moved', async () => {
+    const { map, manager } = setup();
+    manager.addLayer({ ...layerParams('layer-1', circle()), visible: true });
+    manager.setOpacity('layer-1', 0);
+    map.panBy([150, 100], { animate: false });
+
+    manager.setOpacity('layer-1', 1);
+
+    expect(await clickAt(manager, map, LONDON)).toEqual(['layer-1']);
   });
 
   it('draws the new Leaflet layer in place of the old one when a layer\'s data changes', () => {
