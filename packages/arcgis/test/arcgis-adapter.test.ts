@@ -119,4 +119,14 @@ describe('arcGISLayerManagerAdapter', () => {
 
     expect(drawOrder(map, [appLayer, ...arcgisLayers])).toEqual(['app', 'first', 'second']);
   });
+
+  it('leaves only the app\'s own layers on the map when it is detached', () => {
+    const appLayer = new GraphicsLayer({ id: 'app' });
+    const { map, manager } = setup(new EsriMap({ layers: [appLayer] }));
+    manager.addLayer({ ...layerParams('layer-1', new GraphicsLayer()), visible: true });
+
+    manager.setAdapter(null);
+
+    expect(map.allLayers.toArray()).toEqual([appLayer]);
+  });
 });
