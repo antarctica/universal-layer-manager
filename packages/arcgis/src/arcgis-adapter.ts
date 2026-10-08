@@ -12,13 +12,16 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     super(map, { renderLayer: options.renderLayer ?? defaultArcGISRenderLayer, disposeLayer: options.disposeLayer });
   }
 
-  protected placeLayer({ rendered }: RenderedLayer<Layer>): void {
+  protected placeLayer({ rendered, visible }: RenderedLayer<Layer>): void {
+    rendered.visible = visible;
     this.map.add(rendered);
   }
 
   protected eraseLayer(_layerId: string, _rendered: Layer): void {}
 
-  protected setLayerVisible(_layer: RenderedLayer<Layer>): void {}
+  protected setLayerVisible({ rendered, visible }: RenderedLayer<Layer>): void {
+    rendered.visible = visible;
+  }
 
   protected setLayerOpacity(_layer: RenderedLayer<Layer>): void {}
 

@@ -18,6 +18,11 @@ function setup() {
   return { map, manager };
 }
 
+// Whether the map draws the layer: it is on the map, and switched on there.
+function isShowing(map: EsriMap, arcgisLayer: Layer): boolean {
+  return map.allLayers.includes(arcgisLayer) && arcgisLayer.visible;
+}
+
 function layerParams(layerId: string, arcgisLayer: Layer, parentId: string | null = null) {
   return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData: { arcgisLayer } } };
 }
@@ -30,5 +35,24 @@ describe('arcGISLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('layer-1', arcgisLayer), visible: true });
 
     expect(map.allLayers.includes(arcgisLayer)).toBe(true);
+  });
+
+  it('hides a layer that is added switched off', () => {
+    const { map, manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
+
+    manager.addLayer({ ...layerParams('layer-1', arcgisLayer), visible: false });
+
+    expect(isShowing(map, arcgisLayer)).toBe(false);
+  });
+
+  it('shows a hidden layer when it is switched on', () => {
+    const { map, manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
+    manager.addLayer({ ...layerParams('layer-1', arcgisLayer), visible: false });
+
+    manager.setEnabled('layer-1', true);
+
+    expect(isShowing(map, arcgisLayer)).toBe(true);
   });
 });
