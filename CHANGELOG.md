@@ -5,11 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-`@ulm/core`, `@ulm/leaflet` and `@ulm/maplibre` ship on the same version. The scope on each
+`@ulm/core`, `@ulm/leaflet`, `@ulm/maplibre` and `@ulm/arcgis` ship on the same version. The scope on each
 entry names the package that changed.
 
 Sections are drafted from the commit history with `npm run changelog:draft` and
 edited before release. To see what is pending, run `npm run changelog:preview`.
+
+## [3.1.0] - 2026-10-08
+
+### Added
+
+- **arcgis**: New `@ulm/arcgis` package with `ArcGISLayerManagerAdapter`, which shows each layer as an ArcGIS Maps SDK for JavaScript layer
+  - Keeps every layer in one `GroupLayer`, which it adds to the top of the map and hides from ArcGIS layer lists. Layers added outside the manager keep their places
+  - The `container` option keeps the layers in a `GroupLayer` the app has already placed on the map
+  - Sets each layer's `visible` and `opacity`, using the opacity combined with its groups, and stacks the layers in the manager's order
+  - `renderLayer` returns the ArcGIS layer to show for a layer. Without it, `defaultArcGISRenderLayer` shows `layerData.arcgisLayer`
+  - When detached, takes its layers off the map, and the group too if it created it. It never destroys layers; use `disposeLayer` for that
+  - Needs `@arcgis/core` 5, and like it, is published as ES modules only
+- **examples**: React ArcGIS example, set in Antarctica on the BAS basemap, with a time-aware AMSR2 sea ice layer
+- **examples**: Stack the map above the layer list on small screens
+
+### Fixed
+
+- **examples**: Keep layer rows on one line and truncate long layer names
+
+[3.1.0]: https://github.com/antarctica/universal-layer-manager/compare/v3.0.0...v3.1.0
 
 ## [3.0.0] - 2026-10-07
 
