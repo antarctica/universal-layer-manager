@@ -27,6 +27,10 @@ function layerParams(layerId: string, arcgisLayer: Layer, parentId: string | nul
   return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData: { arcgisLayer } } };
 }
 
+function groupParams(layerId: string) {
+  return { layerConfig: { layerId, layerName: layerId, layerType: 'layerGroup' as const } };
+}
+
 describe('arcGISLayerManagerAdapter', () => {
   it('puts a visible layer on the map when it is added', () => {
     const { map, manager } = setup();
@@ -64,5 +68,27 @@ describe('arcGISLayerManagerAdapter', () => {
     manager.removeLayer('layer-1');
 
     expect(map.allLayers.includes(arcgisLayer)).toBe(false);
+  });
+
+  it('draws a layer at its opacity combined with its group\'s', () => {
+    const { manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
+    manager.addGroup(groupParams('group-1'));
+    manager.addLayer(layerParams('child-1', arcgisLayer, 'group-1'));
+
+    manager.setOpacity('group-1', 0.5);
+    manager.setOpacity('child-1', 0.8);
+
+    expect(arcgisLayer.opacity).toBeCloseTo(0.4);
+  });
+
+  it('draws a layer at its opacity combined with its group\'s as soon as it is added', () => {
+    const { manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
+    manager.addGroup({ layerConfig: { ...groupParams('group-1').layerConfig, opacity: 0.5 } });
+
+    manager.addLayer({ layerConfig: { ...layerParams('child-1', arcgisLayer, 'group-1').layerConfig, opacity: 0.8 } });
+
+    expect(arcgisLayer.opacity).toBeCloseTo(0.4);
   });
 });
