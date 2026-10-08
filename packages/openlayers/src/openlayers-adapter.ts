@@ -17,7 +17,9 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     this.map.addLayer(rendered);
   }
 
-  protected eraseLayer(_layerId: string, _rendered: BaseLayer): void {}
+  protected eraseLayer(_layerId: string, rendered: BaseLayer): void {
+    this.map.removeLayer(rendered);
+  }
 
   protected setLayerVisible({ rendered, visible }: RenderedLayer<BaseLayer>): void {
     rendered.setVisible(visible);

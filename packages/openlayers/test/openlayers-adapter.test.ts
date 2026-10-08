@@ -61,4 +61,14 @@ describe('openLayersLayerManagerAdapter', () => {
 
     expect(isShowing(map, openlayersLayer)).toBe(true);
   });
+
+  it('takes a layer off the map when it is removed', () => {
+    const { map, manager } = setup();
+    const openlayersLayer = vectorLayer();
+    manager.addLayer({ ...layerParams('layer-1', openlayersLayer), visible: true });
+
+    manager.removeLayer('layer-1');
+
+    expect(map.getAllLayers()).not.toContain(openlayersLayer);
+  });
 });
