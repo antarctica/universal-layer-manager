@@ -10,11 +10,12 @@
 .layerItem {
   padding: 0.5rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   cursor: pointer;
   user-select: none;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .layerItem.visible {
@@ -28,15 +29,21 @@
 .label {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
   cursor: pointer;
 }
 
 .labelText {
   margin-left: 0.3125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .opacityControls {
   display: flex;
+  flex-shrink: 0;
   gap: 0.5rem;
   align-items: center;
   margin-left: auto;
@@ -51,6 +58,7 @@
 }
 
 .dragHandle {
+  flex-shrink: 0;
   cursor: grab;
   color: #666;
 }
@@ -78,6 +86,7 @@
 }
 
 .groupChildren {
+  margin-top: 0.5rem;
   margin-left: 0.75rem;
   padding-left: 0.75rem;
   border-left: 2px solid #9aa5b1;
