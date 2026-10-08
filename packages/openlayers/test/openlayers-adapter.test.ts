@@ -23,6 +23,12 @@ function vectorLayer(): VectorLayer {
   return new VectorLayer({ source: new VectorSource() });
 }
 
+// Whether the map draws the layer: it is on the map, and switched on there.
+function isShowing(map: OlMap, openlayersLayer: BaseLayer): boolean {
+  const layersOnMap: BaseLayer[] = map.getAllLayers();
+  return layersOnMap.includes(openlayersLayer) && openlayersLayer.getVisible();
+}
+
 function layerParams(layerId: string, openlayersLayer: BaseLayer, parentId: string | null = null) {
   return { layerConfig: { layerId, layerName: layerId, layerType: 'layer' as const, parentId, layerData: { openlayersLayer } } };
 }
@@ -35,5 +41,24 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.addLayer({ ...layerParams('layer-1', openlayersLayer), visible: true });
 
     expect(map.getAllLayers()).toContain(openlayersLayer);
+  });
+
+  it('hides a layer that is added switched off', () => {
+    const { map, manager } = setup();
+    const openlayersLayer = vectorLayer();
+
+    manager.addLayer({ ...layerParams('layer-1', openlayersLayer), visible: false });
+
+    expect(isShowing(map, openlayersLayer)).toBe(false);
+  });
+
+  it('shows a hidden layer when it is switched on', () => {
+    const { map, manager } = setup();
+    const openlayersLayer = vectorLayer();
+    manager.addLayer({ ...layerParams('layer-1', openlayersLayer), visible: false });
+
+    manager.setEnabled('layer-1', true);
+
+    expect(isShowing(map, openlayersLayer)).toBe(true);
   });
 });

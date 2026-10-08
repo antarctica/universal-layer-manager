@@ -12,13 +12,16 @@ export class OpenLayersLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     super(map, { renderLayer: options.renderLayer ?? defaultOpenLayersRenderLayer, disposeLayer: options.disposeLayer });
   }
 
-  protected placeLayer({ rendered }: RenderedLayer<BaseLayer>): void {
+  protected placeLayer({ rendered, visible }: RenderedLayer<BaseLayer>): void {
+    rendered.setVisible(visible);
     this.map.addLayer(rendered);
   }
 
   protected eraseLayer(_layerId: string, _rendered: BaseLayer): void {}
 
-  protected setLayerVisible(_layer: RenderedLayer<BaseLayer>): void {}
+  protected setLayerVisible({ rendered, visible }: RenderedLayer<BaseLayer>): void {
+    rendered.setVisible(visible);
+  }
 
   protected setLayerOpacity(_layer: RenderedLayer<BaseLayer>): void {}
 
