@@ -101,6 +101,27 @@ manager.setAdapter(new MapLibreLayerManagerAdapter<LayerData>(map));
 
 See the [MapLibre guide](./adapters/maplibre) for shared sources, stacking and opacity.
 
+## ArcGIS and React
+
+[Live demo](https://antarctica.github.io/universal-layer-manager/examples/arcgis/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/arcgis)
+
+A React layer list alongside the `<arcgis-map>` component, set in Antarctica on the British Antarctic Survey basemap. It shows daily AMSR2 sea ice concentration with a date to pick, Antarctic Digital Database layers, and Bedmap3 ice sheet layers. The layer list is the same shape as the MapLibre example.
+
+### The approach
+
+The manager and list work as in the other examples. The differences are on the map side:
+
++ Each layer's `layerData.arcgisLayer` is the ArcGIS layer that shows it, which the adapter shows by default.
++ The adapter keeps the managed layers in one group layer of its own, in the manager's order.
++ The sea ice layer is time-aware. A `renderLayer` sets its `timeExtent` from the layer's `timeInfo`, and ArcGIS asks the WMS server for that day.
++ The adapter is attached in a layout effect, so it takes its layers off the map before `<arcgis-map>` destroys the map.
+
+```ts
+manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, { renderLayer }));
+```
+
+See the [ArcGIS guide](./adapters/arcgis) for the group layer, the `container` option and opacity.
+
 ## Leaflet and React with XState (advanced)
 
 [Live demo](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/leaflet-xstate)
