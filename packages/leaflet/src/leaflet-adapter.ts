@@ -10,7 +10,11 @@ const CONTAINER_PANE = 'ulmPane';
 // Between Leaflet's overlay pane (400) and shadow pane (500), so popups, tooltips and unmanaged markers stay on top.
 const CONTAINER_PANE_Z_INDEX = '450';
 
-function layerPaneName(layerId: string): string {
+/**
+ * The pane the adapter draws a layer in. Give it as `pane` to a Leaflet layer that copies its pane to an inner layer
+ * when it is built, as leaflet.wms does, because the adapter sets the pane only after renderLayer returns.
+ */
+export function leafletLayerPane(layerId: string): string {
   return `ulm-${layerId}`;
 }
 
@@ -37,10 +41,10 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 
   // Draws a layer's Leaflet layer in a pane of its own, faded as the layer is, and on the map if the layer is showing.
   protected placeLayer({ layerId, rendered, visible, computedOpacity }: RenderedLayer<L.Layer>): void {
-    const pane = this.attachPane(layerPaneName(layerId), this.getContainerPane());
+    const pane = this.attachPane(leafletLayerPane(layerId), this.getContainerPane());
     pane.style.opacity = String(computedOpacity);
     pane.style.display = computedOpacity === 0 ? 'none' : '';
-    placeInPane(rendered, layerPaneName(layerId));
+    placeInPane(rendered, leafletLayerPane(layerId));
     if (visible) {
       rendered.addTo(this.map);
     }
@@ -49,7 +53,7 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
   protected eraseLayer(layerId: string, rendered: L.Layer, next?: L.Layer): void {
     this.map.removeLayer(rendered);
     if (!next) {
-      this.map.getPane(layerPaneName(layerId))?.remove();
+      this.map.getPane(leafletLayerPane(layerId))?.remove();
     }
   }
 
@@ -62,7 +66,7 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
   }
 
   protected setLayerOpacity({ layerId, computedOpacity }: RenderedLayer<L.Layer>): void {
-    const pane = this.map.getPane(layerPaneName(layerId));
+    const pane = this.map.getPane(leafletLayerPane(layerId));
     if (pane) {
       pane.style.opacity = String(computedOpacity);
       pane.style.display = computedOpacity === 0 ? 'none' : '';
@@ -71,7 +75,7 @@ export class LeafletLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 
   protected restackLayers(bottomToTop: RenderedLayer<L.Layer>[]): void {
     bottomToTop.forEach(({ layerId }, index) => {
-      const pane = this.map.getPane(layerPaneName(layerId));
+      const pane = this.map.getPane(leafletLayerPane(layerId));
       if (pane) {
         pane.style.zIndex = String(index + 1);
       }
