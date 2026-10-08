@@ -19,6 +19,11 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
     this.map.add(this.container);
   }
 
+  override unregister(): void {
+    super.unregister();
+    this.map.remove(this.container);
+  }
+
   protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<Layer>): void {
     rendered.visible = visible;
     rendered.opacity = computedOpacity;
