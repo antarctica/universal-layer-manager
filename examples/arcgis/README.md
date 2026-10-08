@@ -35,7 +35,7 @@ The example will be available at `http://localhost:5179`
 
 ```
 src/
-  main.tsx                    renders <App />, with the ArcGIS stylesheet
+  main.tsx                    renders <App />
   App.tsx                     the layer list beside the map
   layers/
     manager.ts                the LayerManager store, its LayerData type and starting layers
