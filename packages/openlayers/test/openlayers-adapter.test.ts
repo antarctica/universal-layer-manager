@@ -1,5 +1,7 @@
 import type BaseLayer from 'ol/layer/Base.js';
+import type { OpenLayersAdapterOptions } from '../src/types';
 import { LayerManager } from '@ulm/core';
+import LayerGroup from 'ol/layer/Group.js';
 import VectorLayer from 'ol/layer/Vector.js';
 import OlMap from 'ol/Map.js';
 import VectorSource from 'ol/source/Vector.js';
@@ -12,9 +14,9 @@ interface LayerData {
 
 type Manager = LayerManager<LayerData>;
 
-function setup(map = new OlMap()) {
+function setup(map = new OlMap(), options: OpenLayersAdapterOptions<LayerData> = {}) {
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
-  manager.setAdapter(new OpenLayersLayerManagerAdapter<LayerData>(map));
+  manager.setAdapter(new OpenLayersLayerManagerAdapter<LayerData>(map, options));
   return { map, manager };
 }
 
@@ -152,5 +154,29 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.setAdapter(null);
 
     expect(map.getLayers().getArray()).toEqual([appLayer]);
+  });
+
+  it('draws its layers in the group it is given, where the app put that group', () => {
+    const [below, above] = ['below', 'above'].map((id) => vectorLayer(id));
+    const container = new LayerGroup();
+    const { map, manager } = setup(new OlMap({ layers: [below, container, above] }), { container });
+    const openlayersLayers = ['first', 'second'].map((id) => vectorLayer(id));
+
+    for (const openlayersLayer of openlayersLayers) {
+      manager.addLayer({ ...layerParams(layerId(openlayersLayer), openlayersLayer), visible: true, position: 'top' });
+    }
+
+    expect(drawOrder(map, [below, above, ...openlayersLayers])).toEqual(['below', 'first', 'second', 'above']);
+  });
+
+  it('leaves the group it is given on the map, emptied, when it is detached', () => {
+    const container = new LayerGroup();
+    const { map, manager } = setup(new OlMap({ layers: [container] }), { container });
+    manager.addLayer({ ...layerParams('layer-1', vectorLayer()), visible: true });
+
+    manager.setAdapter(null);
+
+    expect(map.getLayers().getArray()).toEqual([container]);
+    expect(container.getLayers().getLength()).toBe(0);
   });
 });
