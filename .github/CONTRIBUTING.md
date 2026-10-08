@@ -26,7 +26,7 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 type(scope): description
 ```
 
-A scope is required. It names the package that changed: `core`, `leaflet`, `examples`, `repo`, or `deps`.
+A scope is required. It names the package that changed: `core`, `leaflet`, `maplibre`, `arcgis`, `openlayers`, `examples`, `repo`, or `deps`.
 
 | Type | Use for | In the changelog |
 | --- | --- | --- |
@@ -48,4 +48,4 @@ npm run changelog:draft     # prepend it to CHANGELOG.md
 npm run version:next        # print the next version
 ```
 
-Edit the drafted section before tagging. `@ulm/core` and `@ulm/leaflet` ship on the same tag, `vX.Y.Z`. `v1.0.1` and `v1.0.2` already belong to the previous single package. If `npm run version:next` prints one of those, tag the next free version instead.
+Edit the drafted section before tagging. `@ulm/core`, `@ulm/leaflet`, `@ulm/maplibre`, `@ulm/arcgis` and `@ulm/openlayers` ship on the same tag, `vX.Y.Z`. `v1.0.1` and `v1.0.2` already belong to the previous single package. If `npm run version:next` prints one of those, tag the next free version instead.
