@@ -6,7 +6,7 @@ import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { defaultLeafletRenderLayer } from '../src/default-render-layer';
-import { LeafletLayerManagerAdapter } from '../src/leaflet-adapter';
+import { LeafletLayerManagerAdapter, leafletLayerPane } from '../src/leaflet-adapter';
 import 'leaflet/dist/leaflet.css';
 
 interface LayerData {
@@ -125,6 +125,23 @@ async function clickAt(manager: Manager, map: L.Map, latLng: L.LatLngExpression)
 
 function circle(): L.CircleMarker {
   return L.circleMarker(LONDON, { radius: 20 });
+}
+
+// Builds its inner layer before the adapter sets its pane, as leaflet.wms does.
+class WrapperLayer extends L.Layer {
+  constructor(private readonly inner: L.Layer) {
+    super();
+  }
+
+  override onAdd(map: L.Map): this {
+    this.inner.addTo(map);
+    return this;
+  }
+
+  override onRemove(map: L.Map): this {
+    map.removeLayer(this.inner);
+    return this;
+  }
 }
 
 function layerParams(layerId: string, leafletLayer: L.Layer, parentId: string | null = null) {
@@ -447,6 +464,16 @@ describe('leafletLayerManagerAdapter', () => {
     const drawn = Array.from(map.getContainer().querySelectorAll('path.leaflet-interactive, .leaflet-marker-icon, .leaflet-marker-shadow'));
     expect(drawn).toHaveLength(3);
     expect(drawn.every((element) => pane.contains(element))).toBe(true);
+  });
+
+  it('draws a layer that a Leaflet layer builds with leafletLayerPane in the Leaflet layer\'s place in the order', () => {
+    const { map, manager } = setup();
+    const inner = L.circleMarker(LONDON, { radius: 20, pane: leafletLayerPane('wrapper') });
+    const wrapper = new WrapperLayer(inner);
+
+    manager.addLayer({ ...layerParams('wrapper', wrapper), visible: true });
+
+    expect(paneOf(map, wrapper).contains(inner.getElement() ?? null)).toBe(true);
   });
 
   it('keeps a layer off the map when it is switched off while its group hides it', () => {
