@@ -55,4 +55,14 @@ describe('arcGISLayerManagerAdapter', () => {
 
     expect(isShowing(map, arcgisLayer)).toBe(true);
   });
+
+  it('takes a layer off the map when it is removed', () => {
+    const { map, manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
+    manager.addLayer({ ...layerParams('layer-1', arcgisLayer), visible: true });
+
+    manager.removeLayer('layer-1');
+
+    expect(map.allLayers.includes(arcgisLayer)).toBe(false);
+  });
 });
