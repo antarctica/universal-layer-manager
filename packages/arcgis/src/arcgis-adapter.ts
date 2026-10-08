@@ -9,19 +9,26 @@ import { defaultArcGISRenderLayer } from './default-render-layer';
 
 export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
   extends RenderAdapter<TLayer, TGroup, EsriMap, Layer> {
-  private readonly container = new GroupLayer();
+  private readonly container: GroupLayer;
+  private readonly ownsContainer: boolean;
 
   constructor(map: EsriMap, ...[options = {}]: ArcGISAdapterArgs<TLayer>) {
     super(map, { renderLayer: options.renderLayer ?? defaultArcGISRenderLayer, disposeLayer: options.disposeLayer });
+    this.container = options.container ?? new GroupLayer();
+    this.ownsContainer = !options.container;
   }
 
   register(): void {
-    this.map.add(this.container);
+    if (!this.container.parent) {
+      this.map.add(this.container);
+    }
   }
 
   override unregister(): void {
     super.unregister();
-    this.map.remove(this.container);
+    if (this.ownsContainer) {
+      this.map.remove(this.container);
+    }
   }
 
   protected placeLayer({ rendered, visible, computedOpacity }: RenderedLayer<Layer>): void {

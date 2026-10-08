@@ -1,5 +1,7 @@
 import type Layer from '@arcgis/core/layers/Layer.js';
+import type { ArcGISAdapterOptions } from '../src/types';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer.js';
+import GroupLayer from '@arcgis/core/layers/GroupLayer.js';
 import EsriMap from '@arcgis/core/Map.js';
 import { LayerManager } from '@ulm/core';
 import { describe, expect, it } from 'vitest';
@@ -11,9 +13,9 @@ interface LayerData {
 
 type Manager = LayerManager<LayerData>;
 
-function setup(map = new EsriMap()) {
+function setup(map = new EsriMap(), options: ArcGISAdapterOptions<LayerData> = {}) {
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
-  manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map));
+  manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, options));
   return { map, manager };
 }
 
@@ -141,5 +143,28 @@ describe('arcGISLayerManagerAdapter', () => {
     manager.setAdapter(null);
 
     expect(map.allLayers.toArray()).toEqual([appLayer]);
+  });
+
+  it('draws its layers in the group it is given, where the app put that group', () => {
+    const [below, above] = ['below', 'above'].map((id) => new GraphicsLayer({ id }));
+    const container = new GroupLayer();
+    const { map, manager } = setup(new EsriMap({ layers: [below, container, above] }), { container });
+    const arcgisLayers = ['first', 'second'].map((id) => new GraphicsLayer({ id }));
+
+    for (const arcgisLayer of arcgisLayers) {
+      manager.addLayer({ ...layerParams(arcgisLayer.id, arcgisLayer), visible: true, position: 'top' });
+    }
+
+    expect(drawOrder(map, [below, above, ...arcgisLayers])).toEqual(['below', 'first', 'second', 'above']);
+  });
+
+  it('leaves the group it is given on the map, emptied, when it is detached', () => {
+    const container = new GroupLayer();
+    const { map, manager } = setup(new EsriMap({ layers: [container] }), { container });
+    manager.addLayer({ ...layerParams('layer-1', new GraphicsLayer()), visible: true });
+
+    manager.setAdapter(null);
+
+    expect(map.allLayers.toArray()).toEqual([container]);
   });
 });
