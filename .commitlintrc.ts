@@ -32,6 +32,7 @@ export default {
         'leaflet', // packages/leaflet
         'maplibre', // packages/maplibre
         'arcgis', // packages/arcgis
+        'openlayers', // packages/openlayers
         'examples', // examples/
         'repo', // hooks, root config, README, CHANGELOG
         'deps', // lockfile and dependency bumps
