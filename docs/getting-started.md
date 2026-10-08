@@ -2,7 +2,7 @@
 
 Universal Layer Manager is designed to give you a single, predictable place to manage layers in web map applications. It coordinates what exists on your map, how layers are grouped, which ones are showing, their opacity, and their drawing order.
 
-Because layer state lives in its own manager outside your UI components, it is not trapped inside a single layer list widget. Changes can come from user interactions (like toggling a switch or clicking a feature) or programmatically (like reading URL parameters or responding to API events).
+Because layer state lives in its own manager outside your UI components, it is not trapped inside a single layer list widget. Managing layers from multiple panels is possible—for example, one main layer list alongside feature-specific functionality that reads and controls it. Changes can come from user interactions (like toggling a switch or clicking a feature) or programmatically (like reading URL parameters or responding to API events).
 
 
 ## Concepts
