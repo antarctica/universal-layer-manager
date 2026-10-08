@@ -22,6 +22,7 @@ A state-machine-powered layer management library for map applications. Model you
 | [`@ulm/leaflet`](./packages/leaflet/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/leaflet.svg)](https://www.npmjs.com/package/@ulm/leaflet) | Leaflet adapter — syncs manager state to a Leaflet map |
 | [`@ulm/maplibre`](./packages/maplibre/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/maplibre.svg)](https://www.npmjs.com/package/@ulm/maplibre) | MapLibre GL JS adapter — syncs manager state to a MapLibre map's style |
 | [`@ulm/arcgis`](./packages/arcgis/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/arcgis.svg)](https://www.npmjs.com/package/@ulm/arcgis) | ArcGIS Maps SDK for JavaScript adapter — syncs manager state to an ArcGIS map's layers |
+| [`@ulm/openlayers`](./packages/openlayers/README.md) | [![npm](https://img.shields.io/npm/v/@ulm/openlayers.svg)](https://www.npmjs.com/package/@ulm/openlayers) | OpenLayers adapter — syncs manager state to an OpenLayers map's layers |
 
 For another map library, [write your own adapter](https://antarctica.github.io/universal-layer-manager/adapters/writing-an-adapter).
 
@@ -71,7 +72,7 @@ manager.addLayer({
 });
 ```
 
-Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet](https://antarctica.github.io/universal-layer-manager/adapters/leaflet), [MapLibre](https://antarctica.github.io/universal-layer-manager/adapters/maplibre) or [ArcGIS](https://antarctica.github.io/universal-layer-manager/adapters/arcgis) adapter.
+Next, read [Getting started](https://antarctica.github.io/universal-layer-manager/getting-started) for the concepts, or put your layers on a map with the [Leaflet](https://antarctica.github.io/universal-layer-manager/adapters/leaflet), [MapLibre](https://antarctica.github.io/universal-layer-manager/adapters/maplibre), [ArcGIS](https://antarctica.github.io/universal-layer-manager/adapters/arcgis) or [OpenLayers](https://antarctica.github.io/universal-layer-manager/adapters/openlayers) adapter.
 
 ---
 
@@ -103,6 +104,7 @@ packages/
   leaflet/    @ulm/leaflet — Leaflet adapter
   maplibre/   @ulm/maplibre — MapLibre GL JS adapter
   arcgis/     @ulm/arcgis — ArcGIS Maps SDK for JavaScript adapter
+  openlayers/ @ulm/openlayers — OpenLayers adapter
 examples/
   simple/          vanilla TypeScript example
   leaflet/         React + Leaflet example

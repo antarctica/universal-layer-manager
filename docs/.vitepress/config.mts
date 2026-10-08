@@ -55,6 +55,7 @@ export default withMermaid(defineConfig({
           { text: 'Leaflet', link: '/adapters/leaflet' },
           { text: 'MapLibre', link: '/adapters/maplibre' },
           { text: 'ArcGIS', link: '/adapters/arcgis' },
+          { text: 'OpenLayers', link: '/adapters/openlayers' },
           { text: 'Writing an adapter', link: '/adapters/writing-an-adapter' },
         ],
       },
@@ -72,6 +73,7 @@ export default withMermaid(defineConfig({
           { text: '@ulm/leaflet', link: '/reference/leaflet' },
           { text: '@ulm/maplibre', link: '/reference/maplibre' },
           { text: '@ulm/arcgis', link: '/reference/arcgis' },
+          { text: '@ulm/openlayers', link: '/reference/openlayers' },
         ],
       },
       {
