@@ -1,0 +1,45 @@
+{
+  "name": "@ulm/arcgis",
+  "type": "module",
+  "version": "3.0.0",
+  "description": "ArcGIS Maps SDK for JavaScript adapter for @ulm/core",
+  "author": {
+    "name": "Jonathan Dawe",
+    "email": "jonwe@bas.ac.uk"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/arcgis.d.ts",
+      "import": "./dist/arcgis.js"
+    }
+  },
+  "module": "./dist/arcgis.js",
+  "types": "./dist/arcgis.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest --run",
+    "check-types": "tsc --noemit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@arcgis/core": "^5.0.0",
+    "@ulm/core": "^3.0.0"
+  },
+  "devDependencies": {
+    "@arcgis/core": "^5.1.26",
+    "@microsoft/api-extractor": "^7.59.2",
+    "@types/node": "^24.0.0",
+    "@ulm/core": "^3.0.0",
+    "@vitest/browser-playwright": "^5.0.1",
+    "camelcase": "^9.0.0",
+    "playwright": "^1.63.0",
+    "temporal-polyfill": "^1.0.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1",
+    "vite-plugin-dts": "^5.1.1",
+    "vitest": "^5.0.1",
+    "xstate": "^5.33.2"
+  }
+}
