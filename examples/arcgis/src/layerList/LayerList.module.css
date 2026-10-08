@@ -48,6 +48,14 @@
   min-width: 40px;
 }
 
+.dateControls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.5rem 0.5rem 2rem;
+  background-color: #f1f3f5;
+}
+
 .dragHandle {
   flex-shrink: 0;
   cursor: grab;

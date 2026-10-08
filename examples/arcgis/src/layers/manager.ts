@@ -1,7 +1,17 @@
 import type Layer from '@arcgis/core/layers/Layer.js';
 import type { ArcGISLayerData } from '@ulm/arcgis';
 import { LayerManager } from '@ulm/core';
-import { bedTopography, coastline, contours, groundingLine, iceThickness, lakes, rockOutcrop } from './layers';
+import { Temporal } from 'temporal-polyfill';
+import {
+  bedTopography,
+  coastline,
+  contours,
+  groundingLine,
+  iceThickness,
+  lakes,
+  rockOutcrop,
+  seaIceConcentration,
+} from './layers';
 
 // The data each layer carries in this demo: the ArcGIS layer that shows it.
 export type LayerData = ArcGISLayerData;
@@ -40,6 +50,21 @@ function addStartingLayers(): void {
   addLayer('add', 'lakes', 'Lakes', lakes, false);
   addLayer('add', 'contours', 'Contours', contours, false);
   addLayer('add', 'coastline', 'Coastline', coastline);
+
+  // Sea ice concentration is published daily, so the layer starts on yesterday's map.
+  addGroup('sea-ice', 'Sea ice');
+  manager.addLayer({
+    layerConfig: {
+      layerId: 'sea-ice-concentration',
+      layerName: 'AMSR2 concentration',
+      layerType: 'layer',
+      parentId: 'sea-ice',
+      layerData: { arcgisLayer: seaIceConcentration },
+      timeInfo: { type: 'single', precision: 'date', value: Temporal.Now.plainDateISO('UTC').subtract({ days: 1 }) },
+    },
+    enabled: true,
+    position: 'top',
+  });
 }
 
 addStartingLayers();

@@ -16,7 +16,8 @@
     "@ulm/arcgis": "*",
     "@ulm/core": "*",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "temporal-polyfill": "^1.0.5"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
