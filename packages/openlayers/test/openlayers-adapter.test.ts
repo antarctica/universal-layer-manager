@@ -12,8 +12,7 @@ interface LayerData {
 
 type Manager = LayerManager<LayerData>;
 
-function setup() {
-  const map = new OlMap();
+function setup(map = new OlMap()) {
   const manager: Manager = new LayerManager<LayerData>({ allowNestedGroupLayers: true });
   manager.setAdapter(new OpenLayersLayerManagerAdapter<LayerData>(map));
   return { map, manager };
@@ -118,5 +117,17 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.moveLayer('first', { parentId: null, position: 'top' });
 
     expect(drawOrder(map, openlayersLayers)).toEqual(['second', 'third', 'first']);
+  });
+
+  it('draws its layers above the layers already on the map when it is attached', () => {
+    const appLayer = vectorLayer('app');
+    const { map, manager } = setup(new OlMap({ layers: [appLayer] }));
+    const openlayersLayers = ['first', 'second'].map((id) => vectorLayer(id));
+
+    for (const openlayersLayer of openlayersLayers) {
+      manager.addLayer({ ...layerParams(layerId(openlayersLayer), openlayersLayer), visible: true, position: 'top' });
+    }
+
+    expect(drawOrder(map, [appLayer, ...openlayersLayers])).toEqual(['app', 'first', 'second']);
   });
 });
