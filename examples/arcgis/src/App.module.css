@@ -5,6 +5,8 @@
 }
 
 .panel {
+  /* The ArcGIS components set their own font on the page. The panel keeps the browser's, like the other examples. */
+  font-family: initial;
   width: 420px;
   padding: 20px;
   overflow-y: auto;
