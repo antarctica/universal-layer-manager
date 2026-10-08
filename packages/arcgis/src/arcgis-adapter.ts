@@ -14,7 +14,7 @@ export class ArcGISLayerManagerAdapter<TLayer = unknown, TGroup = undefined>
 
   constructor(map: EsriMap, ...[options = {}]: ArcGISAdapterArgs<TLayer>) {
     super(map, { renderLayer: options.renderLayer ?? defaultArcGISRenderLayer, disposeLayer: options.disposeLayer });
-    this.container = options.container ?? new GroupLayer();
+    this.container = options.container ?? new GroupLayer({ listMode: 'hide' });
     this.ownsContainer = !options.container;
   }
 
