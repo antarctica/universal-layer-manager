@@ -28,6 +28,7 @@ export default withMermaid(defineConfig({
           { text: 'Leaflet XState (live)', link: `${site}examples/leaflet-xstate/`, target: '_self' },
           { text: 'MapLibre (live)', link: `${site}examples/maplibre/`, target: '_self' },
           { text: 'ArcGIS (live)', link: `${site}examples/arcgis/`, target: '_self' },
+          { text: 'OpenLayers (live)', link: `${site}examples/openlayers/`, target: '_self' },
         ],
       },
       { text: 'Changelog', link: '/changelog' },

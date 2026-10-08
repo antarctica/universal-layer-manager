@@ -122,6 +122,27 @@ manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, { renderLayer }
 
 See the [ArcGIS guide](./adapters/arcgis) for the group layer, the `container` option and opacity.
 
+## OpenLayers and React
+
+[Live demo](https://antarctica.github.io/universal-layer-manager/examples/openlayers/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/openlayers)
+
+A React layer list alongside an OpenLayers map, with raster and vector tile layers, nested groups, and a basemap switcher. The layer list is the same shape as the MapLibre example.
+
+### The approach
+
+The manager and list work as in the other examples. The differences are on the map side:
+
++ Each layer's `layerData.openlayersLayer` is the OpenLayers layer that shows it, which the adapter shows by default.
++ The basemap is two layers of the app's own, the map and its labels. The app puts a layer group between them and passes it as the `container` option, so the managed layers sit below the labels, in the manager's order.
++ The vector layers share one OpenFreeMap vector tile source, and each draws the features of one source layer.
++ Switching the basemap gives the app's two layers new sources. The managed layers are untouched.
+
+```ts
+manager.setAdapter(new OpenLayersLayerManagerAdapter<LayerData>(map, { container: managedLayers }));
+```
+
+See the [OpenLayers guide](./adapters/openlayers) for the layer group, the `container` option and opacity.
+
 ## Leaflet and React with XState (advanced)
 
 [Live demo](https://antarctica.github.io/universal-layer-manager/examples/leaflet-xstate/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/leaflet-xstate)
