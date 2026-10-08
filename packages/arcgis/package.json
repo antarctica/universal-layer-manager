@@ -1,7 +1,7 @@
 {
   "name": "@ulm/arcgis",
   "type": "module",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "ArcGIS Maps SDK for JavaScript adapter for @ulm/core",
   "author": {
     "name": "Jonathan Dawe",
