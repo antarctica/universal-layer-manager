@@ -29,7 +29,7 @@ interface LayerData {
 }
 
 const map = new EsriMap();
-new MapView({ container: 'map', map, center: [-118.805, 34.02], zoom: 13 });
+const view = new MapView({ container: 'map', map, center: [-118.805, 34.02], zoom: 13 });
 
 const manager = new LayerManager<LayerData>();
 manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map));
