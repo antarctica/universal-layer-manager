@@ -107,6 +107,19 @@ describe('openLayersLayerManagerAdapter', () => {
     expect(openlayersLayer.getOpacity()).toBeCloseTo(0.4);
   });
 
+  it('draws the new OpenLayers layer in the old one\'s place when a layer\'s data changes', () => {
+    const { map, manager } = setup();
+    const [bottom, before, top] = ['bottom', 'before', 'top'].map((id) => vectorLayer(id));
+    manager.addLayer({ ...layerParams('bottom', bottom), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true, position: 'top' });
+    manager.addLayer({ ...layerParams('top', top), visible: true, position: 'top' });
+    const after = vectorLayer('after');
+
+    manager.updateLayerData('layer-1', { openlayersLayer: after });
+
+    expect(drawOrder(map, [bottom, before, after, top])).toEqual(['bottom', 'after', 'top']);
+  });
+
   it('draws layers in the manager\'s order, from the bottom up', () => {
     const { map, manager } = setup();
     const openlayersLayers = ['first', 'second', 'third'].map((id) => vectorLayer(id));
