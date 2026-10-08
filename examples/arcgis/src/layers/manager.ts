@@ -31,9 +31,9 @@ function addLayer(parentId: string, layerId: string, layerName: string, arcgisLa
 
 function addStartingLayers(): void {
   addGroup('ice-sheet', 'Ice sheet (Bedmap3)', false);
-  addLayer('ice-sheet', 'bed-topography', 'Bed topography', bedTopography);
-  addLayer('ice-sheet', 'ice-thickness', 'Ice thickness', iceThickness);
-  addLayer('ice-sheet', 'grounding-line', 'Grounding line', groundingLine);
+  addLayer('ice-sheet', 'bed-topography', 'Bed topography', bedTopography, false);
+  addLayer('ice-sheet', 'ice-thickness', 'Ice thickness', iceThickness, true);
+  addLayer('ice-sheet', 'grounding-line', 'Grounding line', groundingLine, false);
 
   addGroup('add', 'Digital Database');
   addLayer('add', 'rock-outcrop', 'Rock outcrop', rockOutcrop, false);
