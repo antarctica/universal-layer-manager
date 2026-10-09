@@ -7,11 +7,19 @@
   <meta name="description" content="A simple example of a layer list using the Layer Manager">
 </head>
 <body>
-  <div class="controls">
-    <button id="add-layer-btn">+ Layer</button>
-    <button id="add-group-btn">+ Group</button>
-  </div>
-  <div id="layer-list"></div>
+  <main class="layout">
+    <section>
+      <div class="controls">
+        <button id="add-layer-btn">+ Layer</button>
+        <button id="add-group-btn">+ Group</button>
+      </div>
+      <div id="layer-list"></div>
+    </section>
+    <section>
+      <h2>Events</h2>
+      <ol id="event-log" class="event-log"></ol>
+    </section>
+  </main>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
