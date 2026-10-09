@@ -6,7 +6,7 @@ The repository includes example applications that take different approaches to b
 
 [Live demo](https://antarctica.github.io/universal-layer-manager/examples/simple/) · [Source](https://github.com/antarctica/universal-layer-manager/tree/main/examples/simple)
 
-A layer list built with plain DOM code, with no framework and no map. You can add layers and groups, switch them on and off, and change their opacity.
+A layer list built with plain DOM code, with no framework and no map. You can add layers and groups, switch them on and off, change their opacity, and raise, lower or remove them. An event log beside the list shows each change hook as it fires.
 
 ### The approach
 
@@ -23,6 +23,23 @@ function render() {
 ```
 
 The list never keeps its own copy of the layer state. Its checkboxes and sliders call manager methods such as `setEnabled` and `setOpacity`, and the subscription then redraws the list with the result. Redrawing everything keeps the code simple and is fast enough for a short list. For long lists, subscribe to each layer instead, as the Leaflet example does.
+
+### The event log
+
+The change hooks in the manager's options report each change separately, the same hooks an adapter receives. The example writes each one to a log:
+
+```ts
+const manager = new LayerManager<undefined>({
+  allowNestedGroupLayers: true,
+  onLayerAdded: (info) => logEvent('onLayerAdded', info.layerName),
+  onVisibilityChanged: (info, visible) => logEvent('onVisibilityChanged', `${info.layerName} → ${visible ? 'visible' : 'hidden'}`),
+  onOrderChanged: (layerOrder) => logEvent('onOrderChanged', `bottom → top: ${layerOrder.join(', ') || 'empty'}`),
+  onError: (error) => logEvent('onError', error.message),
+  // …and the other hooks
+});
+```
+
+The log shows that one action can report many changes. Switch off a group and the group and every layer inside it report `onVisibilityChanged`, then the group alone reports `onEnabledChanged`, as its children stay switched on. Change a group's opacity and the group and each layer inside it report their new computed opacity. Try to remove a group that still has children and the manager rejects it through `onError`.
 
 ## Leaflet and React
 
