@@ -1,7 +1,6 @@
 {
   "name": "@ulm/leaflet",
   "type": "module",
-  "version": "3.1.1",
   "description": "Leaflet adapter for @ulm/core",
   "author": {
     "name": "Jonathan Dawe",
