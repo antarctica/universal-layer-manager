@@ -135,6 +135,31 @@ describe('arcGISLayerManagerAdapter', () => {
     expect(drawOrder(map, [appLayer, ...arcgisLayers])).toEqual(['app', 'first', 'second']);
   });
 
+  it('keeps a layer the app adds later above its layers', () => {
+    const { map, manager } = setup();
+    const [first, second] = ['first', 'second'].map((id) => new GraphicsLayer({ id }));
+    const appLayer = new GraphicsLayer({ id: 'app' });
+    manager.addLayer({ ...layerParams('first', first), visible: true, position: 'top' });
+    map.add(appLayer);
+
+    manager.addLayer({ ...layerParams('second', second), visible: true, position: 'top' });
+
+    expect(drawOrder(map, [first, second, appLayer])).toEqual(['first', 'second', 'app']);
+  });
+
+  it('keeps a layer the app adds later above a layer whose data changes', () => {
+    const { map, manager } = setup();
+    const before = new GraphicsLayer({ id: 'before' });
+    const appLayer = new GraphicsLayer({ id: 'app' });
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+    map.add(appLayer);
+    const after = new GraphicsLayer({ id: 'after' });
+
+    manager.updateLayerData('layer-1', { arcgisLayer: after });
+
+    expect(drawOrder(map, [before, after, appLayer])).toEqual(['after', 'app']);
+  });
+
   it('leaves only the app\'s own layers on the map when it is detached', () => {
     const appLayer = new GraphicsLayer({ id: 'app' });
     const { map, manager } = setup(new EsriMap({ layers: [appLayer] }));
@@ -145,10 +170,13 @@ describe('arcGISLayerManagerAdapter', () => {
     expect(map.allLayers.toArray()).toEqual([appLayer]);
   });
 
-  it('hides the group it adds itself from ArcGIS layer lists', () => {
-    const { map } = setup(new EsriMap(), { container: undefined });
+  it('adds its layers straight to the map, with no group around them', () => {
+    const { map, manager } = setup();
+    const arcgisLayer = new GraphicsLayer();
 
-    expect(map.layers.map(({ listMode }) => listMode).toArray()).toEqual(['hide']);
+    manager.addLayer({ ...layerParams('layer-1', arcgisLayer), visible: true });
+
+    expect(map.layers.toArray()).toEqual([arcgisLayer]);
   });
 
   it('draws its layers in the group it is given, where the app put that group', () => {
@@ -162,6 +190,15 @@ describe('arcGISLayerManagerAdapter', () => {
     }
 
     expect(drawOrder(map, [below, above, ...arcgisLayers])).toEqual(['below', 'first', 'second', 'above']);
+  });
+
+  it('leaves the group it is given off the map until the app places it', () => {
+    const container = new GroupLayer();
+    const { map, manager } = setup(new EsriMap(), { container });
+
+    manager.addLayer({ ...layerParams('layer-1', new GraphicsLayer()), visible: true });
+
+    expect(map.layers.toArray()).toEqual([]);
   });
 
   it('leaves the group it is given on the map, emptied, when it is detached', () => {

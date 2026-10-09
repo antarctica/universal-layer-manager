@@ -124,9 +124,9 @@ For other changes, such as opacity, use the `LayerManager` callbacks. See the [`
 
 ## How stacking works
 
-The adapter keeps every layer in one [`LayerGroup`](https://openlayers.org/en/latest/apidoc/module-ol_layer_Group-LayerGroup.html) and orders the layers inside it whenever the manager's order changes. When it is attached, it adds that group to the top of the map. Layers you add to the map yourself keep their places: those already on the map stay below the group, and those you add later go above it.
+The adapter adds each layer straight to the map, with no group around them, and keeps them together in the manager's order. Your own layers keep their places: those already on the map stay below the managed layers, and those you add later go above them.
 
-To put the managed layers somewhere else, such as below an overlay layer of your own, create the group yourself, place it on the map, and pass it as the `container` option:
+To choose where the managed layers sit, such as between a basemap and its labels, create a [`LayerGroup`](https://openlayers.org/en/latest/apidoc/module-ol_layer_Group-LayerGroup.html), add it to the map, and pass it as the `container` option:
 
 ```ts
 import LayerGroup from 'ol/layer/Group.js';
@@ -137,13 +137,13 @@ map.getLayers().insertAt(1, container);
 manager.setAdapter(new OpenLayersLayerManagerAdapter<LayerData>(map, { container }));
 ```
 
-The adapter doesn't add a group you pass to the map, so place it first. When the adapter is detached, it takes its layers out of the group. It removes the group from the map only if it created the group itself.
+The adapter doesn't add a group you pass, so add it to the map first. `map.getLayers()` then lists the group rather than the layers in it, so use `map.getAllLayers()` to get every layer. When the adapter is detached, it takes its layers off the map, or out of the group.
 
-OpenLayers draws layers in order of their `zIndex`. A layer in the group with no `zIndex` of its own takes the group's, so the order inside the group holds. Leave `zIndex` unset on the layers you return: a layer with its own `zIndex` is drawn by that value among every layer on the map, out of the manager's order.
+OpenLayers draws layers in order of their `zIndex`. Leave `zIndex` unset on the layers you return: they then follow the manager's order. A layer with its own `zIndex` is drawn by that value among every layer on the map, ignoring the manager's order.
 
 ## How visibility and opacity work
 
-The adapter calls each layer's `setVisible` and `setOpacity`. A hidden layer stays in the group, switched off, so showing it again is quick. Its opacity is the layer's computed opacity, which replaces any opacity you set on the OpenLayers layer yourself.
+The adapter calls each layer's `setVisible` and `setOpacity`. A hidden layer stays on the map, switched off, so showing it again is quick. Its opacity is the layer's computed opacity, which replaces any opacity you set on the OpenLayers layer yourself.
 
 OpenLayers fades and hides a layer with the groups it is in. Leave a group you pass as `container` visible and at full opacity, or every managed layer fades or hides with it.
 
@@ -152,5 +152,5 @@ OpenLayers fades and hides a layer with the groups it is in. Leave a group you p
 + Only layers are drawn. Groups have no OpenLayers layer of their own, but hiding or fading a group hides or fades the layers inside it.
 + A `LayerGroup` you return counts as one layer. Its layers keep their own visibility and opacity, combined with what the adapter sets on the group. Set them yourself, in `renderLayer` from values in `layerData`.
 + Each OpenLayers layer can be shown for one layer only. A layer group's layers can't hold the same layer twice, so returning a layer that is already shown throws `Duplicate item added to a unique collection`.
-+ `map.setLayers()` and `map.setLayerGroup()` replace every layer on the map, the adapter's group included. Add your own layers with `map.addLayer()` instead.
++ `map.setLayers()` and `map.setLayerGroup()` replace every layer on the map, the managed layers included. Add your own layers with `map.addLayer()` instead.
 + If something else, such as a layer switcher, changes a managed layer's visibility or opacity, the manager doesn't know.

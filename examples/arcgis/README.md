@@ -27,7 +27,7 @@ The example will be available at `http://localhost:5179`
   - Sea ice: daily AMSR2 sea ice concentration from the University of Bremen, a WMS layer from the Ice Logistics Portal's GeoServer, with a date to pick
   - Digital Database: high resolution contours as vector tiles with their heights labelled, and coastline, lakes and rock outcrop at medium resolution (only the coastline on at the start)
   - Ice sheet, off at the start: Bedmap3 bed topography and ice thickness as tiled images, and the grounding line where the ice starts to float
-- The adapter keeping every layer in one group layer of its own, in the manager's order
+- The adapter adding every layer straight to the map, in the manager's order
 - A time-aware layer: `renderLayer` sets the WMS layer's `timeExtent` from its time info, and ArcGIS asks the server for that day
 - Popups from each layer's portal item, or a default one listing its fields
 
@@ -60,7 +60,7 @@ Each layer's `layerData.arcgisLayer` is the ArcGIS layer that shows it. That is 
 manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map));
 ```
 
-The adapter adds the layers to a group layer it puts on top of the map, hidden from ArcGIS layer lists. It shows and hides them with `visible`, fades them with `opacity`, and reorders them in the group as the manager's order changes.
+The adapter adds the layers straight to the map, as ordinary layers. It shows and hides them with `visible`, fades them with `opacity`, and reorders them as the manager's order changes.
 
 ### Attaching to the map component
 

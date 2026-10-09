@@ -129,7 +129,7 @@ A React layer list alongside the `<arcgis-map>` component, set in Antarctica on 
 The manager and list work as in the other examples. The differences are on the map side:
 
 + Each layer's `layerData.arcgisLayer` is the ArcGIS layer that shows it, which the adapter shows by default.
-+ The adapter keeps the managed layers in one group layer of its own, in the manager's order.
++ The adapter adds the managed layers straight to the map, in the manager's order.
 + The sea ice layer is time-aware. A `renderLayer` sets its `timeExtent` from the layer's `timeInfo`, and ArcGIS asks the WMS server for that day.
 + The adapter is attached in a layout effect, so it takes its layers off the map before `<arcgis-map>` destroys the map.
 
@@ -137,7 +137,7 @@ The manager and list work as in the other examples. The differences are on the m
 manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, { renderLayer }));
 ```
 
-See the [ArcGIS guide](./adapters/arcgis) for the group layer, the `container` option and opacity.
+See the [ArcGIS guide](./adapters/arcgis) for stacking, the `container` option and opacity.
 
 ## OpenLayers and React
 

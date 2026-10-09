@@ -146,6 +146,31 @@ describe('openLayersLayerManagerAdapter', () => {
     expect(drawOrder(map, [appLayer, ...openlayersLayers])).toEqual(['app', 'first', 'second']);
   });
 
+  it('keeps a layer the app adds later above its layers', () => {
+    const { map, manager } = setup();
+    const [first, second] = ['first', 'second'].map((id) => vectorLayer(id));
+    const appLayer = vectorLayer('app');
+    manager.addLayer({ ...layerParams('first', first), visible: true, position: 'top' });
+    map.addLayer(appLayer);
+
+    manager.addLayer({ ...layerParams('second', second), visible: true, position: 'top' });
+
+    expect(drawOrder(map, [first, second, appLayer])).toEqual(['first', 'second', 'app']);
+  });
+
+  it('keeps a layer the app adds later above a layer whose data changes', () => {
+    const { map, manager } = setup();
+    const before = vectorLayer('before');
+    const appLayer = vectorLayer('app');
+    manager.addLayer({ ...layerParams('layer-1', before), visible: true });
+    map.addLayer(appLayer);
+    const after = vectorLayer('after');
+
+    manager.updateLayerData('layer-1', { openlayersLayer: after });
+
+    expect(drawOrder(map, [before, after, appLayer])).toEqual(['after', 'app']);
+  });
+
   it('leaves only the app\'s own layers on the map when it is detached', () => {
     const appLayer = vectorLayer('app');
     const { map, manager } = setup(new OlMap({ layers: [appLayer] }));
@@ -154,6 +179,15 @@ describe('openLayersLayerManagerAdapter', () => {
     manager.setAdapter(null);
 
     expect(map.getLayers().getArray()).toEqual([appLayer]);
+  });
+
+  it('adds its layers straight to the map, with no group around them', () => {
+    const { map, manager } = setup();
+    const openlayersLayer = vectorLayer();
+
+    manager.addLayer({ ...layerParams('layer-1', openlayersLayer), visible: true });
+
+    expect(map.getLayers().getArray()).toEqual([openlayersLayer]);
   });
 
   it('draws its layers in the group it is given, where the app put that group', () => {

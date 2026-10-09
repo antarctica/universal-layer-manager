@@ -10,9 +10,9 @@ A `LayerManagerAdapter` for OpenLayers. Attach it with `manager.setAdapter(adapt
 |--------|------|-------------|
 | `renderLayer` | `(info, map, current?) => BaseLayer \| null` | Returns the OpenLayers layer to show for a layer, or `null` to leave it off the map. Called when a layer is added, and again when its `layerData` or `timeInfo` changes, with the OpenLayers layer already shown as `current`. Return `current` to keep it. Defaults to `defaultOpenLayersRenderLayer`. Required unless the layer data is `OpenLayersLayerData` |
 | `disposeLayer` | `(openlayersLayer, layerId) => void` | Called with an OpenLayers layer `renderLayer` returned, once the adapter discards it: when its layer is removed, when `renderLayer` returns a different one, and when the adapter is detached. Not called when a layer is hidden. The adapter never disposes of layers itself |
-| `container` | `LayerGroup` | The layer group to keep every layer in, already placed on the map. Without it, the adapter creates a group and adds it to the top of the map |
+| `container` | `LayerGroup` | A layer group to draw every layer in. Add it to the map yourself first: the adapter doesn't. Without it, the adapter adds each layer straight to the map, above the layers already there |
 
-`LayerManager` calls the adapter's methods as layers change, so you don't call them yourself. When the adapter is detached, replaced, or the manager is destroyed, it takes every layer it added off the map, and removes its group if it created it.
+`LayerManager` calls the adapter's methods as layers change, so you don't call them yourself. When the adapter is detached, replaced, or the manager is destroyed, it takes every layer it added off the map. A `container` stays on the map, empty.
 
 ## `defaultOpenLayersRenderLayer(info)`
 
