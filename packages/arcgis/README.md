@@ -1,6 +1,6 @@
 # @ulm/arcgis
 
-ArcGIS Maps SDK for JavaScript adapter for [`@ulm/core`](https://www.npmjs.com/package/@ulm/core). As layers change in the manager, the adapter adds, removes, shows, hides, fades and stacks the matching ArcGIS layers, in a group layer of its own.
+ArcGIS Maps SDK for JavaScript adapter for [`@ulm/core`](https://www.npmjs.com/package/@ulm/core). As layers change in the manager, the adapter adds, removes, shows, hides, fades and stacks the matching ArcGIS layers.
 
 **[Documentation →](https://antarctica.github.io/universal-layer-manager/adapters/arcgis)**
 

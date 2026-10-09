@@ -1,6 +1,6 @@
 # @ulm/openlayers
 
-OpenLayers adapter for [`@ulm/core`](https://www.npmjs.com/package/@ulm/core). As layers change in the manager, the adapter adds, removes, shows, hides, fades and stacks the matching OpenLayers layers, in a layer group of its own.
+OpenLayers adapter for [`@ulm/core`](https://www.npmjs.com/package/@ulm/core). As layers change in the manager, the adapter adds, removes, shows, hides, fades and stacks the matching OpenLayers layers.
 
 **[Documentation →](https://antarctica.github.io/universal-layer-manager/adapters/openlayers)**
 

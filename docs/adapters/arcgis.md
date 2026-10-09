@@ -115,30 +115,29 @@ For other changes, such as opacity, use the `LayerManager` callbacks. See the [`
 
 ## How stacking works
 
-The adapter keeps every layer in one [`GroupLayer`](https://developers.arcgis.com/javascript/latest/references/core/layers/GroupLayer/) and orders the layers inside it whenever the manager's order changes. When it is attached, it adds that group to the top of the map. Layers you add to the map yourself keep their places: those already on the map stay below the group, and those you add later go above it.
+The adapter adds each layer straight to `map.layers`, with no group around them, so ArcGIS components such as the Legend see them as ordinary layers. It keeps them together in the manager's order. Layers you add to the map yourself keep their places: those already on the map stay below the managed layers, and those you add later go above them. Basemap layers are drawn apart from `map.layers`, so they stay below, and reference layers stay above.
 
-To put the managed layers somewhere else, such as below an overlay group of your own, create the group yourself, place it on the map, and pass it as the `container` option:
+To keep the managed layers inside a group, such as one for each of several managers, create a [`GroupLayer`](https://developers.arcgis.com/javascript/latest/references/core/layers/GroupLayer/), add it to the map, and pass it as the `container` option:
 
 ```ts
 import GroupLayer from '@arcgis/core/layers/GroupLayer.js';
 
-const container = new GroupLayer({ listMode: 'hide' });
-map.add(container, 0);
+const container = new GroupLayer();
+map.add(container);
 
 manager.setAdapter(new ArcGISLayerManagerAdapter<LayerData>(map, { container }));
 ```
 
-When the adapter is detached, it takes its layers out of the group. It removes the group from the map only if it created the group itself.
+The adapter doesn't add a group you pass to the map, so add it first. When the adapter is detached, it takes its layers off the map, or out of the group.
 
 In a `SceneView`, ArcGIS draws tiled layers before other layers, whatever their order, so the order applies within each kind.
 
 ## How visibility and opacity work
 
-The adapter sets each layer's `visible` and `opacity`. A hidden layer stays in the group with `visible` set to `false`, so showing it again is quick. Its `opacity` is the layer's computed opacity, which replaces any opacity you set on the ArcGIS layer yourself.
+The adapter sets each layer's `visible` and `opacity`. A hidden layer stays on the map with `visible` set to `false`, so showing it again is quick. Its `opacity` is the layer's computed opacity, which replaces any opacity you set on the ArcGIS layer yourself.
 
 ## Things to know
 
 + Only layers are drawn. Groups have no ArcGIS layer of their own, but hiding or fading a group hides or fades the layers inside it.
 + A `GroupLayer`, `SubtypeGroupLayer` or `MapImageLayer` you return counts as one layer. Set the visibility of its sublayers yourself, in `renderLayer` from values in `layerData`.
-+ An ArcGIS layer has one parent at a time. If a layer you return is already on the map, the adapter moves it into its group.
-+ The group the adapter creates has `listMode` set to `'hide'`, so the `arcgis-layer-list` component doesn't show it or the layers in it. Use your own layer list, driven by the manager. If something else changes a managed layer's `visible` or `opacity`, the manager doesn't know.
++ The `arcgis-layer-list` component shows the managed layers too, and changes their `visible` without telling the manager. Use your own layer list, driven by the manager, and set `listMode: 'hide'` on the layers you return to keep them out of it. If something else changes a managed layer's `visible` or `opacity`, the manager doesn't know.

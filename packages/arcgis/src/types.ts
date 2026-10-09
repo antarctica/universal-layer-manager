@@ -18,8 +18,8 @@ export type ArcGISRenderLayer<TLayer> = RenderLayer<TLayer, EsriMap, Layer>;
 
 export interface ArcGISAdapterOptions<TLayer> extends RenderAdapterOptions<TLayer, EsriMap, Layer> {
   /**
-   * The group layer to draw every layer in, already on the map where the app wants them. Leave it out to draw them in
-   * a group the adapter adds on top of the map.
+   * A group layer to draw every layer in. The app adds it to the map. Leave it out to draw the layers straight on the
+   * map, above the layers already there.
    */
   container?: GroupLayer;
 }

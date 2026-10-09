@@ -17,8 +17,7 @@ const ANTARCTIC_POLAR_STEREOGRAPHIC = new SpatialReference({ wkid: 3031 });
 
 const ANTARCTICA = new Extent({ xmin: -3e6, ymin: -3e6, xmax: 3e6, ymax: 3e6, spatialReference: ANTARCTIC_POLAR_STEREOGRAPHIC });
 
-// The map, with the manager attached while it is mounted. The adapter keeps the manager's layers in a group of its own
-// on the map.
+// The map, with the manager attached while it is mounted. The adapter adds the manager's layers straight to the map.
 export function ArcGISMap(): React.ReactElement {
   const manager = useLayerManager();
   const [map] = React.useState(() => new EsriMap({ basemap: new Basemap({ portalItem: { id: BAS_BASEMAP_ID } }) }));

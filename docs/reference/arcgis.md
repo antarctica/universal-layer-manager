@@ -10,9 +10,9 @@ A `LayerManagerAdapter` for the ArcGIS Maps SDK for JavaScript. Attach it with `
 |--------|------|-------------|
 | `renderLayer` | `(info, map, current?) => Layer \| null` | Returns the ArcGIS layer to show for a layer, or `null` to leave it off the map. Called when a layer is added, and again when its `layerData` or `timeInfo` changes, with the ArcGIS layer already shown as `current`. Return `current` to keep it. Defaults to `defaultArcGISRenderLayer`. Required unless the layer data is `ArcGISLayerData` |
 | `disposeLayer` | `(arcgisLayer, layerId) => void` | Called with an ArcGIS layer `renderLayer` returned, once the adapter discards it: when its layer is removed, when `renderLayer` returns a different one, and when the adapter is detached. Not called when a layer is hidden. The adapter never destroys layers itself |
-| `container` | `GroupLayer` | The group layer to keep every layer in, already placed on the map. Without it, the adapter creates a group with `listMode: 'hide'` and adds it to the top of the map |
+| `container` | `GroupLayer` | A group layer to draw every layer in. Add it to the map yourself first: the adapter doesn't. Without it, the adapter adds each layer straight to `map.layers`, above the layers already there |
 
-`LayerManager` calls the adapter's methods as layers change, so you don't call them yourself. When the adapter is detached, replaced, or the manager is destroyed, it takes every layer it added off the map, and removes its group if it created it.
+`LayerManager` calls the adapter's methods as layers change, so you don't call them yourself. When the adapter is detached, replaced, or the manager is destroyed, it takes every layer it added off the map. A `container` stays on the map, empty.
 
 ## `defaultArcGISRenderLayer(info)`
 

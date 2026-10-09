@@ -63,7 +63,7 @@ The adapter adds each layer to the group, switches it on and off with `setVisibl
 
 ### The basemap
 
-The basemap is two tile layers of the app's own: the map without labels, and the labels alone. The map holds them with the adapter's group between them:
+The basemap is two tile layers of the app's own: the map without labels, and the labels alone. The map holds them with the group for the managed layers between them:
 
 ```ts
 const map = new OlMap({ target, layers: [base, managedLayers, labels], view });
