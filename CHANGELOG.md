@@ -11,6 +11,16 @@ The scope on each entry names the package that changed.
 Sections are drafted from the commit history with `npm run changelog:draft` and
 edited before release. To see what is pending, run `npm run changelog:preview`.
 
+## [3.3.0] - 2026-10-09
+
+### Changed
+
+- **arcgis**: Layers go straight onto the map instead of into a hidden `GroupLayer`, so ArcGIS components such as the Legend see them as ordinary layers
+- **arcgis**: A `container` passed in is no longer added to the map. Add it yourself first
+- **openlayers**: Layers go straight onto the map instead of into a `LayerGroup` of the adapter's own. Pass `container` to keep them in a group
+
+[3.3.0]: https://github.com/antarctica/universal-layer-manager/compare/v3.2.0...v3.3.0
+
 ## [3.2.0] - 2026-10-09
 
 ### Added
