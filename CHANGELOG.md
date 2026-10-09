@@ -5,11 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-`@ulm/core`, `@ulm/leaflet`, `@ulm/maplibre` and `@ulm/arcgis` ship on the same version. The scope on each
-entry names the package that changed.
+`@ulm/core`, `@ulm/leaflet`, `@ulm/maplibre`, `@ulm/arcgis` and `@ulm/openlayers` ship on the same version.
+The scope on each entry names the package that changed.
 
 Sections are drafted from the commit history with `npm run changelog:draft` and
 edited before release. To see what is pending, run `npm run changelog:preview`.
+
+## [3.2.0] - 2026-10-09
+
+### Added
+
+- **openlayers**: New `@ulm/openlayers` package with `OpenLayersLayerManagerAdapter`, which shows each layer as an OpenLayers layer
+  - Keeps every layer in one `LayerGroup`, which it adds on top of the map. Layers added outside the manager keep their places
+  - The `container` option keeps the layers in a `LayerGroup` the app has already placed on the map
+  - Sets each layer's visibility and opacity, using the opacity combined with its groups, and stacks the layers in the manager's order
+  - `renderLayer` returns the OpenLayers layer to show for a layer. Without it, `defaultOpenLayersRenderLayer` shows `layerData.openlayersLayer`
+  - When detached, takes its layers off the map, and the group too if it created it. It never destroys layers; use `disposeLayer` for that
+  - Needs `ol` 10, and like it, is published as ES modules only
+- **examples**: React OpenLayers example with a layer list, basemap switching, and drag-and-drop reordering
+- **examples**: Log each change hook in the simple example
+
+[3.2.0]: https://github.com/antarctica/universal-layer-manager/compare/v3.1.1...v3.2.0
 
 ## [3.1.1] - 2026-10-08
 
