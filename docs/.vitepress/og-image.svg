@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#fff"/>
+  <rect y="610" width="600" height="20" fill="#3386b9"/>
+  <rect x="600" y="610" width="600" height="20" fill="#61d4a8"/>
+
+  <svg x="80" y="165" width="280" height="280" viewBox="0 0 18.5 18.5">
+    <defs>
+      <clipPath id="a"><circle cx="9.25" cy="9.25" r="9.156"/></clipPath>
+    </defs>
+    <circle cx="9.25" cy="9.25" r="9.156"/>
+    <rect x=".094" y="12.594" width="18.313" height="5.813" fill="#fff" clip-path="url(#a)"/>
+    <circle cx="9.25" cy="9.25" r="9.156" fill="none" stroke="#000" stroke-width=".187"/>
+    <g stroke="#000" stroke-width=".279" transform="matrix(.88947 .457 -.88947 .457 -51.858 -43.392)">
+      <rect width="8.861" height="8.756" x="90.25" y="21.612" rx=".736" ry=".87" fill="#fff"/>
+      <rect width="8.861" height="8.756" x="87.619" y="18.981" rx=".736" ry=".87" fill="#61d4a8" fill-opacity=".746" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect width="8.861" height="8.756" x="84.988" y="16.35" ry=".771" fill="#3386b9" fill-opacity=".866" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <path fill="#fff" d="M3.747 7.327c-.106.077.788.466 1.212.424.165-.066.661-.018.354.094.136.055.345.036.408.134-.042-.133.33.03.137-.116.269.085.135-.199.365-.073-.122.257.587.061.493.317.091.158.368.268.496.4.486.26.332-.386.679-.124.301.111.552.291.988.326.168.124.306-.087.567-.021.288-.072.779-.069.781-.283.325-.031.169-.15.328-.26.343-.074.667-.166.998-.242-.05-.317.802.016.811.199.033.282.638.206.796.034.412-.035.562-.207.707-.357.434-.079.345-.374.482-.573.032-.158-.38-.243-.195-.367-.257-.183-.392-.398-.324-.604-.375-.087-.452-.271-.382-.444-.318-.064-.281-.388-.659-.238-.203-.092-.437-.161-.446-.297-.33-.073-.468-.091-.77-.048-.274.02-.61.069-.721-.143-.109-.193-.571-.25-.886-.356-.177-.114-.511-.34-.739-.159-.162.092-.705.057-.821.237-.021.201-.598-.192-.739.045-.228.251-.995.093-1.237.334-.37.132-.668.254-.784.486.119.193.022.411.323.578-.086.146.406.171.465.339.348.157.386.364.028.489-.154.181-.233.375-.725.317-.405.089-.753.043-1.197.068-.335-.023-.688-.194-.794-.117z"/>
+  </svg>
+
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" fill="#1b1b1f">
+    <text x="420" y="225" font-size="78" font-weight="700">Universal</text>
+    <text x="420" y="315" font-size="78" font-weight="700">Layer Manager</text>
+    <text x="420" y="385" font-size="32" fill="#3c3c43">State-machine-powered layer management</text>
+    <text x="420" y="427" font-size="32" fill="#3c3c43">for any map library and UI framework.</text>
+    <text x="420" y="500" font-size="26" font-weight="700" fill="#3386b9">Leaflet &#183; MapLibre &#183; ArcGIS &#183; OpenLayers</text>
+  </g>
+</svg>
